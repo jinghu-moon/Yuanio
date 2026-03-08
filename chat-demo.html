@@ -1,0 +1,2491 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yuanio Chat UI — Redesigned TopBar</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ═══════════════════════════════════════════════════════
+   Design Tokens — Vercel Geist
+   ═══════════════════════════════════════════════════════ */
+      :root {
+        /* Neutral Gray Scale */
+        --ds-gray-50: #fafafa;
+        --ds-gray-100: #f2f2f2;
+        --ds-gray-200: #ebebeb;
+        --ds-gray-300: #e6e6e6;
+        --ds-gray-400: #d9d9d9;
+        --ds-gray-500: #c9c9c9;
+        --ds-gray-600: #a8a8a8;
+        --ds-gray-700: #8f8f8f;
+        --ds-gray-800: #7d7d7d;
+        --ds-gray-900: #666666;
+        --ds-gray-1000: #171717;
+
+        /* Functional Colors */
+        --ds-blue-100: #edf6ff;
+        --ds-blue-200: #d3ecff;
+        --ds-blue-700: #0070f3;
+        --ds-red-100: #fff0f0;
+        --ds-red-700: #e5484d;
+        --ds-amber-100: #fff8eb;
+        --ds-amber-700: #f5a524;
+        --ds-green-100: #edfcf2;
+        --ds-green-600: #2e8e4e;
+        --ds-green-700: #1a7a38;
+        --ds-purple-600: #7c3aed;
+
+        /* Alpha */
+        --ds-gray-alpha-100: rgba(0, 0, 0, 0.05);
+        --ds-gray-alpha-200: rgba(0, 0, 0, 0.08);
+        --ds-gray-alpha-400: rgba(0, 0, 0, 0.16);
+        --ds-gray-alpha-600: rgba(0, 0, 0, 0.34);
+
+        /* Semantic */
+        --bg-page: var(--ds-gray-50);
+        --bg-surface: #ffffff;
+        --bg-surface-variant: var(--ds-gray-100);
+        --bg-user-bubble: var(--ds-gray-1000);
+        --bg-ai-bubble: var(--ds-gray-100);
+        --text-primary: var(--ds-gray-1000);
+        --text-secondary: var(--ds-gray-600);
+        --text-tertiary: var(--ds-gray-700);
+        --text-inverse: #ffffff;
+        --border-default: var(--ds-gray-200);
+        --border-subtle: var(--ds-gray-100);
+        --accent: var(--ds-blue-700);
+        --connected: var(--ds-green-600);
+        --reconnecting: var(--ds-amber-700);
+        --disconnected: var(--ds-red-700);
+
+        /* Agent Brand Colors */
+        --claude-color: #d97706;
+        --codex-color: #10a37f;
+        --gemini-color: #4285f4;
+
+        /* Easing */
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+        /* Elevation */
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.08);
+        --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      /* Dark mode */
+      [data-theme="dark"] {
+        --ds-gray-50: #0a0a0a;
+        --ds-gray-100: #1a1a1a;
+        --ds-gray-200: #252525;
+        --ds-gray-300: #2e2e2e;
+        --ds-gray-400: #3a3a3a;
+        --ds-gray-500: #525252;
+        --ds-gray-600: #737373;
+        --ds-gray-700: #8f8f8f;
+        --ds-gray-800: #a1a1a1;
+        --ds-gray-900: #b5b5b5;
+        --ds-gray-1000: #ededed;
+
+        --ds-blue-100: #0d1f3c;
+        --ds-blue-200: #0f2a4f;
+        --ds-red-100: #3c1414;
+        --ds-amber-100: #3c2d12;
+        --ds-green-100: #0f2918;
+
+        --ds-gray-alpha-100: rgba(255, 255, 255, 0.06);
+        --ds-gray-alpha-200: rgba(255, 255, 255, 0.09);
+        --ds-gray-alpha-400: rgba(255, 255, 255, 0.18);
+        --ds-gray-alpha-600: rgba(255, 255, 255, 0.38);
+
+        --bg-page: #0a0a0a;
+        --bg-surface: #141414;
+        --bg-surface-variant: #1a1a1a;
+        --bg-user-bubble: #ededed;
+        --bg-ai-bubble: #1a1a1a;
+        --text-primary: #ededed;
+        --text-secondary: #737373;
+        --text-tertiary: #8f8f8f;
+        --text-inverse: #0a0a0a;
+        --border-default: #252525;
+        --border-subtle: #1a1a1a;
+
+        --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--ds-gray-100);
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        color: var(--text-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 32px 16px;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+
+      [data-theme="dark"] body {
+        background: #000;
+      }
+
+      .mockup {
+        width: 390px;
+        height: 844px;
+        background: var(--bg-page);
+        border-radius: 44px;
+        box-shadow:
+          var(--shadow-lg),
+          0 0 0 8px var(--ds-gray-200);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      [data-theme="dark"] .mockup {
+        box-shadow:
+          var(--shadow-lg),
+          0 0 0 8px var(--ds-gray-300);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   Controls Panel (Dev Tools)
+   ═══════════════════════════════════════════════════════ */
+      .controls-panel {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: var(--shadow-md);
+      }
+      .ctrl-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+        white-space: nowrap;
+      }
+      .ctrl-btn:hover {
+        background: var(--bg-surface-variant);
+      }
+      .ctrl-btn.active {
+        background: var(--ds-blue-100);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .ctrl-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   1. Redesigned ChatTopBar
+   ═══════════════════════════════════════════════════════ */
+      .top-bar {
+        padding: 52px 16px 12px;
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border-default);
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* Main layout separation */
+        gap: 12px;
+      }
+
+      .top-bar-header {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0; /* Enables text truncation */
+        flex: 1;
+      }
+
+      .top-bar-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Agent Icon Container */
+      .top-bar-icon-wrapper {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: color 0.3s;
+      }
+      .top-bar-icon-wrapper svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .top-bar-name {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
+      }
+
+      .top-bar-subtitle {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: "JetBrains Mono", monospace;
+        opacity: 0.8;
+      }
+
+      .top-bar-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        position: relative; /* For dropdown positioning */
+      }
+
+      /* Minimal Connection Dot */
+      .conn-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+      }
+      .conn-badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        transition: all 0.3s;
+      }
+      .conn-badge.online .dot {
+        background: var(--connected);
+        box-shadow: 0 0 0 2px var(--ds-green-100);
+      }
+      .conn-badge.reconnecting .dot {
+        background: var(--reconnecting);
+        box-shadow: 0 0 0 2px var(--ds-amber-100);
+        animation: blink 1s infinite;
+      }
+      .conn-badge.offline .dot {
+        background: var(--disconnected);
+        box-shadow: 0 0 0 2px var(--ds-red-100);
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      /* Status Pill */
+      .agent-status-pill {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 99px;
+        white-space: nowrap;
+        margin-right: 4px;
+        transition: all 0.2s;
+      }
+      .agent-status-pill.running {
+        color: var(--accent);
+        background: var(--ds-blue-100);
+        animation: pulse-text 1.6s ease-in-out infinite;
+      }
+      .agent-status-pill.ready {
+        color: var(--text-secondary);
+        background: var(--ds-gray-alpha-100);
+      }
+      .agent-status-pill.awaiting {
+        color: var(--ds-amber-700);
+        background: var(--ds-amber-100);
+      }
+      .agent-status-pill.error {
+        color: var(--ds-red-700);
+        background: var(--ds-red-100);
+      }
+
+      @keyframes pulse-text {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Minimal Action Buttons */
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .icon-btn:hover {
+        background: var(--ds-gray-alpha-100);
+        color: var(--text-primary);
+      }
+      .icon-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Dropdown Menu */
+      .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        box-shadow: var(--shadow-dropdown);
+        min-width: 180px;
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-4px) scale(0.95);
+        transition: all 0.2s var(--ease-out-expo);
+        padding: 6px;
+      }
+
+      .dropdown-menu.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+      }
+
+      .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+      .menu-item:hover {
+        background: var(--ds-gray-alpha-100);
+      }
+      .menu-item svg {
+        width: 16px;
+        height: 16px;
+        color: var(--text-secondary);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   2. AgentStatusBar (Vibing)
+   ═══════════════════════════════════════════════════════ */
+      .vibing-bar {
+        padding: 6px 16px;
+        background: var(--ds-blue-100);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+        max-height: 0;
+        opacity: 0;
+        transition: all 0.3s var(--ease-out-expo);
+      }
+      .vibing-bar.visible {
+        max-height: 36px;
+        opacity: 1;
+        padding: 6px 16px;
+      }
+
+      .pulsing-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: breathe 2s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.4;
+          transform: scale(0.85);
+        }
+      }
+
+      .vibing-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        flex: 1;
+        transition: opacity 0.3s;
+      }
+      .vibing-tasks {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   3. ConnectionBanner
+   ═══════════════════════════════════════════════════════ */
+      .conn-banner {
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: all 0.3s var(--ease-out-expo);
+      }
+      .conn-banner.visible {
+        max-height: 48px;
+        opacity: 1;
+      }
+      .conn-banner.disconnected {
+        background: rgba(229, 72, 77, 0.1);
+      }
+      .conn-banner.reconnecting {
+        background: rgba(245, 165, 36, 0.1);
+      }
+
+      .conn-banner-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .conn-banner.disconnected .conn-banner-icon {
+        color: var(--ds-red-700);
+      }
+      .conn-banner.reconnecting .conn-banner-icon {
+        color: var(--ds-amber-700);
+      }
+
+      .conn-banner-text {
+        flex: 1;
+        font-size: 13px;
+      }
+      .conn-banner.disconnected .conn-banner-text {
+        color: var(--ds-red-700);
+      }
+      .conn-banner.reconnecting .conn-banner-text {
+        color: var(--ds-amber-700);
+      }
+
+      .retry-btn {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--accent);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: inherit;
+      }
+      .retry-btn:hover {
+        background: var(--ds-gray-alpha-100);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   4. ChatEmptyState
+   ═══════════════════════════════════════════════════════ */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 24px;
+        gap: 16px;
+      }
+      .empty-state.hidden {
+        display: none;
+      }
+
+      .empty-logo {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        background: linear-gradient(
+          135deg,
+          var(--ds-gray-1000),
+          var(--ds-gray-800)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+      }
+      [data-theme="dark"] .empty-logo {
+        background: linear-gradient(
+          135deg,
+          var(--ds-gray-1000),
+          var(--ds-gray-700)
+        );
+      }
+
+      .empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        text-align: center;
+      }
+      .empty-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        text-align: center;
+        max-width: 260px;
+        line-height: 1.5;
+      }
+
+      .suggestion-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        max-width: 300px;
+        margin-top: 8px;
+      }
+      .suggestion-card {
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .suggestion-card:hover {
+        border-color: var(--accent);
+        background: var(--ds-blue-100);
+      }
+      .suggestion-card-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--bg-surface-variant);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 15px;
+      }
+      .suggestion-card-text {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.4;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   5. ChatMessageList
+   ═══════════════════════════════════════════════════════ */
+      .message-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        scroll-behavior: smooth;
+      }
+      .message-list.hidden {
+        display: none;
+      }
+
+      .message-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .message-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .message-list::-webkit-scrollbar-thumb {
+        background: var(--ds-gray-400);
+        border-radius: 2px;
+      }
+
+      .time-separator {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+      }
+      .time-separator::before,
+      .time-separator::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-default);
+      }
+      .time-separator-text {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        font-weight: 500;
+      }
+
+      .msg-row {
+        display: flex;
+        flex-direction: column;
+        max-width: 85%;
+      }
+      .msg-row.user {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+      .msg-row.ai {
+        align-self: flex-start;
+        align-items: flex-start;
+      }
+
+      .msg-bubble {
+        padding: 10px 14px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.55;
+        word-break: break-word;
+        position: relative;
+      }
+      .msg-row.user .msg-bubble {
+        background: var(--bg-user-bubble);
+        color: var(--text-inverse);
+        border-bottom-right-radius: 4px;
+      }
+      .msg-row.ai .msg-bubble {
+        background: var(--bg-ai-bubble);
+        color: var(--text-primary);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--border-default);
+      }
+
+      .msg-meta {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 4px;
+        flex-wrap: wrap;
+      }
+      .msg-time {
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+      .msg-delivery {
+        font-size: 11px;
+      }
+      .msg-delivery.sending {
+        color: var(--text-secondary);
+      }
+      .msg-delivery.delivered {
+        color: var(--text-secondary);
+      }
+      .msg-delivery.read {
+        color: var(--accent);
+      }
+
+      .msg-agent-tag {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        padding: 1px 5px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .msg-agent-tag.claude {
+        color: var(--claude-color);
+        background: rgba(217, 119, 6, 0.1);
+      }
+      .msg-agent-tag.codex {
+        color: var(--codex-color);
+        background: rgba(16, 163, 127, 0.1);
+      }
+      .msg-agent-tag.gemini {
+        color: var(--gemini-color);
+        background: rgba(66, 133, 244, 0.1);
+      }
+
+      .msg-tts-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+      }
+      .msg-tts-btn:hover {
+        color: var(--accent);
+        background: var(--ds-gray-alpha-100);
+      }
+      .msg-tts-btn svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      .msg-code {
+        background: var(--ds-gray-1000);
+        color: #e6e6e6;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        margin: 6px 0 2px;
+        overflow-x: auto;
+        white-space: pre;
+      }
+      [data-theme="dark"] .msg-code {
+        background: #0d0d0d;
+        border: 1px solid var(--ds-gray-300);
+      }
+      .msg-code-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+        font-family: "Inter", sans-serif;
+      }
+
+      .toolcall-group {
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bg-surface);
+      }
+      .toolcall-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        cursor: pointer;
+        background: var(--bg-surface-variant);
+        transition: background 0.15s;
+      }
+      .toolcall-header:hover {
+        background: var(--ds-gray-alpha-200);
+      }
+      .toolcall-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      .toolcall-toggle {
+        font-size: 11px;
+        color: var(--accent);
+        font-weight: 500;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .toolcall-item {
+        padding: 8px 12px;
+        border-top: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toolcall-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: var(--bg-surface-variant);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .toolcall-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .toolcall-name {
+        font-size: 12px;
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .toolcall-summary {
+        font-size: 11px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .toolcall-status {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+      .toolcall-status.success {
+        color: var(--connected);
+        background: var(--ds-green-100);
+      }
+      .toolcall-status.running {
+        color: var(--accent);
+        background: var(--ds-blue-100);
+      }
+      .toolcall-status.error {
+        color: var(--ds-red-700);
+        background: var(--ds-red-100);
+      }
+
+      .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 16px;
+        background: var(--bg-ai-bubble);
+        border: 1px solid var(--border-default);
+        border-radius: 16px;
+        border-bottom-left-radius: 4px;
+        align-self: flex-start;
+      }
+      .typing-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--text-secondary);
+        animation: typing-bounce 1.2s infinite;
+      }
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes typing-bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-5px);
+        }
+      }
+
+      .stream-bar {
+        height: 2px;
+        background: var(--ds-gray-200);
+        border-radius: 1px;
+        overflow: hidden;
+        margin: 4px 0;
+      }
+      .stream-bar-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 1px;
+        animation: stream-progress 2s ease-in-out infinite;
+      }
+      @keyframes stream-progress {
+        0% {
+          width: 0%;
+          margin-left: 0%;
+        }
+        50% {
+          width: 40%;
+          margin-left: 30%;
+        }
+        100% {
+          width: 0%;
+          margin-left: 100%;
+        }
+      }
+
+      .scroll-fab {
+        position: absolute;
+        bottom: 8px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-primary);
+        transition: all 0.2s;
+        z-index: 5;
+      }
+      .scroll-fab:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-1px);
+      }
+      .scroll-fab svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .skeleton {
+        background: linear-gradient(
+          90deg,
+          var(--ds-gray-100) 25%,
+          var(--ds-gray-200) 50%,
+          var(--ds-gray-100) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 6px;
+      }
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   6. TemplateChipRow
+   ═══════════════════════════════════════════════════════ */
+      .chip-row {
+        display: flex;
+        gap: 6px;
+        padding: 4px 12px;
+        overflow-x: auto;
+        flex-shrink: 0;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .chip-row::-webkit-scrollbar {
+        display: none;
+      }
+      .chip {
+        padding: 6px 14px;
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+        font-family: inherit;
+        box-shadow: var(--shadow-sm);
+      }
+      .chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .chip.add-chip {
+        border-style: dashed;
+        color: var(--text-secondary);
+      }
+      .chip.add-chip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   7. QuickReplyRow
+   ═══════════════════════════════════════════════════════ */
+      .quick-reply-row {
+        display: flex;
+        gap: 6px;
+        padding: 2px 12px 4px;
+        overflow-x: auto;
+        flex-shrink: 0;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .quick-reply-row::-webkit-scrollbar {
+        display: none;
+      }
+      .quick-chip {
+        padding: 5px 12px;
+        border-radius: 99px;
+        font-size: 12px;
+        border: 1px solid var(--accent);
+        background: var(--ds-blue-100);
+        color: var(--accent);
+        cursor: pointer;
+        white-space: nowrap;
+        font-weight: 500;
+        transition: all 0.15s;
+        font-family: inherit;
+      }
+      .quick-chip:hover {
+        background: var(--accent);
+        color: white;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   8. ChatInputBar
+   ═══════════════════════════════════════════════════════ */
+      .input-area {
+        border-top: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        padding: 6px 12px 8px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: relative;
+      }
+      .selector-row {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        align-items: center;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .selector-row::-webkit-scrollbar {
+        display: none;
+      }
+
+      .selector-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 99px;
+        border: 1px solid var(--border-default);
+        background: var(--bg-surface);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+        font-family: inherit;
+        color: var(--text-primary);
+      }
+      .selector-chip:hover {
+        background: var(--ds-gray-alpha-100);
+      }
+      .selector-chip.active {
+        border-color: var(--accent);
+        background: var(--ds-blue-100);
+        color: var(--accent);
+      }
+      .agent-chip-icon {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .agent-menu {
+        position: absolute;
+        bottom: 100%;
+        left: 12px;
+        margin-bottom: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        box-shadow: var(--shadow-dropdown);
+        min-width: 160px;
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(4px);
+        transition: all 0.2s var(--ease-out-expo);
+        padding: 6px;
+      }
+      .agent-menu.visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+      .menu-item:hover {
+        background: var(--ds-gray-alpha-100);
+      }
+      .menu-item.selected {
+        background: var(--ds-gray-alpha-200);
+      }
+      .menu-item-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .menu-item-label {
+        flex: 1;
+      }
+      .menu-item-check {
+        color: var(--accent);
+        opacity: 0;
+      }
+      .menu-item.selected .menu-item-check {
+        opacity: 1;
+      }
+
+      .autopilot-badge {
+        font-size: 10px;
+        background: var(--accent);
+        color: white;
+        border-radius: 99px;
+        padding: 0 5px;
+        min-width: 16px;
+        text-align: center;
+        font-weight: 600;
+      }
+
+      .input-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+      }
+      .input-field {
+        flex: 1;
+        min-height: 38px;
+        max-height: 120px;
+        padding: 8px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border-default);
+        background: var(--bg-page);
+        font-size: 14px;
+        color: var(--text-primary);
+        resize: none;
+        outline: none;
+        font-family: inherit;
+        line-height: 1.45;
+        transition: border-color 0.15s;
+      }
+      .input-field:focus {
+        border-color: var(--accent);
+      }
+      .input-field::placeholder {
+        color: var(--text-secondary);
+      }
+
+      .send-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: var(--ds-gray-1000);
+        color: var(--text-inverse);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .send-btn:hover {
+        opacity: 0.85;
+      }
+      .send-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .send-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .stop-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: var(--ds-red-700);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .stop-btn:hover {
+        opacity: 0.85;
+      }
+      .stop-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .mic-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .mic-btn:hover {
+        color: var(--text-primary);
+        background: var(--ds-gray-alpha-100);
+      }
+      .mic-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .message-area {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════════════════
+     Global Controls
+     ═══════════════════════════════════════════════════ -->
+    <div class="controls-panel" id="controls">
+      <div class="ctrl-label">Theme</div>
+      <button class="ctrl-btn" onclick="toggleTheme()" id="themeBtn">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="5" />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          />
+        </svg>
+        Light
+      </button>
+
+      <div class="ctrl-label" style="margin-top: 6px">View</div>
+      <button
+        class="ctrl-btn active"
+        onclick="setView('chat')"
+        id="viewChatBtn"
+      >
+        Chat
+      </button>
+      <button class="ctrl-btn" onclick="setView('empty')" id="viewEmptyBtn">
+        Empty
+      </button>
+      <button
+        class="ctrl-btn"
+        onclick="setView('skeleton')"
+        id="viewSkeletonBtn"
+      >
+        Skeleton
+      </button>
+
+      <div class="ctrl-label" style="margin-top: 6px">Connection</div>
+      <button
+        class="ctrl-btn active"
+        onclick="setConn('online')"
+        id="connOnlineBtn"
+      >
+        Online
+      </button>
+      <button
+        class="ctrl-btn"
+        onclick="setConn('reconnecting')"
+        id="connReconnBtn"
+      >
+        Reconnecting
+      </button>
+      <button class="ctrl-btn" onclick="setConn('offline')" id="connOfflineBtn">
+        Offline
+      </button>
+
+      <div class="ctrl-label" style="margin-top: 6px">Agent Status</div>
+      <button
+        class="ctrl-btn"
+        onclick="setAgentStatus('ready')"
+        id="agentReadyBtn"
+      >
+        Ready
+      </button>
+      <button
+        class="ctrl-btn active"
+        onclick="setAgentStatus('running')"
+        id="agentRunningBtn"
+      >
+        Running
+      </button>
+      <button
+        class="ctrl-btn"
+        onclick="setAgentStatus('awaiting')"
+        id="agentAwaitingBtn"
+      >
+        Awaiting
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+     Mobile Mockup
+     ═══════════════════════════════════════════════════ -->
+    <div class="mockup" id="mockup">
+      <!-- ─── Redesigned ChatTopBar ─── -->
+      <div class="top-bar">
+        <div class="top-bar-header">
+          <div class="top-bar-main">
+            <span class="top-bar-icon-wrapper" id="topBarIcon"></span>
+            <span class="top-bar-name" id="topBarTitle">my-project</span>
+            <span class="conn-badge online" id="connBadge" title="Online"
+              ><span class="dot"></span
+            ></span>
+          </div>
+          <span class="top-bar-subtitle" id="topBarSubtitle"
+            >workspace / my-project</span
+          >
+        </div>
+        <div class="top-bar-actions">
+          <span class="agent-status-pill running" id="agentPill">Running</span>
+          <button
+            class="icon-btn"
+            title="New Session"
+            onclick="showToast('New session created')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          <button
+            class="icon-btn"
+            title="More options"
+            onclick="toggleMoreMenu()"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="19" r="1" />
+            </svg>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div class="dropdown-menu" id="moreMenu">
+            <div class="menu-item" onclick="showToast('Open Terminal')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+              <span>Terminal</span>
+            </div>
+            <div class="menu-item" onclick="showToast('Open Files')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+                />
+              </svg>
+              <span>Files</span>
+            </div>
+            <div class="menu-item" onclick="showToast('Open Search')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span>Search</span>
+            </div>
+            <div class="menu-item" onclick="showToast('Open Sessions')">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+              <span>Sessions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── AgentStatusBar (Vibing) ─── -->
+      <div class="vibing-bar visible" id="vibingBar">
+        <span class="pulsing-dot"></span>
+        <span class="vibing-text" id="vibingText">Thinking deeply...</span>
+        <span class="vibing-tasks" id="vibingTasks">3 tasks</span>
+      </div>
+
+      <!-- ─── ConnectionBanner ─── -->
+      <div class="conn-banner" id="connBanner">
+        <svg
+          class="conn-banner-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          id="connBannerIcon"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+        <span class="conn-banner-text" id="connBannerText"></span>
+        <button
+          class="retry-btn"
+          id="connRetryBtn"
+          style="display: none"
+          onclick="setConn('online')"
+        >
+          Retry
+        </button>
+      </div>
+
+      <!-- ─── Message Area ─── -->
+      <div class="message-area">
+        <div class="empty-state hidden" id="emptyState">
+          <div class="empty-logo">V</div>
+          <div class="empty-title">Start Your First Vibe Coding</div>
+          <div class="empty-desc">
+            Ask your AI coding assistant to write, review, or explain code.
+          </div>
+          <div class="suggestion-cards">
+            <div
+              class="suggestion-card"
+              onclick="fillInput('Review my code for potential issues')"
+            >
+              <div class="suggestion-card-icon">🔍</div>
+              <div class="suggestion-card-text">
+                Review my code for potential issues
+              </div>
+            </div>
+            <div
+              class="suggestion-card"
+              onclick="fillInput('Fix the bug in the login function')"
+            >
+              <div class="suggestion-card-icon">🐛</div>
+              <div class="suggestion-card-text">
+                Fix the bug in the login function
+              </div>
+            </div>
+            <div
+              class="suggestion-card"
+              onclick="fillInput('Explain this function step by step')"
+            >
+              <div class="suggestion-card-icon">💡</div>
+              <div class="suggestion-card-text">
+                Explain this function step by step
+              </div>
+            </div>
+            <div
+              class="suggestion-card"
+              onclick="fillInput('Add unit tests for the API module')"
+            >
+              <div class="suggestion-card-icon">🧪</div>
+              <div class="suggestion-card-text">
+                Add unit tests for the API module
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="message-list hidden"
+          id="skeletonState"
+          style="padding: 16px 12px"
+        >
+          <div
+            style="
+              align-self: flex-end;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+              align-items: flex-end;
+            "
+          >
+            <div class="skeleton" style="width: 180px; height: 14px"></div>
+            <div class="skeleton" style="width: 120px; height: 14px"></div>
+          </div>
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+              margin-top: 12px;
+            "
+          >
+            <div class="skeleton" style="width: 85%; height: 14px"></div>
+            <div class="skeleton" style="width: 70%; height: 14px"></div>
+            <div class="skeleton" style="width: 60%; height: 14px"></div>
+          </div>
+        </div>
+
+        <div class="message-list" id="messageList">
+          <div class="time-separator">
+            <span class="time-separator-text">Today 14:30</span>
+          </div>
+
+          <div class="msg-row user">
+            <div class="msg-bubble">
+              Help me refactor the ChatScreen component — it's over 1200 lines.
+            </div>
+            <div class="msg-meta">
+              <span class="msg-time">14:30</span>
+              <span class="msg-delivery read">✓✓</span>
+            </div>
+          </div>
+
+          <div class="msg-row ai">
+            <div class="msg-bubble">
+              I'll analyze the <code>ChatScreen.kt</code> and create a
+              refactoring plan. The file has several SRP violations that we can
+              address by extracting components.
+              <div class="msg-code-header"><span>kotlin</span></div>
+              <div class="msg-code">
+                // Extracted component @Composable fun ChatTopBar( agentState:
+                AgentHeartbeat, connState: ConnectionState, onNewSession: () ->
+                Unit, ) { TopAppBar(title = { ... }) }
+              </div>
+              Let me break this down into manageable pieces.
+            </div>
+            <div class="msg-meta">
+              <span class="msg-time">14:31</span>
+              <span class="msg-agent-tag claude">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                CLAUDE
+              </span>
+              <button class="msg-tts-btn" title="Read aloud">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path
+                    d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="toolcall-group" id="toolGroup1">
+            <div
+              class="toolcall-header"
+              onclick="toggleToolGroup('toolGroup1')"
+            >
+              <span class="toolcall-label"
+                >4 tools: Read, Write, Edit, Bash</span
+              >
+              <button class="toolcall-toggle" id="toolGroup1Toggle">
+                Show all
+              </button>
+            </div>
+            <div class="toolcall-item">
+              <div class="toolcall-icon">📖</div>
+              <div class="toolcall-info">
+                <div class="toolcall-name">Read</div>
+                <div class="toolcall-summary">ChatScreen.kt (1224 lines)</div>
+              </div>
+              <span class="toolcall-status success">Done</span>
+            </div>
+            <div
+              class="toolcall-item"
+              style="display: none"
+              data-group="toolGroup1"
+            >
+              <div class="toolcall-icon">✏️</div>
+              <div class="toolcall-info">
+                <div class="toolcall-name">Write</div>
+                <div class="toolcall-summary">ui/chat/ChatTopBar.kt</div>
+              </div>
+              <span class="toolcall-status success">Done</span>
+            </div>
+            <div
+              class="toolcall-item"
+              style="display: none"
+              data-group="toolGroup1"
+            >
+              <div class="toolcall-icon">🔧</div>
+              <div class="toolcall-info">
+                <div class="toolcall-name">Edit</div>
+                <div class="toolcall-summary">
+                  ChatScreen.kt — remove TopAppBar block
+                </div>
+              </div>
+              <span class="toolcall-status success">Done</span>
+            </div>
+            <div
+              class="toolcall-item"
+              style="display: none"
+              data-group="toolGroup1"
+            >
+              <div class="toolcall-icon">⚡</div>
+              <div class="toolcall-info">
+                <div class="toolcall-name">Bash</div>
+                <div class="toolcall-summary">./gradlew assembleDebug</div>
+              </div>
+              <span class="toolcall-status running">Running</span>
+            </div>
+          </div>
+
+          <div class="msg-row ai">
+            <div class="msg-bubble">
+              I've extracted <strong>ChatTopBar</strong>,
+              <strong>ConnectionBanner</strong>, and
+              <strong>MessageBubble</strong> into separate files. The main
+              ChatScreen is now down to ~180 lines. Build is running to verify.
+            </div>
+            <div class="msg-meta">
+              <span class="msg-time">14:33</span>
+              <span class="msg-agent-tag claude">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                CLAUDE
+              </span>
+              <button class="msg-tts-btn" title="Read aloud">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path
+                    d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="msg-row user">
+            <div class="msg-bubble">
+              Looks great! Can you also add the AgentStatusBar with vibing
+              messages?
+            </div>
+            <div class="msg-meta">
+              <span class="msg-time">14:34</span>
+              <span class="msg-delivery delivered">✓✓</span>
+            </div>
+          </div>
+
+          <div class="msg-row ai" id="streamingMsg">
+            <div class="msg-bubble">
+              Sure! I'll implement the <code>AgentStatusBar</code> with rotating
+              creative status messages. Here's the approach:<br /><br />
+              1. Add a <code>VibingMessages</code> object with 20+ status
+              strings<br />
+              2. Rotate every 3 seconds while agent is running<br />
+              3. Use <code>AnimatedContent</code> for smooth fade transitions...
+            </div>
+            <div class="msg-meta">
+              <span class="msg-time">14:35</span>
+              <span class="msg-agent-tag claude">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                CLAUDE
+              </span>
+            </div>
+          </div>
+
+          <div class="stream-bar" id="streamBar">
+            <div class="stream-bar-fill"></div>
+          </div>
+          <div
+            class="typing-indicator"
+            id="typingIndicator"
+            style="display: none"
+          >
+            <span class="typing-dot"></span><span class="typing-dot"></span
+            ><span class="typing-dot"></span>
+          </div>
+        </div>
+
+        <div
+          class="scroll-fab"
+          id="scrollFab"
+          style="display: none"
+          onclick="scrollToBottom()"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="chip-row" id="templateRow">
+        <button
+          class="chip"
+          onclick="fillInput('Review this file for bugs and suggest fixes')"
+        >
+          Review Code
+        </button>
+        <button
+          class="chip"
+          onclick="fillInput('Write unit tests for the selected function')"
+        >
+          Write Tests
+        </button>
+        <button
+          class="chip"
+          onclick="fillInput('Explain how this module works')"
+        >
+          Explain
+        </button>
+        <button
+          class="chip"
+          onclick="fillInput('Refactor this to follow SOLID principles')"
+        >
+          Refactor
+        </button>
+        <button
+          class="chip add-chip"
+          onclick="showToast('Template editor dialog')"
+        >
+          + New
+        </button>
+      </div>
+
+      <div class="quick-reply-row" id="quickReplyRow">
+        <button class="quick-chip" onclick="sendQuickReply('continue')">
+          Continue
+        </button>
+        <button
+          class="quick-chip"
+          onclick="sendQuickReply('yes, run the tests')"
+        >
+          Run Tests
+        </button>
+        <button class="quick-chip" onclick="sendQuickReply('show me the diff')">
+          Show Diff
+        </button>
+      </div>
+
+      <div class="input-area">
+        <div class="agent-menu" id="agentMenu"></div>
+        <div class="selector-row">
+          <button
+            class="selector-chip active"
+            id="agentChip"
+            onclick="toggleAgentMenu()"
+          >
+            <span class="agent-chip-icon" id="agentChipIcon"></span>
+            <span id="agentChipLabel">CLAUDE</span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="margin-left: 2px"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <button class="selector-chip" id="permChip" onclick="cyclePerm()">
+            <span id="permChipLabel">Default</span>
+          </button>
+          <button class="selector-chip" id="modelChip" onclick="cycleModel()">
+            <span id="modelChipLabel">Sonnet</span>
+          </button>
+          <button
+            class="selector-chip"
+            id="autoPilotChip"
+            onclick="toggleAutoPilot()"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 11V9a4 4 0 014-4h14" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 13v2a4 4 0 01-4 4H3" />
+            </svg>
+            <span id="autoPilotLabel">Auto-Pilot</span>
+          </button>
+        </div>
+
+        <div class="input-row">
+          <textarea
+            class="input-field"
+            id="inputField"
+            rows="1"
+            placeholder="Type a message..."
+            oninput="
+              autoResize(this);
+              updateSendBtn();
+            "
+          ></textarea>
+          <button
+            class="mic-btn"
+            title="Voice input"
+            onclick="showToast('Voice input activated')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+              <path d="M19 10v2a7 7 0 01-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
+          <button
+            class="stop-btn"
+            id="stopBtn"
+            style="display: none"
+            onclick="stopStreaming()"
+            title="Stop"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+          </button>
+          <button
+            class="send-btn"
+            id="sendBtn"
+            disabled
+            onclick="sendMessage()"
+            title="Send"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="toast"
+      style="
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(80px);
+        background: var(--ds-gray-1000);
+        color: var(--text-inverse);
+        padding: 8px 20px;
+        border-radius: 99px;
+        font-size: 13px;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s var(--ease-out-expo);
+        z-index: 1000;
+        pointer-events: none;
+        white-space: nowrap;
+      "
+    ></div>
+
+    <script>
+      // ═══════════════════════════════════════════════════════
+      // Icon Definitions (Lobe-Icons Style)
+      // ═══════════════════════════════════════════════════════
+      const icons = {
+        claude: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>`,
+        codex: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2057 5.9847 5.9847 0 0 0 3.989-2.9 6.051 6.051 0 0 0-.7388-7.0732z"/></svg>`,
+        gemini: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.008 24C12.449 17.584 17.584 12.449 24 12.008C17.584 11.567 12.449 6.432 12.008 0C11.567 6.432 6.432 11.567 0 12.008C6.432 12.449 11.567 17.584 12.008 24Z"/></svg>`,
+      };
+
+      const getAgentIcon = (id, color) => {
+        return `<div style="color:${color}">${icons[id] || icons.claude}</div>`;
+      };
+
+      // ═══════════════════════════════════════════════════════
+      // State
+      // ═══════════════════════════════════════════════════════
+      const state = {
+        theme: "light",
+        view: "chat",
+        conn: "online",
+        agentStatus: "running", // ready, running, awaiting
+        streaming: true,
+        agentIdx: 0,
+        permIdx: 0,
+        modelIdx: 0,
+        autoPilot: false,
+        autoPilotCount: 0,
+        menuOpen: false,
+        moreMenuOpen: false,
+      };
+
+      const agents = [
+        { id: "claude", label: "CLAUDE", color: "var(--claude-color)" },
+        { id: "codex", label: "CODEX", color: "var(--codex-color)" },
+        { id: "gemini", label: "GEMINI", color: "var(--gemini-color)" },
+      ];
+      const perms = ["Default", "Accept Edits", "Bypass", "Plan"];
+      const models = ["Sonnet", "Opus", "Default"];
+
+      const vibingMessages = [
+        "Thinking deeply...",
+        "Reading code...",
+        "Writing tests...",
+        "Exploring files...",
+        "Crafting solution...",
+        "Analyzing patterns...",
+        "Refactoring...",
+        "Debugging...",
+        "Optimizing...",
+        "Searching docs...",
+        "Building plan...",
+        "Reviewing changes...",
+        "Resolving imports...",
+        "Running linter...",
+        "Checking types...",
+        "Mapping dependencies...",
+        "Generating code...",
+        "Validating output...",
+      ];
+
+      // ═══════════════════════════════════════════════════════
+      // Initialization
+      // ═══════════════════════════════════════════════════════
+      function initUI() {
+        renderAgentMenu();
+        updateAgentUI();
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Theme
+      // ═══════════════════════════════════════════════════════
+      function toggleTheme() {
+        state.theme = state.theme === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", state.theme);
+        const btn = document.getElementById("themeBtn");
+        btn.innerHTML =
+          state.theme === "light"
+            ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Light`
+            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark`;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // View & Connection
+      // ═══════════════════════════════════════════════════════
+      function setView(view) {
+        state.view = view;
+        document
+          .querySelectorAll("#viewChatBtn,#viewEmptyBtn,#viewSkeletonBtn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .getElementById(
+            `view${view.charAt(0).toUpperCase() + view.slice(1)}Btn`,
+          )
+          .classList.add("active");
+
+        document
+          .getElementById("messageList")
+          .classList.toggle("hidden", view !== "chat");
+        document
+          .getElementById("emptyState")
+          .classList.toggle("hidden", view !== "empty");
+        document
+          .getElementById("skeletonState")
+          .classList.toggle("hidden", view !== "skeleton");
+
+        document.getElementById("templateRow").style.display =
+          view === "empty" ? "none" : "";
+        document.getElementById("quickReplyRow").style.display =
+          view === "chat" ? "" : "none";
+      }
+
+      function setConn(conn) {
+        state.conn = conn;
+        document
+          .querySelectorAll("#connOnlineBtn,#connReconnBtn,#connOfflineBtn")
+          .forEach((b) => b.classList.remove("active"));
+        if (conn === "online")
+          document.getElementById("connOnlineBtn").classList.add("active");
+        if (conn === "reconnecting")
+          document.getElementById("connReconnBtn").classList.add("active");
+        if (conn === "offline")
+          document.getElementById("connOfflineBtn").classList.add("active");
+
+        const badge = document.getElementById("connBadge");
+        badge.className = `conn-badge ${conn === "online" ? "online" : conn === "reconnecting" ? "reconnecting" : "offline"}`;
+        badge.title = conn.charAt(0).toUpperCase() + conn.slice(1);
+
+        const banner = document.getElementById("connBanner");
+        const bannerText = document.getElementById("connBannerText");
+        const retryBtn = document.getElementById("connRetryBtn");
+        const bannerIcon = document.getElementById("connBannerIcon");
+
+        banner.className = "conn-banner";
+        if (conn !== "online") {
+          banner.classList.add("visible", conn);
+          bannerText.textContent =
+            conn === "offline" ? "Connection lost" : "Reconnecting...";
+          retryBtn.style.display = conn === "offline" ? "" : "none";
+          if (conn === "offline") {
+            bannerIcon.innerHTML =
+              '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+          } else {
+            bannerIcon.innerHTML =
+              '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>';
+          }
+        }
+        updateSendBtn();
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Agent Status & UI Update
+      // ═══════════════════════════════════════════════════════
+      function setAgentStatus(status) {
+        state.agentStatus = status;
+        // Update Dev Tools buttons
+        document
+          .querySelectorAll("#agentReadyBtn,#agentRunningBtn,#agentAwaitingBtn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .getElementById(
+            `agent${status.charAt(0).toUpperCase() + status.slice(1)}Btn`,
+          )
+          .classList.add("active");
+
+        const pill = document.getElementById("agentPill");
+        pill.className = `agent-status-pill ${status}`;
+        pill.textContent =
+          status === "running"
+            ? "Running"
+            : status === "awaiting"
+              ? "Awaiting"
+              : "Ready";
+
+        const vibing = document.getElementById("vibingBar");
+        vibing.classList.toggle("visible", status === "running");
+
+        state.streaming = status === "running";
+        document.getElementById("streamBar").style.display = state.streaming
+          ? ""
+          : "none";
+        document.getElementById("stopBtn").style.display = state.streaming
+          ? ""
+          : "none";
+        document.getElementById("typingIndicator").style.display =
+          status === "awaiting" ? "" : "none";
+      }
+
+      function updateAgentUI() {
+        const a = agents[state.agentIdx];
+
+        // Bottom Bar Chip
+        document.getElementById("agentChipLabel").textContent = a.label;
+        document.getElementById("agentChipIcon").innerHTML = getAgentIcon(
+          a.id,
+          a.color,
+        );
+
+        // Top Bar Icon
+        document.getElementById("topBarIcon").innerHTML = getAgentIcon(
+          a.id,
+          a.color,
+        );
+
+        // Top Bar Title & Subtitle (Simulated Project Name)
+        document.getElementById("topBarTitle").textContent = "my-project";
+        document.getElementById("topBarSubtitle").textContent =
+          `workspace / my-project`;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Menus (Agent & More)
+      // ═══════════════════════════════════════════════════════
+      function renderAgentMenu() {
+        const menu = document.getElementById("agentMenu");
+        menu.innerHTML = agents
+          .map(
+            (a, i) => `
+    <div class="menu-item ${i === state.agentIdx ? "selected" : ""}" onclick="selectAgent(${i})">
+      <div class="menu-item-icon">${getAgentIcon(a.id, a.color)}</div>
+      <div class="menu-item-label">${a.label}</div>
+      <div class="menu-item-check">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      function toggleAgentMenu() {
+        state.menuOpen = !state.menuOpen;
+        if (state.menuOpen) state.moreMenuOpen = false; // Close other menu
+        document
+          .getElementById("agentMenu")
+          .classList.toggle("visible", state.menuOpen);
+        document.getElementById("moreMenu").classList.remove("visible");
+      }
+
+      function selectAgent(idx) {
+        state.agentIdx = idx;
+        state.menuOpen = false;
+        document.getElementById("agentMenu").classList.remove("visible");
+        updateAgentUI();
+        renderAgentMenu();
+        showToast(`Switched to ${agents[idx].label}`);
+      }
+
+      function toggleMoreMenu() {
+        state.moreMenuOpen = !state.moreMenuOpen;
+        if (state.moreMenuOpen) state.menuOpen = false; // Close other menu
+        document
+          .getElementById("moreMenu")
+          .classList.toggle("visible", state.moreMenuOpen);
+        document.getElementById("agentMenu").classList.remove("visible");
+      }
+
+      // Global listener to close menus
+      document.addEventListener("click", (e) => {
+        const agentMenu = document.getElementById("agentMenu");
+        const agentChip = document.getElementById("agentChip");
+        const moreMenu = document.getElementById("moreMenu");
+        const moreBtn = moreMenu.previousElementSibling; // The icon button
+
+        if (
+          state.menuOpen &&
+          !agentMenu.contains(e.target) &&
+          !agentChip.contains(e.target)
+        ) {
+          state.menuOpen = false;
+          agentMenu.classList.remove("visible");
+        }
+        if (
+          state.moreMenuOpen &&
+          !moreMenu.contains(e.target) &&
+          !moreBtn.contains(e.target)
+        ) {
+          state.moreMenuOpen = false;
+          moreMenu.classList.remove("visible");
+        }
+      });
+
+      // ═══════════════════════════════════════════════════════
+      // Other Selectors
+      // ═══════════════════════════════════════════════════════
+      function cyclePerm() {
+        state.permIdx = (state.permIdx + 1) % perms.length;
+        const chip = document.getElementById("permChip");
+        document.getElementById("permChipLabel").textContent =
+          perms[state.permIdx];
+        chip.classList.toggle("active", state.permIdx !== 0);
+      }
+
+      function cycleModel() {
+        state.modelIdx = (state.modelIdx + 1) % models.length;
+        const chip = document.getElementById("modelChip");
+        document.getElementById("modelChipLabel").textContent =
+          models[state.modelIdx];
+        chip.classList.toggle("active", state.modelIdx !== 2);
+      }
+
+      function toggleAutoPilot() {
+        state.autoPilot = !state.autoPilot;
+        const chip = document.getElementById("autoPilotChip");
+        chip.classList.toggle("autopilot-active", state.autoPilot);
+        if (state.autoPilot) {
+          state.autoPilotCount = 0;
+          const lbl = document.getElementById("autoPilotLabel");
+          lbl.innerHTML = 'Auto-Pilot <span class="autopilot-badge">0</span>';
+          const iv = setInterval(() => {
+            if (!state.autoPilot) {
+              clearInterval(iv);
+              return;
+            }
+            state.autoPilotCount++;
+            lbl.innerHTML = `Auto-Pilot <span class="autopilot-badge">${state.autoPilotCount}</span>`;
+            if (state.autoPilotCount >= 5) {
+              clearInterval(iv);
+            }
+          }, 2000);
+        } else {
+          document.getElementById("autoPilotLabel").textContent = "Auto-Pilot";
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Vibing message rotation
+      // ═══════════════════════════════════════════════════════
+      let vibingInterval;
+      function startVibingRotation() {
+        const el = document.getElementById("vibingText");
+        vibingInterval = setInterval(() => {
+          el.style.opacity = "0";
+          setTimeout(() => {
+            el.textContent =
+              vibingMessages[Math.floor(Math.random() * vibingMessages.length)];
+            el.style.opacity = "1";
+          }, 200);
+        }, 3000);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Input Logic
+      // ═══════════════════════════════════════════════════════
+      function fillInput(text) {
+        const field = document.getElementById("inputField");
+        field.value = text;
+        autoResize(field);
+        updateSendBtn();
+        field.focus();
+      }
+
+      function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 120) + "px";
+      }
+
+      function updateSendBtn() {
+        const btn = document.getElementById("sendBtn");
+        const val = document.getElementById("inputField").value.trim();
+        btn.disabled = !val || state.conn !== "online" || state.streaming;
+      }
+
+      function sendMessage() {
+        const field = document.getElementById("inputField");
+        const text = field.value.trim();
+        if (!text) return;
+
+        const list = document.getElementById("messageList");
+        const row = document.createElement("div");
+        row.className = "msg-row user";
+        row.innerHTML = `
+    <div class="msg-bubble">${escapeHtml(text)}</div>
+    <div class="msg-meta">
+      <span class="msg-time">${now()}</span>
+      <span class="msg-delivery sending">✓</span>
+    </div>
+  `;
+        list.insertBefore(row, document.getElementById("streamBar"));
+        field.value = "";
+        autoResize(field);
+        updateSendBtn();
+        scrollToBottom();
+
+        setTimeout(() => {
+          row.querySelector(".msg-delivery").textContent = "✓✓";
+          row.querySelector(".msg-delivery").className =
+            "msg-delivery delivered";
+        }, 800);
+      }
+
+      function sendQuickReply(text) {
+        document.getElementById("inputField").value = text;
+        sendMessage();
+      }
+
+      function stopStreaming() {
+        setAgentStatus("ready");
+        showToast("Generation stopped");
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Helpers
+      // ═══════════════════════════════════════════════════════
+      function toggleToolGroup(groupId) {
+        const items = document.querySelectorAll(`[data-group="${groupId}"]`);
+        const toggle = document.getElementById(`${groupId}Toggle`);
+        const visible = items[0]?.style.display !== "none";
+        items.forEach((el) => (el.style.display = visible ? "none" : ""));
+        toggle.textContent = visible ? "Show all" : "Hide";
+      }
+
+      const msgList = document.getElementById("messageList");
+      msgList.addEventListener("scroll", () => {
+        const fab = document.getElementById("scrollFab");
+        const isAtBottom =
+          msgList.scrollHeight - msgList.scrollTop - msgList.clientHeight < 60;
+        fab.style.display = isAtBottom ? "none" : "";
+      });
+
+      function scrollToBottom() {
+        const ml = document.getElementById("messageList");
+        ml.scrollTop = ml.scrollHeight;
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function now() {
+        const d = new Date();
+        return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      }
+
+      let toastTimer;
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.opacity = "1";
+        t.style.transform = "translateX(-50%) translateY(0)";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          t.style.opacity = "0";
+          t.style.transform = "translateX(-50%) translateY(80px)";
+        }, 2000);
+      }
+
+      // Init
+      initUI();
+      startVibingRotation();
+      scrollToBottom();
+    </script>
+  </body>
+</html>

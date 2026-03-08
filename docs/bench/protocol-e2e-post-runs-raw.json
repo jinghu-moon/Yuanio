@@ -1,0 +1,72 @@
+﻿[
+    {
+        "run":  1,
+        "server":  "http://127.0.0.1:3401",
+        "ackRttMs":  39.57,
+        "recoveryPendingAppearMs":  139.2,
+        "recoveryAckClearMs":  26.92
+    },
+    {
+        "run":  2,
+        "server":  "http://127.0.0.1:3402",
+        "ackRttMs":  39.95,
+        "recoveryPendingAppearMs":  140.2,
+        "recoveryAckClearMs":  17.04
+    },
+    {
+        "run":  3,
+        "server":  "http://127.0.0.1:3403",
+        "ackRttMs":  39.88,
+        "recoveryPendingAppearMs":  137.48,
+        "recoveryAckClearMs":  16.64
+    },
+    {
+        "run":  4,
+        "server":  "http://127.0.0.1:3404",
+        "ackRttMs":  52.62,
+        "recoveryPendingAppearMs":  140.67,
+        "recoveryAckClearMs":  19.11
+    },
+    {
+        "run":  5,
+        "server":  "http://127.0.0.1:3405",
+        "ackRttMs":  37.53,
+        "recoveryPendingAppearMs":  138.75,
+        "recoveryAckClearMs":  19.4
+    },
+    {
+        "run":  6,
+        "server":  "http://127.0.0.1:3406",
+        "ackRttMs":  31.7,
+        "recoveryPendingAppearMs":  140.77,
+        "recoveryAckClearMs":  19.73
+    },
+    {
+        "run":  7,
+        "server":  "http://127.0.0.1:3407",
+        "ackRttMs":  37.82,
+        "recoveryPendingAppearMs":  137.53,
+        "recoveryAckClearMs":  19.38
+    },
+    {
+        "run":  8,
+        "server":  "http://127.0.0.1:3408",
+        "ackRttMs":  35.57,
+        "recoveryPendingAppearMs":  131.77,
+        "recoveryAckClearMs":  17.5
+    },
+    {
+        "run":  9,
+        "server":  "http://127.0.0.1:3409",
+        "ackRttMs":  35.93,
+        "recoveryPendingAppearMs":  151.24,
+        "recoveryAckClearMs":  19.01
+    },
+    {
+        "run":  10,
+        "server":  "http://127.0.0.1:3410",
+        "ackRttMs":  46.88,
+        "recoveryPendingAppearMs":  140.5,
+        "recoveryAckClearMs":  16.81
+    }
+]

@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+
+# Android signing and local secrets
+android-app/keystore/
+android-app/app/google-services.json
+android-app/local.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+
+# Android / Gradle build outputs
+android-app/.gradle/
+android-app/.kotlin/
+android-app/build/
+android-app/**/build/
+*.apk
+*.aab
+*.hprof
+
+# Test outputs
+tests/skill-triggering/output/*
+!tests/skill-triggering/output/.gitkeep
+
+# Database files and runtime state
+*.db
+*.db-shm
+*.db-wal
+/data/
+/storage/
+/.yuanio/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs and temporary files
+logs/
+*.log
+.tmp/
+*.tmp
+tmp-launcher-capture*.txt
+nul
+
+# Local AI / agent state
+.ai/
+.serena/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local screenshots and captures
+Screenshot_*.jpg
+Screenshot_*.png
+
+# Third-party reference archives / source mirrors not intended for the public app repo
+refer/*.zip
+refer/agent-source-code/
+refer/claudecode_api_RemoteControl-main/
+refer/compose-icons-main/
+refer/everything-claude-code-main/
+refer/hapi-main/
+refer/happy-main/
+refer/lobe-icons/
+refer/lobe-icons-master/
+refer/server/
+refer/superpowers-main/
+refer/teleclaude/
+seeyue-workflows/
+.agents/
+.claude/
+.spec-workflow/
+tools/tui-bench/

@@ -1,0 +1,112 @@
+[
+  {
+    "run": 1,
+    "server": "http://127.0.0.1:4511",
+    "ackRttMs": 4.57,
+    "recoveryPendingAppearMs": 129.29,
+    "recoveryAckClearMs": 0.82,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 2.31,
+    "ackRequiredMatrixAckClearP95Ms": 2.31
+  },
+  {
+    "run": 2,
+    "server": "http://127.0.0.1:4521",
+    "ackRttMs": 4.27,
+    "recoveryPendingAppearMs": 125.96,
+    "recoveryAckClearMs": 0.79,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.61,
+    "ackRequiredMatrixAckClearP95Ms": 0.91
+  },
+  {
+    "run": 3,
+    "server": "http://127.0.0.1:4531",
+    "ackRttMs": 4.25,
+    "recoveryPendingAppearMs": 124.76,
+    "recoveryAckClearMs": 0.92,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 2.19,
+    "ackRequiredMatrixAckClearP95Ms": 2.13
+  },
+  {
+    "run": 4,
+    "server": "http://127.0.0.1:4541",
+    "ackRttMs": 4.31,
+    "recoveryPendingAppearMs": 142.05,
+    "recoveryAckClearMs": 0.98,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 2.36,
+    "ackRequiredMatrixAckClearP95Ms": 1.27
+  },
+  {
+    "run": 5,
+    "server": "http://127.0.0.1:4551",
+    "ackRttMs": 4.29,
+    "recoveryPendingAppearMs": 139.28,
+    "recoveryAckClearMs": 0.83,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 2.28,
+    "ackRequiredMatrixAckClearP95Ms": 1.16
+  },
+  {
+    "run": 6,
+    "server": "http://127.0.0.1:4561",
+    "ackRttMs": 4.27,
+    "recoveryPendingAppearMs": 139.55,
+    "recoveryAckClearMs": 1.42,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.6,
+    "ackRequiredMatrixAckClearP95Ms": 0.92
+  },
+  {
+    "run": 7,
+    "server": "http://127.0.0.1:4571",
+    "ackRttMs": 4.03,
+    "recoveryPendingAppearMs": 125.59,
+    "recoveryAckClearMs": 0.89,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.77,
+    "ackRequiredMatrixAckClearP95Ms": 1.13
+  },
+  {
+    "run": 8,
+    "server": "http://127.0.0.1:4581",
+    "ackRttMs": 4.18,
+    "recoveryPendingAppearMs": 140.14,
+    "recoveryAckClearMs": 1.01,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.81,
+    "ackRequiredMatrixAckClearP95Ms": 1.08
+  },
+  {
+    "run": 9,
+    "server": "http://127.0.0.1:4591",
+    "ackRttMs": 4.32,
+    "recoveryPendingAppearMs": 125.43,
+    "recoveryAckClearMs": 0.91,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.74,
+    "ackRequiredMatrixAckClearP95Ms": 0.9
+  },
+  {
+    "run": 10,
+    "server": "http://127.0.0.1:4601",
+    "ackRttMs": 4.22,
+    "recoveryPendingAppearMs": 136.98,
+    "recoveryAckClearMs": 0.86,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.6,
+    "ackRequiredMatrixAckClearP95Ms": 1.04
+  }
+]

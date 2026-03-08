@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geist 风格 - 手机端连接电脑文件系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Vercel Geist 核心颜色变量 */
+    --ds-gray-100-value: 0, 0%, 95%;
+    --ds-gray-200-value: 0, 0%, 92%;
+    --ds-gray-300-value: 0, 0%, 90%;
+    --ds-gray-400-value: 0, 0%, 92%;
+    --ds-gray-500-value: 0, 0%, 79%;
+    --ds-gray-600-value: 0, 0%, 66%;
+    --ds-gray-700-value: 0, 0%, 56%;
+    --ds-gray-800-value: 0, 0%, 49%;
+    --ds-gray-900-value: 0, 0%, 40%;
+    --ds-gray-1000-value: 0, 0%, 9%;
+    --ds-blue-100-value: 212, 100%, 97%;
+    --ds-blue-200-value: 210, 100%, 96%;
+    --ds-blue-700-value: 212, 100%, 48%;
+    --ds-amber-100-value: 39, 100%, 95%;
+    --ds-amber-200-value: 44, 100%, 92%;
+    --ds-amber-700-value: 39, 100%, 57%;
+    --ds-teal-100-value: 169, 70%, 96%;
+    --ds-teal-700-value: 173, 80%, 36%;
+    --ds-purple-100-value: 276, 100%, 97%;
+    --ds-purple-700-value: 272, 51%, 54%;
+    --ds-pink-100-value: 330, 100%, 96%;
+    --ds-pink-700-value: 336, 80%, 58%;
+    
+    --ds-gray-alpha-100: #0000000d;
+    --ds-gray-alpha-200: #00000015;
+    --ds-gray-alpha-400: #00000014;
+    --ds-gray-alpha-600: #00000057;
+    --ds-background-100-value: 0, 0%, 100%;
+    
+    --ds-gray-100: hsla(var(--ds-gray-100-value), 1);
+    --ds-gray-200: hsla(var(--ds-gray-200-value), 1);
+    --ds-gray-600: hsla(var(--ds-gray-600-value), 1);
+    --ds-gray-700: hsla(var(--ds-gray-700-value), 1);
+    --ds-gray-800: hsla(var(--ds-gray-800-value), 1);
+    --ds-gray-1000: hsla(var(--ds-gray-1000-value), 1);
+    --ds-blue-100: hsla(var(--ds-blue-100-value), 1);
+    --ds-blue-200: hsla(var(--ds-blue-200-value), 1);
+    --ds-blue-700: hsla(var(--ds-blue-700-value), 1);
+    --ds-amber-100: hsla(var(--ds-amber-100-value), 1);
+    --ds-amber-200: hsla(var(--ds-amber-200-value), 1);
+    --ds-amber-700: hsla(var(--ds-amber-700-value), 1);
+    --ds-teal-100: hsla(var(--ds-teal-100-value), 1);
+    --ds-teal-700: hsla(var(--ds-teal-700-value), 1);
+    --ds-purple-100: hsla(var(--ds-purple-100-value), 1);
+    --ds-purple-700: hsla(var(--ds-purple-700-value), 1);
+    --ds-pink-100: hsla(var(--ds-pink-100-value), 1);
+    --ds-pink-700: hsla(var(--ds-pink-700-value), 1);
+    --ds-background-100: hsla(var(--ds-background-100-value), 1);
+    
+    --ds-focus-border: 0 0 0 1px var(--ds-gray-alpha-600), 0px 0px 0px 4px #00000029;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body { background-color: var(--ds-gray-100); display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ds-gray-1000); -webkit-font-smoothing: antialiased; }
+
+  .mobile-mockup { width: 375px; height: 812px; background-color: var(--ds-background-100); border-radius: 40px; box-shadow: 0 24px 48px var(--ds-gray-alpha-200), 0 0 0 8px var(--ds-gray-200); overflow: hidden; position: relative; }
+
+  .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--ds-background-100); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transform: scale(0.98); transition: opacity 0.25s ease, transform 0.25s ease; z-index: 1; }
+  .view.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 10; }
+
+  /* ★ 修改：Header 增加设备连接状态 */
+  .header { padding: 48px 20px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .header-titles { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .header-titles h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .device-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ds-gray-600); font-weight: 500; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ds-teal-700); box-shadow: 0 0 0 2px var(--ds-teal-100); }
+  
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--ds-gray-alpha-200); display: flex; align-items: center; justify-content: center; color: var(--ds-gray-700); cursor: pointer; transition: 0.2s; background: transparent; }
+  .icon-btn:active { background: var(--ds-gray-200); transform: scale(0.95); }
+  
+  .search-container { padding: 0 20px 16px; }
+  .search-input { width: 100%; background: var(--ds-gray-alpha-100); border: 1px solid transparent; border-radius: 12px; padding: 12px 16px; font-size: 15px; color: var(--ds-gray-1000); outline: none; transition: all 0.2s; font-family: inherit; }
+  .search-input:focus { background: var(--ds-background-100); box-shadow: var(--ds-focus-border); }
+
+  .content-scroll { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+  .filter-scroll { display: flex; gap: 8px; padding: 0 20px 20px; overflow-x: auto; scrollbar-width: none; }
+  .filter-scroll::-webkit-scrollbar { display: none; }
+  .filter-chip { padding: 8px 16px; font-size: 13px; font-weight: 500; border-radius: 999px; white-space: nowrap; border: 1px solid var(--ds-gray-alpha-200); color: var(--ds-gray-700); background: var(--ds-background-100); cursor: pointer; transition: all 0.2s; }
+  .filter-chip.active { background: var(--ds-gray-1000); color: white; border-color: var(--ds-gray-1000); }
+  .filter-chip:active { transform: scale(0.96); }
+
+  /* ★ 修改：存储空间概览适配物理硬盘 */
+  .storage-card { margin: 0 20px 24px; padding: 16px; border-radius: 16px; border: 1px solid var(--ds-gray-alpha-200); display: flex; flex-direction: column; gap: 8px; }
+  .storage-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 500; }
+  .storage-header .title { color: var(--ds-gray-600); display: flex; align-items: center; gap: 6px; }
+  .storage-header .usage { color: var(--ds-gray-1000); }
+  .progress-bg { width: 100%; height: 6px; background: var(--ds-gray-alpha-100); border-radius: 3px; overflow: hidden; }
+  .progress-fill { width: 68%; height: 100%; background: var(--ds-blue-700); border-radius: 3px; }
+
+  .section-header { padding: 0 20px 12px; display: flex; justify-content: space-between; align-items: center; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--ds-gray-600); text-transform: uppercase; letter-spacing: 0.05em; }
+  .sort-btn { color: var(--ds-gray-600); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+  .sort-btn:active { background: var(--ds-gray-alpha-100); }
+
+  .pinned-list { padding: 0 20px 24px; display: flex; flex-direction: column; gap: 10px; }
+  .pinned-item { display: flex; align-items: center; padding: 12px 16px; border-radius: 16px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+  .pinned-item:active { transform: scale(0.98); }
+  .pinned-item.blue { background: var(--ds-blue-100); border-color: var(--ds-blue-200); }
+  .pinned-item.blue .pinned-icon { color: var(--ds-blue-700); }
+  .pinned-item.amber { background: var(--ds-amber-100); border-color: var(--ds-amber-200); }
+  .pinned-item.amber .pinned-icon { color: var(--ds-amber-700); }
+  .pinned-icon { display: flex; align-items: center; justify-content: center; margin-right: 16px; }
+  .pinned-details { flex: 1; }
+  .pinned-details h3 { font-size: 15px; font-weight: 600; color: var(--ds-gray-1000); margin-bottom: 2px; }
+  .pinned-details p { font-size: 12px; color: var(--ds-gray-600); }
+
+  .file-list { display: flex; flex-direction: column; padding: 0 20px 24px; }
+  .file-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--ds-gray-alpha-200); cursor: pointer; transition: background 0.2s; }
+  .file-item:last-child { border-bottom: none; }
+  .file-item:active { background: var(--ds-gray-alpha-100); border-radius: 8px; padding-left: 8px; padding-right: 8px; margin: 0 -8px; border-bottom-color: transparent; }
+  .file-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 16px; }
+  .file-icon.pink { background: var(--ds-pink-100); color: var(--ds-pink-700); }
+  .file-icon.gray { background: var(--ds-gray-200); color: var(--ds-gray-800); }
+  .file-details { flex: 1; }
+  .file-details h4 { font-size: 14px; font-weight: 500; color: var(--ds-gray-1000); margin-bottom: 2px; }
+  .file-details p { font-size: 12px; color: var(--ds-gray-600); }
+
+  .more-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--ds-gray-600); transition: 0.2s; margin-left: 8px; }
+  .more-btn:active { background: var(--ds-gray-alpha-200); color: var(--ds-gray-1000); }
+
+  .bottom-nav { position: absolute; bottom: 0; width: 100%; height: 80px; background: hsla(var(--ds-background-100-value), 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--ds-gray-alpha-200); display: flex; justify-content: space-around; align-items: center; padding-bottom: 16px; z-index: 20; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ds-gray-600); font-size: 11px; font-weight: 500; }
+  .nav-item.active { color: var(--ds-gray-1000); }
+
+  .breadcrumb-bar { position: absolute; bottom: 0; width: 100%; height: 64px; background: hsla(var(--ds-background-100-value), 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--ds-gray-alpha-200); display: flex; align-items: center; padding: 0 20px 16px 20px; gap: 8px; z-index: 30; overflow-x: auto; white-space: nowrap; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .breadcrumb-bar::-webkit-scrollbar { display: none; }
+  .breadcrumb-bar.visible { transform: translateY(0); }
+  .breadcrumb-item { font-size: 13px; font-weight: 500; color: var(--ds-gray-600); cursor: pointer; display: flex; align-items: center; }
+  .breadcrumb-item.active { color: var(--ds-gray-1000); font-weight: 600; }
+  .breadcrumb-separator { color: var(--ds-gray-400); display: flex; align-items: center; }
+
+  .fab { position: absolute; bottom: 96px; right: 20px; width: 56px; height: 56px; border-radius: 28px; background: var(--ds-gray-1000); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.16); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 15; }
+  .fab:active { transform: scale(0.92); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+
+  .sheet-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--ds-gray-alpha-600); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 40; }
+  .sheet-overlay.active { opacity: 1; pointer-events: auto; }
+  .bottom-sheet { position: absolute; bottom: 0; left: 0; width: 100%; background: var(--ds-background-100); border-radius: 24px 24px 0 0; padding: 24px 20px 40px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 41; box-shadow: 0 -8px 32px var(--ds-gray-alpha-200); }
+  .bottom-sheet.active { transform: translateY(0); }
+  .sheet-handle { width: 40px; height: 4px; background: var(--ds-gray-200); border-radius: 2px; margin: 0 auto 24px; }
+  .sheet-title { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 24px; color: var(--ds-gray-1000); }
+  .sheet-action { display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 12px; cursor: pointer; transition: background 0.2s; font-size: 15px; font-weight: 500; color: var(--ds-gray-1000); }
+  .sheet-action:active { background: var(--ds-gray-alpha-100); }
+  .sheet-action.danger { color: var(--ds-pink-700); }
+  /* ★ 新增：电脑端相关操作高亮色 */
+  .sheet-action.primary { color: var(--ds-blue-700); font-weight: 600; background: var(--ds-blue-100); margin-bottom: 8px; }
+  .sheet-action.primary:active { background: var(--ds-blue-200); }
+
+  .preview-container { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 40px 20px 80px; text-align: center; }
+  .preview-icon-huge { width: 96px; height: 96px; border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+  .preview-icon-huge svg { width: 48px; height: 48px; }
+  .preview-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; word-break: break-all; }
+  .preview-meta { font-size: 14px; color: var(--ds-gray-600); margin-bottom: 40px; }
+  
+  .geist-btn { background: var(--ds-gray-1000); color: white; border: none; border-radius: 8px; padding: 14px 32px; font-size: 15px; font-weight: 500; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .geist-btn:active { transform: scale(0.98); background: #333; }
+  .geist-btn.secondary { background: white; color: var(--ds-gray-1000); border: 1px solid var(--ds-gray-alpha-200); margin-top: 12px; }
+  .geist-btn.secondary:active { background: var(--ds-gray-100); }
+
+  svg { width: 24px; height: 24px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<div class="mobile-mockup">
+  
+  <div id="view-home" class="view active">
+    
+    <div class="header">
+      <div class="header-titles">
+        <h1>Files</h1>
+        <div class="device-status">
+          <div class="status-dot"></div>
+          Connected to Desktop-PC
+        </div>
+      </div>
+      <button class="icon-btn"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+    </div>
+
+    <div class="search-container"><input type="text" class="search-input" placeholder="Search..."></div>
+    
+    <div class="filter-scroll">
+      <div class="filter-chip active">All Files</div>
+      <div class="filter-chip">Images</div>
+      <div class="filter-chip">Documents</div>
+      <div class="filter-chip">Media</div>
+      <div class="filter-chip">Archives</div>
+    </div>
+    
+    <div class="content-scroll">
+      
+      <div class="storage-card">
+        <div class="storage-header">
+          <span class="title">
+            <svg style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg>
+            Local Disk (C:)
+          </span>
+          <span class="usage">340 GB / 500 GB</span>
+        </div>
+        <div class="progress-bg"><div class="progress-fill"></div></div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Pinned</div>
+      </div>
+      <div class="pinned-list">
+        <div class="pinned-item blue" onclick="openFolder('projects', 'Projects')">
+          <div class="pinned-icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>
+          <div class="pinned-details"><h3>Projects</h3><p>3 items • 5.4 MB</p></div>
+          <div class="more-btn" onclick="event.stopPropagation(); openSheet('Projects')">
+            <svg style="width:20px;height:20px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+          </div>
+        </div>
+        <div class="pinned-item amber" onclick="openFolder('design', 'Design')">
+          <div class="pinned-icon"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>
+          <div class="pinned-details"><h3>Design</h3><p>2 items • 4.6 MB</p></div>
+          <div class="more-btn" onclick="event.stopPropagation(); openSheet('Design')">
+            <svg style="width:20px;height:20px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Folders</div>
+        <div class="sort-btn" onclick="alert('Sort options clicked')">
+          <svg style="width:18px;height:18px;" viewBox="0 0 24 24"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><line x1="18" y1="4" x2="18" y2="20"/><polyline points="15 17 18 20 21 17"/></svg>
+        </div>
+      </div>
+      <div class="file-list">
+        <div class="file-item" onclick="openFolder('personal', 'Personal')">
+          <div class="file-icon pink"><svg style="width:20px;height:20px;" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></div>
+          <div class="file-details"><h4>Personal</h4><p>1 item • 12 KB</p></div>
+          <div class="more-btn" onclick="event.stopPropagation(); openSheet('Personal')">
+            <svg style="width:20px;height:20px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    
+    <div class="fab" onclick="alert('Create New...')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg><span>Home</span></div>
+      <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>Files</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg><span>Shared</span></div>
+    </div>
+  </div>
+
+  <div id="view-folder" class="view">
+    <div class="header">
+      <button class="icon-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+      <h1 id="folder-title">Folder Name</h1>
+      <button class="icon-btn"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
+    </div>
+    <div class="content-scroll">
+      <div class="file-list" id="folder-content">
+        </div>
+    </div>
+  </div>
+
+  <div id="view-file" class="view">
+    <div class="header">
+      <button class="icon-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+      <h1>Preview</h1>
+      <button class="icon-btn"><svg viewBox="0 0 24 24" style="width:18px;height:18px;"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>
+    </div>
+    <div class="preview-container">
+      <div id="preview-icon" class="preview-icon-huge blue"></div>
+      <div id="preview-title" class="preview-title">Filename.ext</div>
+      <div id="preview-meta" class="preview-meta">Date • Size</div>
+      
+      <div style="width: 100%; max-width: 280px; margin-top: auto;">
+        <button class="geist-btn">
+          <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> 
+          Open on PC
+        </button>
+        <button class="geist-btn secondary">Download to Phone</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="breadcrumb-bar" id="breadcrumb-bar"></div>
+
+  <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-title">Options</div>
+    
+    <div class="sheet-action primary">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+      Open on PC
+    </div>
+    
+    <div class="sheet-action">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      Download to Phone
+    </div>
+    <div class="sheet-action">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      Rename
+    </div>
+    <div class="sheet-action danger">
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+      Delete on PC
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 模拟数据
+  const fileData = {
+    'projects':[
+      { name: 'Q3 Financial Report.csv', type: 'teal', meta: '2 mins ago • 1.2 MB', icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line>' },
+      { name: 'Project_Briefing.docx', type: 'blue', meta: 'Yesterday • 800 KB', icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>' }
+    ],
+    'design':[
+      { name: 'Hero_Banner_v2.png', type: 'purple', meta: '1 hour ago • 4.5 MB', icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline>' }
+    ],
+    'personal':[], 'archives':[]
+  };
+
+  let historyPath = [{ viewId: 'view-home', label: 'Home' }];
+
+  function switchView(targetViewId) {
+    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+    document.getElementById(targetViewId).classList.add('active');
+  }
+
+  function renderBreadcrumb() {
+    const bar = document.getElementById('breadcrumb-bar');
+    if (historyPath.length <= 1) { bar.classList.remove('visible'); return; }
+    bar.classList.add('visible');
+    bar.innerHTML = historyPath.map((step, index) => {
+      const isLast = index === historyPath.length - 1;
+      const activeClass = isLast ? 'active' : '';
+      const itemHtml = `<span class="breadcrumb-item ${activeClass}" onclick="navigateToIndex(${index})">${step.label}</span>`;
+      const separatorHtml = isLast ? '' : `<span class="breadcrumb-separator"><svg viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
+      return itemHtml + separatorHtml;
+    }).join('');
+    setTimeout(() => { bar.scrollLeft = bar.scrollWidth; }, 50);
+  }
+
+  function navigateToIndex(index) {
+    if (index === historyPath.length - 1) return;
+    const target = historyPath[index];
+    historyPath = historyPath.slice(0, index + 1);
+    switchView(target.viewId);
+    renderBreadcrumb();
+  }
+
+  function goBack() {
+    if (historyPath.length > 1) {
+      historyPath.pop();
+      const prevView = historyPath[historyPath.length - 1];
+      switchView(prevView.viewId);
+      renderBreadcrumb();
+    }
+  }
+
+  function openFolder(folderId, folderName) {
+    document.getElementById('folder-title').innerText = folderName;
+    const container = document.getElementById('folder-content');
+    const files = fileData[folderId] || [];
+
+    if (files.length === 0) {
+      container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--ds-gray-500); font-size: 14px;">This folder is empty</div>`;
+    } else {
+      container.innerHTML = files.map((file, index) => `
+        <div class="file-item" onclick="openFileFromData('${folderId}', ${index})">
+          <div class="file-icon ${file.type}"><svg style="width:20px;height:20px;" viewBox="0 0 24 24">${file.icon}</svg></div>
+          <div class="file-details"><h4>${file.name}</h4><p>${file.meta}</p></div>
+          <div class="more-btn" onclick="event.stopPropagation(); openSheet('${file.name}')">
+            <svg style="width:20px;height:20px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+          </div>
+        </div>
+      `).join('');
+    }
+    historyPath.push({ viewId: 'view-folder', label: folderName });
+    switchView('view-folder'); renderBreadcrumb();
+  }
+
+  function openFileFromData(folderId, index) {
+    const file = fileData[folderId][index];
+    openFile(file.name, file.type, file.meta, file.icon);
+  }
+
+  function openFile(name, type, meta, iconSVG) {
+    document.getElementById('preview-title').innerText = name;
+    document.getElementById('preview-meta').innerText = meta;
+    const iconContainer = document.getElementById('preview-icon');
+    iconContainer.className = `preview-icon-huge ${type}`;
+    iconContainer.innerHTML = `<svg viewBox="0 0 24 24">${iconSVG}</svg>`;
+    historyPath.push({ viewId: 'view-file', label: name });
+    switchView('view-file'); renderBreadcrumb();
+  }
+
+  function openSheet(itemName) {
+    document.getElementById('sheet-title').innerText = itemName;
+    document.getElementById('sheet-overlay').classList.add('active');
+    document.getElementById('bottom-sheet').classList.add('active');
+  }
+
+  function closeSheet() {
+    document.getElementById('sheet-overlay').classList.remove('active');
+    document.getElementById('bottom-sheet').classList.remove('active');
+  }
+</script>
+</body>
+</html>

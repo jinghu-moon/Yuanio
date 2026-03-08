@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-03-03T16:14:55.1134947Z",
+  "agent": "codex",
+  "warmup": 0,
+  "iterations": 1,
+  "prompt": "请直接连续输出一段约400字中文说明，分成多句，不要使用工具，不要代码块。",
+  "files": [
+    "docs/latency-agent-e2e.long3.run1.json",
+    "docs/latency-agent-e2e.long3.run2.json",
+    "docs/latency-agent-e2e.long3.run3.json"
+  ],
+  "metrics": [
+    {
+      "metric": "sendToAckFirstMs",
+      "run1": 2.6603999999999814,
+      "run2": 1.2758000000001175,
+      "run3": 4.0815000000000055,
+      "median": 2.6603999999999814
+    },
+    {
+      "metric": "sendToAckWorkingMs",
+      "run1": 2.6603999999999814,
+      "run2": 1.2758000000001175,
+      "run3": 4.0815000000000055,
+      "median": 2.6603999999999814
+    },
+    {
+      "metric": "sendToFirstThinkingMs",
+      "run1": 27806.0781,
+      "run2": 19707.2063,
+      "run3": 21601.3485,
+      "median": 21601.3485
+    },
+    {
+      "metric": "sendToFirstChunkMs",
+      "run1": 31479.5406,
+      "run2": 23671.076500000003,
+      "run3": 25459.2363,
+      "median": 25459.2363
+    },
+    {
+      "metric": "sendToEndMs",
+      "run1": 32256.344899999996,
+      "run2": 24204.711300000003,
+      "run3": 26247.597999999998,
+      "median": 26247.597999999998
+    },
+    {
+      "metric": "sendToAckOkMs",
+      "run1": 32263.784099999997,
+      "run2": 24213.189400000003,
+      "run3": 26254.0212,
+      "median": 26254.0212
+    },
+    {
+      "metric": "chunkCount",
+      "run1": 1.0,
+      "run2": 1.0,
+      "run3": 1.0,
+      "median": 1.0
+    },
+    {
+      "metric": "chunkChars",
+      "run1": 395.0,
+      "run2": 398.0,
+      "run3": 395.0,
+      "median": 395.0
+    }
+  ]
+}

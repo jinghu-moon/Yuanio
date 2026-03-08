@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-03-03T16:08:35.9605986Z",
+  "agent": "codex",
+  "warmup": 0,
+  "iterations": 1,
+  "files": [
+    "docs/latency-agent-e2e.quick3.run1.json",
+    "docs/latency-agent-e2e.quick3.run2.json",
+    "docs/latency-agent-e2e.quick3.run3.json"
+  ],
+  "metrics": [
+    {
+      "metric": "sendToAckFirstMs",
+      "run1": 2.1845999999998185,
+      "run2": 1.2544000000000324,
+      "run3": 1.3677000000000135,
+      "median": 1.3677000000000135
+    },
+    {
+      "metric": "sendToAckWorkingMs",
+      "run1": 2.1845999999998185,
+      "run2": 1.2544000000000324,
+      "run3": 1.3677000000000135,
+      "median": 1.3677000000000135
+    },
+    {
+      "metric": "sendToFirstThinkingMs",
+      "run1": 11035.1049,
+      "run2": 21951.750200000002,
+      "run3": 18619.6891,
+      "median": 18619.6891
+    },
+    {
+      "metric": "sendToFirstChunkMs",
+      "run1": 11034.2009,
+      "run2": 21821.5822,
+      "run3": 18800.305099999998,
+      "median": 18800.305099999998
+    },
+    {
+      "metric": "sendToEndMs",
+      "run1": 11899.8734,
+      "run2": 22913.0942,
+      "run3": 19308.4526,
+      "median": 19308.4526
+    },
+    {
+      "metric": "sendToAckOkMs",
+      "run1": 11910.7909,
+      "run2": 22919.9188,
+      "run3": 19315.4788,
+      "median": 19315.4788
+    },
+    {
+      "metric": "chunkCount",
+      "run1": 1.0,
+      "run2": 1.0,
+      "run3": 1.0,
+      "median": 1.0
+    },
+    {
+      "metric": "chunkChars",
+      "run1": 3.0,
+      "run2": 3.0,
+      "run3": 3.0,
+      "median": 3.0
+    }
+  ]
+}

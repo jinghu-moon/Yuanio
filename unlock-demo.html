@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geist 风格 - 解锁界面</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Vercel Geist 核心颜色变量 */
+    --ds-gray-100: hsla(0, 0%, 95%, 1);
+    --ds-gray-200: hsla(0, 0%, 92%, 1);
+    --ds-gray-300: hsla(0, 0%, 90%, 1);
+    --ds-gray-400: hsla(0, 0%, 85%, 1);
+    --ds-gray-500: hsla(0, 0%, 79%, 1);
+    --ds-gray-600: hsla(0, 0%, 66%, 1);
+    --ds-gray-700: hsla(0, 0%, 56%, 1);
+    --ds-gray-800: hsla(0, 0%, 49%, 1);
+    --ds-gray-1000: hsla(0, 0%, 9%, 1);
+    --ds-blue-100: hsla(212, 100%, 97%, 1);
+    --ds-blue-200: hsla(210, 100%, 96%, 1);
+    --ds-blue-700: hsla(212, 100%, 48%, 1);
+    
+    --ds-gray-alpha-100: rgba(0, 0, 0, 0.05);
+    --ds-gray-alpha-200: rgba(0, 0, 0, 0.08);
+    --ds-gray-alpha-600: rgba(0, 0, 0, 0.34);
+    --ds-background-100: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background-color: var(--ds-gray-100); display: flex; justify-content: center; align-items: center; min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ds-gray-1000); -webkit-font-smoothing: antialiased;
+  }
+
+  .mobile-mockup {
+    width: 375px; height: 812px; background-color: var(--ds-background-100);
+    border-radius: 40px; box-shadow: 0 24px 48px var(--ds-gray-alpha-200), 0 0 0 8px var(--ds-gray-200);
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+  }
+
+  /* 顶部状态栏及通用 Header 信息 */
+  .auth-header {
+    padding: 80px 20px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; z-index: 20;
+  }
+  .lock-icon {
+    width: 48px; height: 48px; border-radius: 50%; background: var(--ds-gray-100);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 24px; color: var(--ds-gray-1000);
+  }
+  .auth-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .auth-subtitle { font-size: 14px; color: var(--ds-gray-600); }
+
+  /* 视图切换机制 */
+  .view-container { flex: 1; position: relative; }
+  .view {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center;
+    opacity: 0; pointer-events: none; transform: translateX(20px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .view.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
+
+  /* ================= 模式 1：密码解锁 (PIN) ================= */
+  .pin-dots { display: flex; gap: 16px; margin-bottom: 64px; }
+  .pin-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1px solid var(--ds-gray-400); transition: all 0.2s;
+  }
+  .pin-dot.filled { background: var(--ds-gray-1000); border-color: var(--ds-gray-1000); transform: scale(1.1); }
+
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 24px; padding: 0 40px; width: 100%; }
+  .key-btn {
+    width: 72px; height: 72px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 500; cursor: pointer; transition: background 0.2s; border: none; background: transparent; color: var(--ds-gray-1000);
+  }
+  .key-btn:active { background: var(--ds-gray-alpha-100); }
+  .key-btn.empty { pointer-events: none; }
+  .key-action { color: var(--ds-gray-600); }
+  .key-action:active { background: var(--ds-gray-alpha-100); color: var(--ds-gray-1000); }
+
+  /* ================= 模式 2：指纹解锁 ================= */
+  .fingerprint-container {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; margin-top: -60px;
+  }
+  .fingerprint-sensor {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--ds-blue-100);
+    display: flex; align-items: center; justify-content: center; color: var(--ds-blue-700);
+    position: relative; cursor: pointer; transition: transform 0.2s;
+  }
+  .fingerprint-sensor:active { transform: scale(0.95); }
+  /* 指纹波纹动画 */
+  .fingerprint-sensor::before {
+    content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%;
+    border: 2px solid var(--ds-blue-700); opacity: 0; animation: pulse 2s infinite cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  /* ================= 模式 3：图案解锁 ================= */
+  .pattern-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; padding: 20px;
+    margin-top: 20px; position: relative;
+  }
+  .pattern-dot {
+    width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+  }
+  .pattern-dot::after {
+    content: ''; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--ds-gray-300); transition: all 0.2s;
+  }
+  /* 模拟选中的状态 */
+  .pattern-dot.active::after {
+    background: var(--ds-blue-700); transform: scale(1.5);
+    box-shadow: 0 0 0 8px var(--ds-blue-100);
+  }
+
+  /* 底部切换栏 */
+  .auth-switcher-wrapper { padding: 0 20px 40px; margin-top: auto; }
+  .auth-switcher {
+    display: flex; background: var(--ds-gray-alpha-100); border-radius: 99px; padding: 4px;
+  }
+  .switcher-tab {
+    flex: 1; text-align: center; padding: 10px 0; font-size: 13px; font-weight: 500;
+    color: var(--ds-gray-600); border-radius: 99px; cursor: pointer; transition: all 0.2s;
+  }
+  .switcher-tab.active {
+    background: var(--ds-background-100); color: var(--ds-gray-1000);
+    box-shadow: 0 2px 8px var(--ds-gray-alpha-200);
+  }
+
+  svg { width: 24px; height: 24px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<div class="mobile-mockup">
+  
+  <div class="auth-header">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    </div>
+    <h1 class="auth-title" id="auth-title">Enter Passcode</h1>
+    <p class="auth-subtitle" id="auth-subtitle">Unlock to access files</p>
+  </div>
+
+  <div class="view-container">
+    
+    <div id="view-pin" class="view active">
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      
+      <div class="keypad">
+        <button class="key-btn" onclick="typePin()">1</button>
+        <button class="key-btn" onclick="typePin()">2</button>
+        <button class="key-btn" onclick="typePin()">3</button>
+        <button class="key-btn" onclick="typePin()">4</button>
+        <button class="key-btn" onclick="typePin()">5</button>
+        <button class="key-btn" onclick="typePin()">6</button>
+        <button class="key-btn" onclick="typePin()">7</button>
+        <button class="key-btn" onclick="typePin()">8</button>
+        <button class="key-btn" onclick="typePin()">9</button>
+        <button class="key-btn empty"></button>
+        <button class="key-btn" onclick="typePin()">0</button>
+        <button class="key-btn key-action" onclick="deletePin()">
+          <svg viewBox="0 0 24 24" style="width: 28px; height: 28px;"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="view-fingerprint" class="view">
+      <div class="fingerprint-container">
+        <div class="fingerprint-sensor" onclick="simulateUnlock()">
+          <svg style="width: 40px; height: 40px;" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-10 10v2a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2A10 10 0 0 0 12 2z"></path><path d="M12 6a6 6 0 0 0-6 6v2"></path><path d="M12 10a2 2 0 0 0-2 2v2"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-pattern" class="view">
+      <div class="pattern-grid">
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot active" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+        <div class="pattern-dot" onclick="toggleDot(this)"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="auth-switcher-wrapper">
+    <div class="auth-switcher">
+      <div class="switcher-tab active" onclick="switchMode('pin', 'Enter Passcode', 'Unlock to access files', this)">PIN</div>
+      <div class="switcher-tab" onclick="switchMode('fingerprint', 'Fingerprint', 'Touch the sensor to unlock', this)">Fingerprint</div>
+      <div class="switcher-tab" onclick="switchMode('pattern', 'Draw Pattern', 'Connect dots to unlock', this)">Pattern</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 切换解锁模式
+  function switchMode(modeId, title, subtitle, element) {
+    // 更新视图
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${modeId}`).classList.add('active');
+    
+    // 更新文案
+    document.getElementById('auth-title').innerText = title;
+    document.getElementById('auth-subtitle').innerText = subtitle;
+
+    // 更新底部 Tab 样式
+    document.querySelectorAll('.switcher-tab').forEach(t => t.classList.remove('active'));
+    element.classList.add('active');
+  }
+
+  // 模拟密码输入视觉反馈
+  let pinCount = 0;
+  function typePin() {
+    if (pinCount < 4) {
+      const dots = document.querySelectorAll('.pin-dot');
+      dots[pinCount].classList.add('filled');
+      pinCount++;
+      if (pinCount === 4) {
+        setTimeout(() => simulateUnlock(), 200);
+      }
+    }
+  }
+
+  function deletePin() {
+    if (pinCount > 0) {
+      pinCount--;
+      const dots = document.querySelectorAll('.pin-dot');
+      dots[pinCount].classList.remove('filled');
+    }
+  }
+
+  // 模拟图案解锁点击效果 (仅视觉演示)
+  function toggleDot(element) {
+    element.classList.toggle('active');
+  }
+
+  function simulateUnlock() {
+    document.getElementById('auth-title').innerText = "Unlocked!";
+    document.getElementById('auth-title').style.color = "var(--ds-blue-700)";
+    document.getElementById('auth-subtitle').innerText = "Redirecting...";
+    
+    // 重置状态
+    setTimeout(() => {
+      document.getElementById('auth-title').innerText = "Enter Passcode";
+      document.getElementById('auth-title').style.color = "var(--ds-gray-1000)";
+      document.getElementById('auth-subtitle').innerText = "Unlock to access files";
+      document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled'));
+      pinCount = 0;
+    }, 1500);
+  }
+</script>
+</body>
+</html>

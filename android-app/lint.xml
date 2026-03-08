@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="UnsafeOptInUsageError">
+        <option name="opt-in" value="androidx.camera.core.ExperimentalGetImage" />
+    </issue>
+    <!-- 局域网直连模式需要允许明文 HTTP（动态 IP），此项按产品约束显式豁免 -->
+    <issue id="InsecureBaseConfiguration" severity="ignore" />
+    <!-- 受上游三方 .so 对齐状态影响，暂豁免并跟随依赖升级收敛 -->
+    <issue id="Aligned16KB" severity="ignore" />
+    <!-- 纯建议型文本风格提示，不影响行为正确性 -->
+    <issue id="TypographyEllipsis" severity="ignore" />
+    <issue id="TypographyDashes" severity="ignore" />
+    <issue id="PluralsCandidate" severity="ignore" />
+    <!-- 依赖升级提示由版本治理流程统一处理 -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <!-- 历史偏好写法与资源预留，暂不阻断 -->
+    <issue id="UseKtx" severity="ignore" />
+    <issue id="UnusedResources" severity="ignore" />
+    <issue id="Overdraw" severity="ignore" />
+</lint>

@@ -1,0 +1,17 @@
+{
+  "status": "fail",
+  "generatedAt": "2026-03-07T13:37:06.478Z",
+  "serverUrl": "http://127.0.0.1:3300",
+  "autoRelay": true,
+  "timeoutMs": 8000,
+  "steps": [
+    {
+      "name": "relay-health-or-start",
+      "status": "fail",
+      "durationMs": 15090.3,
+      "detail": "[relay] 健康检查超时: http://127.0.0.1:3300/health"
+    }
+  ],
+  "metrics": {},
+  "error": "[relay] 健康检查超时: http://127.0.0.1:3300/health"
+}

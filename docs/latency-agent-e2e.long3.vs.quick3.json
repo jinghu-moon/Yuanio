@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-03-03T16:15:15.2136158Z",
+  "shortFile": "docs/latency-agent-e2e.quick3.median.json",
+  "longFile": "docs/latency-agent-e2e.long3.median.json",
+  "rows": [
+    {
+      "metric": "sendToAckWorkingMs",
+      "short": 1.3677000000000135,
+      "long": 2.6603999999999814,
+      "delta": 1.292699999999968
+    },
+    {
+      "metric": "sendToFirstChunkMs",
+      "short": 18800.305099999998,
+      "long": 25459.2363,
+      "delta": 6658.931200000003
+    },
+    {
+      "metric": "sendToEndMs",
+      "short": 19308.4526,
+      "long": 26247.597999999998,
+      "delta": 6939.145399999998
+    },
+    {
+      "metric": "chunkCount",
+      "short": 1.0,
+      "long": 1.0,
+      "delta": 0.0
+    },
+    {
+      "metric": "chunkChars",
+      "short": 3.0,
+      "long": 395.0,
+      "delta": 392.0
+    }
+  ]
+}

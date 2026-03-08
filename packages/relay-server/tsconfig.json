@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": [
+      "bun-types"
+    ],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@yuanio/shared": [
+        "../shared/src/index.ts"
+      ],
+      "@yuanio/shared/*": [
+        "../shared/src/*"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

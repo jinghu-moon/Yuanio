@@ -1,0 +1,32 @@
+﻿[
+    {
+        "run":  1,
+        "ackRttMs":  24.89,
+        "recoveryPendingAppearMs":  135.9,
+        "recoveryAckClearMs":  4.47
+    },
+    {
+        "run":  2,
+        "ackRttMs":  39.72,
+        "recoveryPendingAppearMs":  152.23,
+        "recoveryAckClearMs":  4.6
+    },
+    {
+        "run":  3,
+        "ackRttMs":  44.22,
+        "recoveryPendingAppearMs":  140.51,
+        "recoveryAckClearMs":  4.2
+    },
+    {
+        "run":  4,
+        "ackRttMs":  46.37,
+        "recoveryPendingAppearMs":  139.34,
+        "recoveryAckClearMs":  2.57
+    },
+    {
+        "run":  5,
+        "ackRttMs":  43.32,
+        "recoveryPendingAppearMs":  134.61,
+        "recoveryAckClearMs":  3.99
+    }
+]

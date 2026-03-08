@@ -1,0 +1,30 @@
+Categories:
+  - Development
+  - Internet
+License: AGPL-3.0-or-later
+AuthorName: Yuanio Contributors
+AuthorWebSite: https://github.com/yuanio/yuanio
+SourceCode: https://github.com/yuanio/yuanio
+IssueTracker: https://github.com/yuanio/yuanio/issues
+Changelog: https://github.com/yuanio/yuanio/blob/main/CHANGELOG.md
+
+AutoName: Yuanio
+Summary: Remote vibe coding from Android to desktop AI CLI
+Description: |
+  Yuanio lets you control desktop coding agents (Claude Code/Codex/Gemini) from Android.
+  It supports encrypted relay messaging, approval actions, file diff review, and session control.
+
+RepoType: git
+Repo: https://github.com/yuanio/yuanio.git
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 1
+    commit: HEAD
+    subdir: android-app
+    gradle:
+      - yes
+    output: app/build/outputs/apk/release/app-release.apk
+
+AutoUpdateMode: None
+UpdateCheckMode: Tags

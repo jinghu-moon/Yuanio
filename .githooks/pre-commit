@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+echo "[pre-commit] validating local Tabler icons"
+bun run check:tabler-icons

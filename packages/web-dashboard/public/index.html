@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1C1B1F">
+<link rel="manifest" href="manifest.json">
+<title>Yuanio Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui;background:#1C1B1F;color:#E6E1E5;min-height:100vh;display:flex;flex-direction:column}
+header{background:#2B2930;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #49454F}
+header h1{font-size:18px;color:#D0BCFF;flex:1}
+.badge{font-size:12px;padding:2px 8px;border-radius:12px;background:#49454F}
+.badge.online{background:#006D3B;color:#fff}
+.badge.running{background:#7D5260;color:#fff}
+#status-bar{display:flex;gap:8px;align-items:center}
+main{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+#messages{display:flex;flex-direction:column}
+.msg{margin-bottom:8px;padding:8px 12px;border-radius:12px;max-width:88%;word-break:break-word;white-space:pre-wrap}
+.msg.user{background:#4F378B;margin-left:auto;color:#fff}
+.msg.ai{background:#2B2930;border:1px solid #49454F}
+.msg.tool{background:#1D1B20;border:1px solid #49454F;font-size:13px;color:#CAC4D0}
+.msg.hook{background:#332D41;font-size:12px;color:#938F99}
+footer{background:#2B2930;padding:12px 16px;border-top:1px solid #49454F;display:flex;gap:8px}
+footer input{flex:1;background:#1C1B1F;border:1px solid #49454F;border-radius:24px;padding:10px 16px;color:#E6E1E5;font-size:15px;outline:none}
+footer input:focus{border-color:#D0BCFF}
+footer button{background:#D0BCFF;color:#1C1B1F;border:none;border-radius:24px;padding:10px 20px;font-weight:600;cursor:pointer}
+footer button:disabled{opacity:.4}
+#config{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:20;align-items:center;justify-content:center}
+#config.show{display:flex}
+#config form{background:#2B2930;padding:24px;border-radius:16px;width:90%;max-width:400px}
+#config label{display:block;margin:8px 0 4px;color:#CAC4D0;font-size:13px}
+#config input{width:100%;background:#1C1B1F;border:1px solid #49454F;border-radius:8px;padding:8px 12px;color:#E6E1E5;font-size:14px}
+#config .actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.btn-primary{background:#D0BCFF;color:#1C1B1F;font-weight:600}
+.btn-secondary{background:#49454F;color:#E6E1E5}
+.icon{width:16px;height:16px;display:inline-block;vertical-align:-2px}
+
+.panel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.panel{background:#2B2930;border:1px solid #49454F;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.panel h2{font-size:14px;color:#D0BCFF}
+.panel-actions{display:flex;gap:6px;flex-wrap:wrap}
+.panel-actions button{border:none;border-radius:8px;padding:6px 10px;font-size:12px;background:#49454F;color:#E6E1E5;cursor:pointer}
+.panel-actions button.primary{background:#D0BCFF;color:#1C1B1F;font-weight:600}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:#CAC4D0}
+.field input,.field select,.field textarea{width:100%;background:#1C1B1F;border:1px solid #49454F;border-radius:8px;padding:6px 8px;color:#E6E1E5;font-size:12px}
+.field textarea{min-height:54px;resize:vertical}
+.list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+.list-item{border:1px solid #49454F;border-radius:8px;padding:8px;background:#1D1B20;font-size:12px}
+.list-item.unread{border-color:#D0BCFF}
+.list-item b{color:#E6E1E5}
+.muted{color:#938F99}
+.small-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.small-row button{border:none;border-radius:6px;padding:4px 8px;font-size:11px;background:#7D5260;color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Yuanio</h1>
+  <div id="status-bar">
+    <span id="agent-badge" class="badge">离线</span>
+    <span id="conn-badge" class="badge">未连接</span>
+    <span id="daemon-badge" class="badge">daemon 未知</span>
+    <span id="device-count" class="badge" style="display:none"></span>
+  </div>
+  <button class="btn-secondary" style="border-radius:8px;padding:4px 12px;border:none;cursor:pointer;font-size:13px" onclick="showConfig()">
+    <svg class="icon" viewBox="0 -960 960 960" aria-hidden="true">
+      <path fill="currentColor" d="M433-80q-27 0-46.5-18T363-142l-9-66q-13-5-24.5-12T307-235l-62 26q-25 11-50 2t-39-32l-47-82q-14-23-8-49t27-43l53-40q-1-7-1-13.5v-27q0-6.5 1-13.5l-53-40q-21-17-27-43t8-49l47-82q14-23 39-32t50 2l62 26q11-8 23-15t24-12l9-66q4-26 23.5-44t46.5-18h94q27 0 46.5 18t23.5 44l9 66q13 5 24.5 12t22.5 15l62-26q25-11 50-2t39 32l47 82q14 23 8 49t-27 43l-53 40q1 7 1 13.5v27q0 6.5-2 13.5l53 40q21 17 27 43t-8 49l-48 82q-14 23-39 32t-50-2l-60-26q-11 8-23 15t-24 12l-9 66q-4 26-23.5 44T527-80h-94Zm7-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
+    </svg>
+  </button>
+</header>
+
+<main>
+  <section class="panel-grid">
+    <section class="panel">
+      <h2>会话管理</h2>
+      <div class="panel-actions">
+        <button onclick="loadSessions()">刷新</button>
+      </div>
+      <div class="field">
+        <label>目录</label>
+        <input id="spawn-dir" placeholder="D:/workspace/project">
+      </div>
+      <div class="field">
+        <label>Agent</label>
+        <select id="spawn-agent">
+          <option value="codex">codex</option>
+          <option value="claude">claude</option>
+          <option value="gemini">gemini</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>恢复会话 ID（可选）</label>
+        <input id="spawn-resume" placeholder="session_xxx">
+      </div>
+      <div class="panel-actions">
+        <button class="primary" onclick="spawnSession()">新建会话</button>
+      </div>
+      <div id="session-list" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>通知收件箱</h2>
+      <div class="panel-actions">
+        <button onclick="loadNotifications()">刷新</button>
+        <button onclick="markAllNotificationsRead()">全部已读</button>
+      </div>
+      <div id="notification-list" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>时间线</h2>
+      <div class="field">
+        <label>过滤会话 ID（可选）</label>
+        <input id="timeline-session" placeholder="session_xxx">
+      </div>
+      <div class="panel-actions">
+        <button onclick="loadTimeline()">刷新</button>
+      </div>
+      <div id="timeline-list" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Diff 面板</h2>
+      <div class="panel-actions">
+        <button onclick="renderDiffPanel()">刷新</button>
+      </div>
+      <div id="diff-list" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Artifact 版本</h2>
+      <div class="field">
+        <label>Artifact ID</label>
+        <input id="artifact-id" placeholder="readme_patch">
+      </div>
+      <div class="field">
+        <label>版本内容</label>
+        <textarea id="artifact-content" placeholder="输入版本内容"></textarea>
+      </div>
+      <div class="panel-actions">
+        <button class="primary" onclick="saveArtifactVersion()">保存版本</button>
+        <button onclick="loadArtifactVersions()">查询版本</button>
+      </div>
+      <div id="artifact-list" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Skills 管理</h2>
+      <div class="field">
+        <label>安装源（本地路径 / owner/repo / git url）</label>
+        <input id="skills-source" placeholder="./refer/teleclaude">
+      </div>
+      <div class="field">
+        <label>Scope</label>
+        <select id="skills-scope">
+          <option value="project">project</option>
+          <option value="user">user</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Install ID（prepare 后自动填充）</label>
+        <input id="skills-install-id" placeholder="install_xxx">
+      </div>
+      <div class="field">
+        <label>Dry Run（名称）</label>
+        <input id="skills-dry-run-name" placeholder="skill-name">
+      </div>
+      <div class="field">
+        <label>Dry Run（参数，可选）</label>
+        <input id="skills-dry-run-args" placeholder="arg1 arg2">
+      </div>
+      <div class="panel-actions">
+        <button onclick="loadSkillsList()">刷新列表</button>
+        <button onclick="prepareSkillsInstall()">Prepare</button>
+        <button onclick="commitSkillsInstall('skip')">Commit(skip)</button>
+        <button onclick="commitSkillsInstall('overwrite')">Commit(overwrite)</button>
+        <button onclick="cancelSkillsInstall()">Cancel</button>
+        <button onclick="loadSkillInstallStatus()">Status</button>
+        <button onclick="dryRunSkill()">Dry Run</button>
+      </div>
+      <div class="field">
+        <label>已安装 Skills</label>
+        <div id="skills-list" class="list"></div>
+      </div>
+      <div class="field">
+        <label>候选 Skills（可多选）</label>
+        <div id="skills-candidate-list" class="list"></div>
+      </div>
+      <div class="field">
+        <label>调试输出</label>
+        <div id="skills-dry-run-output" class="list"></div>
+      </div>
+      <div class="field">
+        <label>安装日志</label>
+        <div id="skills-log-list" class="list"></div>
+      </div>
+    </section>
+  </section>
+
+  <div id="messages"></div>
+</main>
+
+<footer>
+  <input id="prompt-input" placeholder="输入 prompt..." disabled>
+  <button id="send-btn" onclick="sendPrompt()" disabled>发送</button>
+</footer>
+
+<div id="config">
+  <form onsubmit="saveConfig(event)">
+    <h3 style="color:#D0BCFF;margin-bottom:12px">连接配置</h3>
+    <label>Relay 服务器地址</label>
+    <input id="cfg-url" placeholder="https://your-relay.example.com">
+    <label>Session Token</label>
+    <input id="cfg-token" placeholder="JWT token">
+    <label>共享密钥 (Base64)</label>
+    <input id="cfg-key" placeholder="Base64 shared key">
+    <label>Device ID</label>
+    <input id="cfg-device" placeholder="device id">
+    <label>Session ID</label>
+    <input id="cfg-session" placeholder="session id">
+    <div class="actions">
+      <button type="button" class="btn-secondary" onclick="hideConfig()">取消</button>
+      <button type="submit" class="btn-primary">保存并连接</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
+<script>
+let socket = null;
+let config = JSON.parse(localStorage.getItem("vc_config") || "null");
+let streaming = false;
+let streamBuf = "";
+let seq = 0;
+const recentDiffs = [];
+const skillInstallState = {
+  installId: "",
+  candidates: [],
+  selected: new Set(),
+};
+
+const ICON_SMARTPHONE = '<svg class="icon" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M280-40q-33 0-56.5-23.5T200-120v-720q0-33 23.5-56.5T280-920h400q33 0 56.5 23.5T760-840v124q18 7 29 22t11 34v80q0 19-11 34t-29 22v404q0 33-23.5 56.5T680-40H280Zm0-80h400v-720H280v720Zm0 0v-720 720Zm228.5-611.5Q520-743 520-760t-11.5-28.5Q497-800 480-800t-28.5 11.5Q440-777 440-760t11.5 28.5Q463-720 480-720t28.5-11.5Z"/></svg>';
+
+const msgEl = document.getElementById("messages");
+const inputEl = document.getElementById("prompt-input");
+const sendBtn = document.getElementById("send-btn");
+
+function encrypt(text, keyB64) {
+  const key = nacl.util.decodeBase64(keyB64);
+  const nonce = nacl.randomBytes(24);
+  const msg = nacl.util.decodeUTF8(text);
+  const box = nacl.secretbox(msg, nonce, key);
+  const full = new Uint8Array(nonce.length + box.length);
+  full.set(nonce); full.set(box, nonce.length);
+  return nacl.util.encodeBase64(full);
+}
+
+function decrypt(payloadB64, keyB64) {
+  const key = nacl.util.decodeBase64(keyB64);
+  const full = nacl.util.decodeBase64(payloadB64);
+  const nonce = full.slice(0, 24);
+  const box = full.slice(24);
+  const msg = nacl.secretbox.open(box, nonce, key);
+  return msg ? nacl.util.encodeUTF8(msg) : null;
+}
+
+function addMsg(role, text) {
+  const d = document.createElement("div");
+  d.className = "msg " + role;
+  d.textContent = text;
+  msgEl.appendChild(d);
+  msgEl.scrollTop = msgEl.scrollHeight;
+  return d;
+}
+
+function updateStream(text) {
+  let last = msgEl.lastElementChild;
+  if (!last || !last.classList.contains("ai")) {
+    last = addMsg("ai", "");
+  }
+  last.textContent = text;
+  msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+function showConfig() { document.getElementById("config").classList.add("show"); loadConfigFields(); }
+function hideConfig() { document.getElementById("config").classList.remove("show"); }
+
+function loadConfigFields() {
+  if (!config) return;
+  document.getElementById("cfg-url").value = config.url || "";
+  document.getElementById("cfg-token").value = config.token || "";
+  document.getElementById("cfg-key").value = config.key || "";
+  document.getElementById("cfg-device").value = config.deviceId || "";
+  document.getElementById("cfg-session").value = config.sessionId || "";
+}
+
+function saveConfig(e) {
+  e.preventDefault();
+  config = {
+    url: document.getElementById("cfg-url").value.trim(),
+    token: document.getElementById("cfg-token").value.trim(),
+    key: document.getElementById("cfg-key").value.trim(),
+    deviceId: document.getElementById("cfg-device").value.trim(),
+    sessionId: document.getElementById("cfg-session").value.trim(),
+  };
+  localStorage.setItem("vc_config", JSON.stringify(config));
+  hideConfig();
+  connectRelay();
+}
+
+function setDaemonBadge(online, text) {
+  const badge = document.getElementById("daemon-badge");
+  badge.textContent = text || (online ? "daemon 在线" : "daemon 离线");
+  badge.className = "badge" + (online ? " online" : "");
+}
+
+async function daemonApi(path, init = {}) {
+  const reqInit = { ...init };
+  const headers = new Headers(reqInit.headers || {});
+  if (reqInit.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  reqInit.headers = headers;
+  const res = await fetch("api/daemon" + path, reqInit);
+  const text = await res.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch {}
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+function renderList(containerId, rows, renderer) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  if (!rows || rows.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "list-item muted";
+    empty.textContent = "暂无数据";
+    container.appendChild(empty);
+    return;
+  }
+  rows.forEach((row) => container.appendChild(renderer(row)));
+}
+
+async function loadDaemonState() {
+  try {
+    const data = await fetch("api/daemon/state").then((r) => r.json());
+    if (data.online) {
+      setDaemonBadge(true, `daemon:${data.state.port}`);
+    } else {
+      setDaemonBadge(false, "daemon 未运行");
+    }
+  } catch {
+    setDaemonBadge(false, "daemon 不可达");
+  }
+}
+
+async function loadSessions() {
+  try {
+    const data = await daemonApi("/sessions/list");
+    renderList("session-list", data.sessions || [], (s) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      const row = document.createElement("div");
+      row.className = "small-row";
+      const title = document.createElement("b");
+      title.textContent = `${s.agent} · ${s.status}`;
+      const stopBtn = document.createElement("button");
+      stopBtn.textContent = "停止";
+      stopBtn.onclick = () => stopSession(s.sessionId);
+      row.appendChild(title);
+      row.appendChild(stopBtn);
+      const sub = document.createElement("div");
+      sub.className = "muted";
+      sub.textContent = `${s.sessionId} · PID ${s.pid}`;
+      const dir = document.createElement("div");
+      dir.className = "muted";
+      dir.textContent = s.directory || "";
+      div.appendChild(row);
+      div.appendChild(sub);
+      div.appendChild(dir);
+      return div;
+    });
+  } catch (e) {
+    renderList("session-list", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "加载失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+async function spawnSession() {
+  const directory = document.getElementById("spawn-dir").value.trim();
+  const agent = document.getElementById("spawn-agent").value;
+  const resumeSessionId = document.getElementById("spawn-resume").value.trim();
+  if (!directory) {
+    alert("请填写目录");
+    return;
+  }
+  try {
+    await daemonApi("/sessions/spawn", {
+      method: "POST",
+      body: JSON.stringify({ directory, agent, resumeSessionId: resumeSessionId || undefined }),
+    });
+    await loadSessions();
+  } catch (e) {
+    alert("新建会话失败: " + e.message);
+  }
+}
+
+async function stopSession(sessionId) {
+  try {
+    await daemonApi("/sessions/stop", {
+      method: "POST",
+      body: JSON.stringify({ sessionId }),
+    });
+    await loadSessions();
+  } catch (e) {
+    alert("停止会话失败: " + e.message);
+  }
+}
+
+async function loadNotifications() {
+  try {
+    const data = await daemonApi("/notifications?limit=30");
+    renderList("notification-list", data.notifications || [], (n) => {
+      const div = document.createElement("div");
+      div.className = "list-item" + (!n.readAt ? " unread" : "");
+      const t = document.createElement("b");
+      t.textContent = `${n.title} [${n.type}]`;
+      const b = document.createElement("div");
+      b.textContent = n.body || "";
+      const s = document.createElement("div");
+      s.className = "muted";
+      s.textContent = `${new Date(n.createdAt).toLocaleString()}${n.sessionId ? " · " + n.sessionId : ""}`;
+      div.appendChild(t);
+      div.appendChild(b);
+      div.appendChild(s);
+      return div;
+    });
+  } catch (e) {
+    renderList("notification-list", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "加载失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+async function markAllNotificationsRead() {
+  try {
+    await daemonApi("/notifications/read", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    await loadNotifications();
+  } catch (e) {
+    alert("标记已读失败: " + e.message);
+  }
+}
+
+async function loadTimeline() {
+  const sid = document.getElementById("timeline-session").value.trim();
+  const qs = new URLSearchParams({ limit: "40" });
+  if (sid) qs.set("sessionId", sid);
+  try {
+    const data = await daemonApi("/timeline?" + qs.toString());
+    renderList("timeline-list", data.events || [], (ev) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      const t = document.createElement("b");
+      t.textContent = ev.eventType;
+      const s = document.createElement("div");
+      s.className = "muted";
+      s.textContent = `${new Date(ev.createdAt).toLocaleString()}${ev.sessionId ? " · " + ev.sessionId : ""}`;
+      const p = document.createElement("div");
+      p.textContent = JSON.stringify(ev.payload || {});
+      div.appendChild(t);
+      div.appendChild(s);
+      div.appendChild(p);
+      return div;
+    });
+  } catch (e) {
+    renderList("timeline-list", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "加载失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+async function saveArtifactVersion() {
+  const artifactId = document.getElementById("artifact-id").value.trim();
+  const content = document.getElementById("artifact-content").value;
+  if (!artifactId) {
+    alert("请填写 artifact id");
+    return;
+  }
+  try {
+    await daemonApi("/artifacts/version", {
+      method: "POST",
+      body: JSON.stringify({ artifactId, content }),
+    });
+    document.getElementById("artifact-content").value = "";
+    await loadArtifactVersions();
+  } catch (e) {
+    alert("保存版本失败: " + e.message);
+  }
+}
+
+async function loadArtifactVersions() {
+  const artifactId = document.getElementById("artifact-id").value.trim();
+  if (!artifactId) return;
+  try {
+    const data = await daemonApi(`/artifacts/${encodeURIComponent(artifactId)}/versions?limit=20`);
+    renderList("artifact-list", data.versions || [], (v) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      const t = document.createElement("b");
+      t.textContent = `v${v.version} · ${new Date(v.createdAt).toLocaleString()}`;
+      const c = document.createElement("div");
+      c.textContent = (v.content || "").slice(0, 160);
+      div.appendChild(t);
+      div.appendChild(c);
+      return div;
+    });
+  } catch (e) {
+    renderList("artifact-list", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "加载失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+function renderSkillCandidates(candidates) {
+  skillInstallState.candidates = Array.isArray(candidates) ? candidates : [];
+  const container = document.getElementById("skills-candidate-list");
+  container.innerHTML = "";
+  if (skillInstallState.candidates.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "list-item muted";
+    empty.textContent = "暂无候选项";
+    container.appendChild(empty);
+    return;
+  }
+  skillInstallState.candidates.forEach((item, idx) => {
+    const id = String(item.id || `candidate_${idx + 1}`);
+    if (!skillInstallState.selected.has(id) && (item.valid !== false)) {
+      skillInstallState.selected.add(id);
+    }
+    const row = document.createElement("div");
+    row.className = "list-item";
+    const line = document.createElement("div");
+    line.className = "small-row";
+    const title = document.createElement("b");
+    const marker = item.valid === false ? "invalid" : "ok";
+    title.textContent = `${idx + 1}. [${marker}] ${item.name || id}`;
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = skillInstallState.selected.has(id);
+    checkbox.onchange = () => {
+      if (checkbox.checked) skillInstallState.selected.add(id);
+      else skillInstallState.selected.delete(id);
+    };
+    line.appendChild(title);
+    line.appendChild(checkbox);
+    const desc = document.createElement("div");
+    desc.textContent = item.description || "(no description)";
+    const path = document.createElement("div");
+    path.className = "muted";
+    const warnings = Array.isArray(item.warnings) && item.warnings.length > 0
+      ? ` warnings=${item.warnings.join(",")}`
+      : "";
+    path.textContent = `${item.path || ""}${warnings}`;
+    row.appendChild(line);
+    row.appendChild(desc);
+    row.appendChild(path);
+    container.appendChild(row);
+  });
+}
+
+async function loadSkillsList() {
+  const scope = document.getElementById("skills-scope").value || "project";
+  try {
+    const data = await daemonApi(`/skills/list?scope=${encodeURIComponent(scope)}`);
+    renderList("skills-list", data.items || [], (item) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      const title = document.createElement("b");
+      title.textContent = `${item.name} (${item.scope}/${item.source})`;
+      const desc = document.createElement("div");
+      desc.textContent = item.description || "(no description)";
+      const path = document.createElement("div");
+      path.className = "muted";
+      path.textContent = item.path || "";
+      div.appendChild(title);
+      div.appendChild(desc);
+      div.appendChild(path);
+      return div;
+    });
+  } catch (e) {
+    renderList("skills-list", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "加载失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+async function loadSkillLogs() {
+  try {
+    const data = await daemonApi("/skills/logs?limit=60");
+    renderList("skills-log-list", data.items || [], (item) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      const title = document.createElement("b");
+      title.textContent = `${new Date(item.at).toLocaleString()} [${item.level}] ${item.action}`;
+      const msg = document.createElement("div");
+      msg.textContent = item.message || "";
+      div.appendChild(title);
+      div.appendChild(msg);
+      if (item.detail) {
+        const detail = document.createElement("div");
+        detail.className = "muted";
+        detail.textContent = JSON.stringify(item.detail);
+        div.appendChild(detail);
+      }
+      return div;
+    });
+  } catch (e) {
+    renderList("skills-log-list", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "加载失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+async function prepareSkillsInstall() {
+  const source = document.getElementById("skills-source").value.trim();
+  const scope = document.getElementById("skills-scope").value || "project";
+  if (!source) {
+    alert("请填写安装源");
+    return;
+  }
+  try {
+    const data = await daemonApi("/skills/install/prepare", {
+      method: "POST",
+      body: JSON.stringify({ source, scope }),
+    });
+    const installId = data.installId || "";
+    skillInstallState.installId = installId;
+    skillInstallState.selected = new Set();
+    document.getElementById("skills-install-id").value = installId;
+    renderSkillCandidates(data.candidates || []);
+    await loadSkillLogs();
+  } catch (e) {
+    alert("prepare 失败: " + e.message);
+  }
+}
+
+async function loadSkillInstallStatus() {
+  const installId = document.getElementById("skills-install-id").value.trim() || skillInstallState.installId;
+  if (!installId) {
+    alert("请先输入 installId");
+    return;
+  }
+  try {
+    const data = await daemonApi(`/skills/install/status/${encodeURIComponent(installId)}`);
+    skillInstallState.installId = installId;
+    renderSkillCandidates(data.candidates || []);
+    await loadSkillLogs();
+  } catch (e) {
+    alert("status 查询失败: " + e.message);
+  }
+}
+
+async function cancelSkillsInstall() {
+  const installId = document.getElementById("skills-install-id").value.trim() || skillInstallState.installId;
+  if (!installId) {
+    alert("请先输入 installId");
+    return;
+  }
+  try {
+    await daemonApi("/skills/install/cancel", {
+      method: "POST",
+      body: JSON.stringify({ installId }),
+    });
+    skillInstallState.installId = "";
+    skillInstallState.candidates = [];
+    skillInstallState.selected = new Set();
+    document.getElementById("skills-install-id").value = "";
+    renderSkillCandidates([]);
+    await loadSkillLogs();
+  } catch (e) {
+    alert("cancel 失败: " + e.message);
+  }
+}
+
+async function commitSkillsInstall(policy) {
+  const installId = document.getElementById("skills-install-id").value.trim() || skillInstallState.installId;
+  if (!installId) {
+    alert("请先执行 prepare");
+    return;
+  }
+  const selected = Array.from(skillInstallState.selected);
+  if (selected.length === 0) {
+    alert("请先选择至少一个候选 skill");
+    return;
+  }
+  try {
+    const data = await daemonApi("/skills/install/commit", {
+      method: "POST",
+      body: JSON.stringify({
+        installId,
+        selected,
+        conflictPolicy: policy || "skip",
+      }),
+    });
+    const summary = [
+      `total=${data.total || 0}`,
+      `installed=${(data.installed || []).length}`,
+      `skipped=${(data.skipped || []).length}`,
+      `failed=${(data.failed || []).length}`,
+    ].join(" ");
+    addMsg("tool", `skills commit: ${summary}`);
+    await loadSkillsList();
+    await loadSkillLogs();
+    await loadSkillInstallStatus();
+  } catch (e) {
+    alert("commit 失败: " + e.message);
+  }
+}
+
+async function dryRunSkill() {
+  const name = document.getElementById("skills-dry-run-name").value.trim();
+  const args = document.getElementById("skills-dry-run-args").value.trim();
+  if (!name) {
+    alert("请填写 skill 名称");
+    return;
+  }
+  try {
+    const data = await daemonApi("/skills/dry-run", {
+      method: "POST",
+      body: JSON.stringify({ name, args }),
+    });
+    renderList("skills-dry-run-output", [data], (item) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      const title = document.createElement("b");
+      title.textContent = `skill: ${item.skill?.name || name}`;
+      const meta = document.createElement("div");
+      meta.className = "muted";
+      meta.textContent = `${item.skill?.scope || ""} ${item.skill?.path || ""}`.trim();
+      const prompt = document.createElement("div");
+      prompt.textContent = item.prompt || "";
+      div.appendChild(title);
+      div.appendChild(meta);
+      div.appendChild(prompt);
+      return div;
+    });
+    await loadSkillLogs();
+  } catch (e) {
+    renderList("skills-dry-run-output", [{ error: e.message }], (x) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.textContent = "dry-run 失败: " + x.error;
+      return div;
+    });
+  }
+}
+
+function upsertRecentDiff(diffItem) {
+  const idx = recentDiffs.findIndex((x) => x.path === diffItem.path);
+  if (idx >= 0) {
+    recentDiffs[idx] = diffItem;
+  } else {
+    recentDiffs.unshift(diffItem);
+    if (recentDiffs.length > 20) recentDiffs.pop();
+  }
+}
+
+function removeRecentDiff(path) {
+  const idx = recentDiffs.findIndex((x) => x.path === path);
+  if (idx >= 0) recentDiffs.splice(idx, 1);
+}
+
+function renderDiffPanel() {
+  renderList("diff-list", recentDiffs, (d) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    const title = document.createElement("b");
+    title.textContent = `${d.action} · ${d.path}`;
+    const body = document.createElement("div");
+    body.textContent = (d.diff || "").slice(0, 220);
+    const row = document.createElement("div");
+    row.className = "small-row";
+    const acceptBtn = document.createElement("button");
+    acceptBtn.textContent = "接受";
+    acceptBtn.onclick = () => sendDiffAction(d.path, "accept");
+    const rollbackBtn = document.createElement("button");
+    rollbackBtn.textContent = "回滚";
+    rollbackBtn.onclick = () => sendDiffAction(d.path, "rollback");
+    row.appendChild(acceptBtn);
+    row.appendChild(rollbackBtn);
+    div.appendChild(title);
+    div.appendChild(body);
+    div.appendChild(row);
+    return div;
+  });
+}
+
+function sendDiffAction(path, action) {
+  if (!socket?.connected || !config?.key || !config?.deviceId || !config?.sessionId) return;
+  seq += 1;
+  const payload = JSON.stringify({ action, path });
+  socket.emit("message", {
+    id: crypto.randomUUID(),
+    seq,
+    source: config.deviceId,
+    target: "broadcast",
+    sessionId: config.sessionId,
+    type: "diff_action",
+    ts: Date.now(),
+    payload: encrypt(payload, config.key),
+  });
+  addMsg("tool", `已发送 ${action} -> ${path}`);
+}
+
+async function refreshOpsPanels() {
+  await loadDaemonState();
+  await Promise.all([
+    loadSessions(),
+    loadNotifications(),
+    loadTimeline(),
+    loadSkillsList(),
+    loadSkillLogs(),
+  ]);
+}
+
+function connectRelay() {
+  if (socket) socket.disconnect();
+  if (!config?.url || !config?.token) { showConfig(); return; }
+
+  const connBadge = document.getElementById("conn-badge");
+  connBadge.textContent = "连接中...";
+  connBadge.classList.remove("online");
+
+  socket = io(config.url + "/relay", { auth: { token: config.token }, reconnection: true });
+
+  socket.on("connect", () => {
+    connBadge.textContent = "在线";
+    connBadge.classList.add("online");
+    inputEl.disabled = false;
+    sendBtn.disabled = false;
+  });
+  socket.on("disconnect", () => {
+    connBadge.textContent = "离线";
+    connBadge.classList.remove("online");
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+  });
+
+  socket.on("message", (env) => {
+    const plain = decrypt(env.payload, config.key);
+    if (!plain) return;
+    handleMessage(env.type, plain);
+  });
+
+  socket.on("device_list", (list) => {
+    const el = document.getElementById("device-count");
+    if (list.length > 1) {
+      el.innerHTML = `${ICON_SMARTPHONE}${list.length}`;
+      el.style.display = "";
+    } else {
+      el.style.display = "none";
+    }
+  });
+}
+
+function handleMessage(type, payload) {
+  const agentBadge = document.getElementById("agent-badge");
+  switch (type) {
+    case "stream_chunk":
+      if (!streaming) { streaming = true; streamBuf = ""; }
+      streamBuf += payload;
+      updateStream(streamBuf);
+      break;
+    case "stream_end":
+      streaming = false;
+      streamBuf = "";
+      break;
+    case "heartbeat": {
+      const hb = JSON.parse(payload);
+      const label = hb.status === "running" ? "运行中" : hb.status === "idle" ? "空闲" : hb.status;
+      agentBadge.textContent = label;
+      agentBadge.className = "badge" + (hb.status === "running" ? " running" : hb.status === "idle" ? " online" : "");
+      break;
+    }
+    case "tool_call": {
+      const tc = JSON.parse(payload);
+      addMsg("tool", `工具 ${tc.tool} [${tc.status}]${tc.result ? "\n" + tc.result.slice(0, 220) : ""}`);
+      break;
+    }
+    case "file_diff": {
+      try {
+        const fd = JSON.parse(payload);
+        upsertRecentDiff({
+          path: fd.path || "unknown",
+          diff: fd.diff || "",
+          action: fd.action || "modified",
+        });
+        renderDiffPanel();
+      } catch {}
+      break;
+    }
+    case "diff_action_result": {
+      try {
+        const dr = JSON.parse(payload);
+        addMsg("tool", `diff ${dr.action} ${dr.success ? "成功" : "失败"}: ${dr.path}${dr.error ? "\n" + dr.error : ""}`);
+        if (dr.success && (dr.action === "rollback" || dr.action === "accept")) {
+          removeRecentDiff(dr.path);
+          renderDiffPanel();
+        }
+      } catch {}
+      break;
+    }
+    case "hook_event": {
+      const he = JSON.parse(payload);
+      addMsg("hook", `Hook ${he.hook}${he.tool ? " → " + he.tool : ""}: ${he.event}`);
+      break;
+    }
+    case "status": {
+      const st = JSON.parse(payload);
+      agentBadge.textContent = st.status;
+      break;
+    }
+    case "session_status": {
+      try {
+        const info = JSON.parse(payload);
+        addMsg("tool", `会话操作: ${info.action} -> ${info.ok ? "成功" : "失败"}${info.message ? "\n" + info.message : ""}`);
+      } catch {}
+      loadSessions();
+      break;
+    }
+    case "session_list":
+      loadSessions();
+      break;
+  }
+}
+
+function sendPrompt() {
+  const text = inputEl.value.trim();
+  if (!text || !socket?.connected || !config) return;
+  seq += 1;
+  const env = {
+    id: crypto.randomUUID(),
+    seq,
+    source: config.deviceId,
+    target: "broadcast",
+    sessionId: config.sessionId,
+    type: "prompt",
+    ts: Date.now(),
+    payload: encrypt(text, config.key),
+  };
+  socket.emit("message", env);
+  addMsg("user", text);
+  inputEl.value = "";
+}
+
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendPrompt();
+  }
+});
+
+async function registerPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  try {
+    await navigator.serviceWorker.register("sw.js");
+  } catch (e) {
+    console.warn("[push] SW 注册失败:", e);
+  }
+}
+
+if (config) connectRelay(); else showConfig();
+renderDiffPanel();
+refreshOpsPanels();
+setInterval(refreshOpsPanels, 12000);
+registerPush();
+</script>
+</body>
+</html>

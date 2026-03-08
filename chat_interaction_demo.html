@@ -1,0 +1,2166 @@
+<!doctype html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>Yuanio Chat Demo</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      /* === 设计系统：CSS 变量 === */
+      :root {
+        --bg-body: #f0f2f5;
+        --bg-base: #fff;
+        --bg-surface: #fafafa;
+        --bg-elevated: #fff;
+        --text-1: #000;
+        --text-2: #666;
+        --text-3: #888;
+        --text-inv: #fff;
+        --brand: #000;
+        --brand-hover: #333;
+        --border: #eaeaea;
+        --border-light: #f5f5f5;
+        --accent: #0070f3;
+        --accent-bg: rgba(0, 112, 243, 0.1);
+        --warn: #f5a623;
+        --warn-bg: rgba(245, 166, 35, 0.1);
+        --err: #e00;
+        --err-bg: rgba(238, 0, 0, 0.1);
+        --green: #17c964;
+        --green-bg: rgba(23, 201, 100, 0.1);
+        --diff-add: #0070f3;
+        --diff-add-bg: rgba(0, 112, 243, 0.08);
+        --r-sm: 6px;
+        --r-md: 10px;
+        --r-lg: 14px;
+        --r-xl: 22px;
+        --r-full: 9999px;
+        --shadow: 0 0 0 8px #e2e8f0;
+      }
+      html.dark {
+        --bg-body: #000;
+        --bg-base: #000;
+        --bg-surface: #0a0a0a;
+        --bg-elevated: #111;
+        --text-1: #ededed;
+        --text-2: #a1a1aa;
+        --text-3: #71717a;
+        --text-inv: #000;
+        --brand: #ededed;
+        --brand-hover: #fff;
+        --border: #262626;
+        --border-light: #1a1a1a;
+        --accent: #3291ff;
+        --accent-bg: rgba(50, 145, 255, 0.1);
+        --warn: #f5a623;
+        --warn-bg: rgba(245, 166, 35, 0.1);
+        --err: #ff1a1a;
+        --err-bg: rgba(255, 26, 26, 0.1);
+        --green: #17c964;
+        --green-bg: rgba(23, 201, 100, 0.1);
+        --diff-add: #17c964;
+        --diff-add-bg: rgba(23, 201, 100, 0.08);
+        --shadow: 0 0 0 8px #111;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          "Geist",
+          "Inter",
+          -apple-system,
+          sans-serif;
+        background: var(--bg-body);
+        color: var(--text-1);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        transition:
+          background 0.3s,
+          color 0.3s;
+      }
+
+      /* === 设备框架 === */
+      .device {
+        width: 390px;
+        height: 844px;
+        background: var(--bg-base);
+        position: relative;
+        overflow: hidden;
+        border-radius: 44px;
+        box-shadow:
+          var(--shadow),
+          0 30px 60px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+      }
+
+      /* === 状态栏 === */
+      .status-bar {
+        height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-1);
+        background: var(--bg-base);
+        z-index: 100;
+      }
+
+      /* === 连接断开 Banner === */
+      .conn-banner {
+        display: none;
+        padding: 6px 14px;
+        background: var(--err-bg);
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--err);
+        border-bottom: 1px solid var(--border);
+      }
+      .conn-banner.show {
+        display: flex;
+      }
+      .conn-banner button {
+        background: none;
+        border: 1px solid var(--err);
+        color: var(--err);
+        border-radius: var(--r-sm);
+        padding: 2px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      /* === TopBar === */
+      .top-bar {
+        min-height: 52px;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-base);
+        z-index: 10;
+      }
+      .top-bar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+      .agent-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--text-1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .agent-icon i {
+        color: var(--bg-base);
+        font-size: 13px;
+      }
+      .top-info {
+        min-width: 0;
+        flex: 1;
+      }
+      .top-title-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .top-title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .conn-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .conn-dot-inner {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .conn-dot {
+        background: var(--green-bg);
+      }
+      .top-subtitle {
+        font-size: 11px;
+        color: var(--text-3);
+        font-family: "Geist Mono", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ctx-val {
+        color: var(--warn);
+      }
+      .status-pill {
+        font-size: 10px;
+        font-weight: 500;
+        padding: 2px 10px;
+        border-radius: var(--r-full);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .status-pill.running {
+        background: var(--accent-bg);
+        color: var(--accent);
+        animation: pulse-opacity 1.8s infinite;
+      }
+      .status-pill.idle {
+        background: var(--bg-surface);
+        color: var(--text-3);
+      }
+      .top-bar-right {
+        display: flex;
+        gap: 2px;
+        flex-shrink: 0;
+      }
+
+      /* === AgentStatusBar（运行中状态条） === */
+      .agent-status {
+        display: none;
+        padding: 6px 14px;
+        background: var(--accent-bg);
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-2);
+      }
+      .agent-status.show {
+        display: flex;
+      }
+      .pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse-opacity 1.2s infinite;
+      }
+
+      /* === 上下文 Toast Banner === */
+      .ctx-banner {
+        position: absolute;
+        top: 110px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        padding: 6px 14px;
+        border-radius: var(--r-full);
+        font-size: 12px;
+        color: var(--text-2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 20;
+        opacity: 0.95;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+        white-space: nowrap;
+      }
+      html.dark .ctx-banner {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      }
+      .ctx-banner.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-50%) translateY(-10px);
+      }
+
+      /* === 消息列表 === */
+      .msg-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        scroll-behavior: smooth;
+        background: var(--bg-base);
+      }
+      .msg-list::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* === 空状态 === */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        gap: 12px;
+      }
+      .empty-logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        background: var(--text-1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--bg-base);
+      }
+      .empty-title {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .empty-desc {
+        font-size: 13px;
+        color: var(--text-3);
+        text-align: center;
+      }
+      .suggest-list {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .suggest-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-size: 13px;
+        color: var(--text-1);
+      }
+      .suggest-card:hover {
+        border-color: var(--text-3);
+      }
+      .suggest-card:active {
+        transform: scale(0.98);
+      }
+      .suggest-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--bg-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 12px;
+        color: var(--text-3);
+      }
+
+      /* === 时间分隔符 === */
+      .time-sep {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        font-size: 11px;
+        color: var(--text-3);
+      }
+      .time-sep::before,
+      .time-sep::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      /* === 消息气泡 === */
+      .msg {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding: 4px 0;
+      }
+      .msg.user {
+        align-items: flex-end;
+      }
+      .msg.ai {
+        align-items: flex-start;
+      }
+      .bubble {
+        padding: 10px 14px;
+        border-radius: var(--r-lg);
+        max-width: 85%;
+        font-size: 14px;
+        line-height: 1.65;
+        letter-spacing: -0.01em;
+        position: relative;
+      }
+      .msg.user .bubble {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        color: var(--text-1);
+      }
+      .msg.ai .bubble {
+        background: transparent;
+        max-width: 95%;
+        color: var(--text-1);
+      }
+      .msg-agent-row {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 2px;
+      }
+      .msg-agent-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        background: var(--text-1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .msg-agent-icon i {
+        font-size: 9px;
+        color: var(--bg-base);
+      }
+      .msg-agent-name {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-3);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .msg-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 4px;
+        font-size: 10px;
+        color: var(--text-3);
+      }
+      .msg-meta .delivery {
+        color: var(--accent);
+      }
+      .msg-meta .tts-btn {
+        background: none;
+        border: none;
+        color: var(--text-3);
+        cursor: pointer;
+        font-size: 11px;
+        padding: 2px;
+      }
+      .msg-meta .tts-btn:hover {
+        color: var(--text-1);
+      }
+
+      /* === Thinking 折叠块 === */
+      .thinking-block {
+        margin: 4px 0;
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        overflow: hidden;
+      }
+      .thinking-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--text-3);
+        user-select: none;
+        transition: background 0.15s;
+      }
+      .thinking-header:hover {
+        background: var(--bg-surface);
+      }
+      .thinking-header i {
+        font-size: 10px;
+        transition: transform 0.2s;
+      }
+      .thinking-body {
+        display: none;
+        padding: 8px 14px;
+        font-size: 12px;
+        color: var(--text-3);
+        line-height: 1.6;
+        font-style: italic;
+        border-top: 1px solid var(--border-light);
+        max-height: 100px;
+        overflow-y: auto;
+      }
+      .thinking-body.show {
+        display: block;
+        animation: fadeUp 0.2s ease;
+      }
+
+      /* === Task Boundary 行 === */
+      .task-boundary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        margin: 6px 0;
+        border-radius: var(--r-md);
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+      }
+      .task-mode {
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: var(--r-full);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        flex-shrink: 0;
+      }
+      .task-mode.planning {
+        background: var(--accent-bg);
+        color: var(--accent);
+      }
+      .task-mode.execution {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .task-mode.verification {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .task-name {
+        font-size: 12px;
+        font-weight: 600;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .task-status {
+        font-size: 11px;
+        color: var(--text-3);
+        flex-shrink: 0;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* === 工具调用分组 === */
+      .tool-group {
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        overflow: hidden;
+        margin: 4px 0;
+      }
+      .tool-group-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-2);
+        user-select: none;
+        transition: background 0.15s;
+      }
+      .tool-group-header:hover {
+        background: var(--bg-surface);
+      }
+      .tool-group-header .count {
+        flex: 1;
+      }
+      .tool-group-header .shimmer-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse-opacity 1s infinite;
+      }
+      .tool-group-body {
+        display: none;
+      }
+      .tool-group-body.show {
+        display: block;
+      }
+      .tool-step {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        font-size: 12px;
+        border-top: 1px solid var(--border-light);
+        cursor: pointer;
+        transition: background 0.1s;
+        animation: fadeUp 0.25s ease both;
+      }
+      .tool-step:hover {
+        background: var(--bg-surface);
+      }
+      .tool-step .icon {
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .tool-step .name {
+        font-weight: 500;
+        font-family: "Geist Mono", monospace;
+        flex-shrink: 0;
+      }
+      .tool-step .detail {
+        flex: 1;
+        color: var(--text-3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: "Geist Mono", monospace;
+        font-size: 11px;
+      }
+      .tool-step .duration {
+        font-size: 10px;
+        color: var(--text-3);
+        flex-shrink: 0;
+        font-family: "Geist Mono", monospace;
+      }
+      .tool-step .status-icon {
+        font-size: 11px;
+        flex-shrink: 0;
+      }
+      .tool-step .status-icon.done {
+        color: var(--green);
+      }
+      .tool-step .status-icon.err {
+        color: var(--err);
+      }
+      .tool-step .status-icon.running {
+        color: var(--warn);
+        animation: pulse-opacity 1s infinite;
+      }
+      .tool-result {
+        display: none;
+        margin: 0 12px 8px 12px;
+        padding: 8px 10px;
+        background: var(--bg-surface);
+        border-radius: var(--r-sm);
+        font-family: "Geist Mono", monospace;
+        font-size: 11px;
+        color: var(--text-3);
+        line-height: 1.5;
+        border-left: 2px solid var(--border);
+        max-height: 140px;
+        overflow-y: auto;
+        animation: fadeUp 0.2s ease;
+      }
+      .tool-result.show {
+        display: block;
+      }
+      .tool-result::-webkit-scrollbar {
+        width: 3px;
+      }
+      .tool-result::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+      .tool-result .res-label {
+        font-weight: 600;
+        color: var(--text-2);
+        margin-bottom: 3px;
+        font-style: normal;
+      }
+      .tool-result .res-output {
+        color: var(--text-3);
+      }
+      .tool-result .res-path {
+        color: var(--accent);
+      }
+
+      /* === Diff 卡片 === */
+      .diff-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        overflow: hidden;
+        margin: 4px 0;
+        cursor: pointer;
+      }
+      .diff-header {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-family: "Geist Mono", monospace;
+        border-bottom: 1px solid var(--border);
+        gap: 6px;
+      }
+      .diff-header i {
+        color: var(--text-3);
+        font-size: 11px;
+      }
+      .diff-stats {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+        font-size: 11px;
+      }
+      .diff-add {
+        color: var(--diff-add);
+      }
+      .diff-rm {
+        color: var(--err);
+      }
+      .diff-body {
+        padding: 8px 12px;
+        font-family: "Geist Mono", monospace;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+      .diff-line.add {
+        color: var(--diff-add);
+        background: var(--diff-add-bg);
+        margin: 0 -12px;
+        padding: 0 12px;
+      }
+      .diff-line.rm {
+        color: var(--err);
+        background: var(--err-bg);
+        margin: 0 -12px;
+        padding: 0 12px;
+        text-decoration: line-through;
+        opacity: 0.8;
+      }
+      .diff-line.ctx {
+        color: var(--text-3);
+      }
+
+      /* === 审批卡片 === */
+      .approval {
+        background: var(--bg-base);
+        border: 1px solid var(--warn);
+        border-radius: var(--r-md);
+        padding: 14px;
+        margin: 4px 0;
+        width: 100%;
+      }
+      .approval-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--warn);
+        font-weight: 500;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .approval-desc {
+        font-size: 12px;
+        color: var(--text-2);
+        margin-bottom: 14px;
+        line-height: 1.5;
+      }
+      .approval-desc code {
+        border: 1px solid var(--border);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-family: "Geist Mono", monospace;
+        font-size: 11px;
+      }
+      .approval-btns {
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        flex: 1;
+        padding: 8px 0;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--border);
+        font-size: 13px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        transition: 0.2s;
+      }
+      .btn-no {
+        background: var(--bg-base);
+        color: var(--text-1);
+      }
+      .btn-no:hover {
+        background: var(--bg-surface);
+      }
+      .btn-yes {
+        background: var(--text-1);
+        color: var(--bg-base);
+        border-color: var(--text-1);
+      }
+      .btn-yes:hover:not(.off) {
+        opacity: 0.9;
+      }
+      .btn.off {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      .btn.ok {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+
+      /* === Typing Indicator === */
+      .typing {
+        display: none;
+        padding: 8px 14px;
+        align-items: center;
+        gap: 6px;
+      }
+      .typing.show {
+        display: flex;
+      }
+      .typing-dots {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        padding: 6px 14px;
+        border-radius: var(--r-lg);
+        background: var(--bg-surface);
+      }
+      .typing-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text-3);
+        animation: typingBounce 1.4s infinite ease-in-out both;
+      }
+      .typing-dot:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      .typing-dot:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+
+      /* === 滚动到底部 FAB === */
+      .scroll-fab {
+        position: absolute;
+        bottom: 180px;
+        right: 20px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 15;
+        font-size: 14px;
+        color: var(--text-2);
+        transition: 0.2s;
+      }
+      .scroll-fab.show {
+        display: flex;
+      }
+      .scroll-fab:hover {
+        background: var(--bg-surface);
+      }
+
+      /* === 输入区域 === */
+      .input-shell {
+        background: var(--bg-base);
+        padding: 6px 12px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border-top: 1px solid var(--border);
+      }
+
+      /* Chip 行 === */
+      .chip-row {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px 0;
+      }
+      .chip-row::-webkit-scrollbar {
+        display: none;
+      }
+      .chip {
+        padding: 5px 11px;
+        border-radius: var(--r-full);
+        background: var(--bg-base);
+        color: var(--text-2);
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.15s;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .chip:hover {
+        color: var(--text-1);
+        border-color: var(--text-3);
+      }
+      .chip:active {
+        transform: scale(0.95);
+      }
+      .chip.primary {
+        background: var(--text-1);
+        color: var(--text-inv);
+        border-color: transparent;
+      }
+
+      /* 输入容器 === */
+      .composer {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-xl);
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+        transition: border-color 0.2s;
+      }
+      .composer.focused {
+        border-color: var(--text-3);
+      }
+      .composer-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--text-1);
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        padding: 8px 10px;
+        max-height: 80px;
+        resize: none;
+        line-height: 1.5;
+      }
+      .composer-input::placeholder {
+        color: var(--text-3);
+      }
+      .composer-bottom {
+        display: flex;
+        align-items: center;
+        padding: 2px 4px;
+      }
+      .act-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: var(--text-2);
+        cursor: pointer;
+        transition: 0.15s;
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .act-btn:hover {
+        background: var(--bg-elevated);
+        color: var(--text-1);
+      }
+      .act-btn:active {
+        transform: scale(0.92);
+      }
+      .act-btn.send {
+        background: var(--text-1);
+        color: var(--text-inv);
+      }
+      .act-btn.send:hover {
+        opacity: 0.9;
+        background: var(--text-1);
+        color: var(--text-inv);
+      }
+      .act-btn.send.stop {
+        background: var(--err);
+        color: #fff;
+      }
+      .act-btn.mic {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+      }
+      .act-btn.mic.active {
+        background: var(--err-bg);
+        border-color: var(--err);
+        color: var(--err);
+      }
+
+      /* === 附件菜单 === */
+      .attach-menu {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        padding: 4px 0;
+        min-width: 170px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        z-index: 30;
+      }
+      html.dark .attach-menu {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+      .attach-menu.show {
+        display: block;
+        animation: fadeUp 0.15s ease;
+      }
+      .attach-item {
+        padding: 8px 14px;
+        font-size: 13px;
+        color: var(--text-1);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.1s;
+      }
+      .attach-item:hover {
+        background: var(--bg-surface);
+      }
+      .attach-item i {
+        width: 16px;
+        text-align: center;
+        color: var(--text-3);
+        font-size: 12px;
+      }
+
+      /* === 更多菜单 === */
+      .dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        padding: 4px 0;
+        min-width: 150px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        z-index: 30;
+      }
+      html.dark .dropdown {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      }
+      .dropdown.show {
+        display: block;
+        animation: fadeUp 0.15s ease;
+      }
+      .dropdown-item {
+        padding: 8px 14px;
+        font-size: 13px;
+        color: var(--text-1);
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      .dropdown-item:hover {
+        background: var(--bg-surface);
+      }
+
+      /* === 浅/深色切换 + 通用按钮 === */
+      .icon-btn {
+        background: none;
+        border: none;
+        color: var(--text-2);
+        cursor: pointer;
+        font-size: 16px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--r-sm);
+        transition: 0.15s;
+      }
+      .icon-btn:hover {
+        background: var(--bg-surface);
+        color: var(--text-1);
+      }
+      html.dark .ico-sun {
+        display: none;
+      }
+      html.dark .ico-moon {
+        display: inline;
+      }
+      html:not(.dark) .ico-sun {
+        display: inline;
+      }
+      html:not(.dark) .ico-moon {
+        display: none;
+      }
+
+      /* === Home Indicator === */
+      .home-bar {
+        height: 22px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: var(--bg-base);
+      }
+      .home-ind {
+        width: 134px;
+        height: 5px;
+        background: var(--border);
+        border-radius: 100px;
+      }
+      html.dark .home-ind {
+        background: #333;
+      }
+
+      /* === Toast === */
+      .toast {
+        position: absolute;
+        bottom: 190px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--bg-elevated);
+        color: var(--text-1);
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 18px;
+        border-radius: var(--r-full);
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 100;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        white-space: nowrap;
+      }
+      html.dark .toast {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* === 骨架屏 === */
+      .skeleton {
+        padding: 20px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .skel-bar {
+        height: 14px;
+        border-radius: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--bg-surface) 25%,
+          var(--border-light) 50%,
+          var(--bg-surface) 75%
+        );
+        background-size: 400% 100%;
+        animation: shimmer 1.2s infinite;
+      }
+
+      /* === 动画 === */
+      @keyframes pulse-opacity {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      @keyframes typingBounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+          opacity: 0.5;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes stepSlideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* 语音波形指示器 */
+      .voice-wave {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        height: 16px;
+      }
+      .voice-bar {
+        width: 3px;
+        border-radius: 2px;
+        background: var(--err);
+        animation: voiceWave 0.9s infinite ease-in-out;
+      }
+      .voice-bar:nth-child(1) {
+        animation-delay: 0s;
+        height: 6px;
+      }
+      .voice-bar:nth-child(2) {
+        animation-delay: 0.1s;
+        height: 12px;
+      }
+      .voice-bar:nth-child(3) {
+        animation-delay: 0.2s;
+        height: 8px;
+      }
+      .voice-bar:nth-child(4) {
+        animation-delay: 0.3s;
+        height: 14px;
+      }
+      @keyframes voiceWave {
+        0%,
+        100% {
+          transform: scaleY(0.4);
+        }
+        50% {
+          transform: scaleY(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device">
+      <!-- 状态栏 -->
+      <div class="status-bar">9:41</div>
+
+      <!-- 连接断开 Banner -->
+      <div class="conn-banner" id="connBanner">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span style="flex: 1">连接已断开，请检查网络</span>
+        <button
+          onclick="
+            toast('正在重连...');
+            hideEl('connBanner');
+          "
+        >
+          重试
+        </button>
+      </div>
+
+      <!-- TopBar -->
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <div class="agent-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="top-info">
+            <div class="top-title-row">
+              <span class="top-title">Yuanio Project</span>
+              <div class="conn-dot" id="connDot">
+                <div class="conn-dot-inner"></div>
+              </div>
+            </div>
+            <div class="top-subtitle">
+              workspace / yuanio ·
+              <span class="ctx-val">Ctx <span id="ctxVal">42</span>%</span>
+            </div>
+          </div>
+        </div>
+        <div class="status-pill idle" id="statusPill">Idle</div>
+        <button
+          class="icon-btn"
+          onclick="toggleTheme()"
+          aria-label="Toggle Theme"
+        >
+          <i class="fa-solid fa-sun ico-sun"></i
+          ><i class="fa-solid fa-moon ico-moon"></i>
+        </button>
+        <button class="icon-btn" onclick="toast('新建会话')">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <div style="position: relative">
+          <button class="icon-btn" onclick="toggleEl('moreMenu')">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <div class="dropdown" id="moreMenu">
+            <div
+              class="dropdown-item"
+              onclick="
+                toast('打开终端');
+                hideEl('moreMenu');
+              "
+            >
+              <i class="fa-solid fa-terminal"></i> 终端
+            </div>
+            <div
+              class="dropdown-item"
+              onclick="
+                toast('文件浏览器');
+                hideEl('moreMenu');
+              "
+            >
+              <i class="fa-solid fa-folder"></i> 文件
+            </div>
+            <div
+              class="dropdown-item"
+              onclick="
+                toast('搜索');
+                hideEl('moreMenu');
+              "
+            >
+              <i class="fa-solid fa-search"></i> 搜索
+            </div>
+            <div
+              class="dropdown-item"
+              onclick="
+                toast('时间线');
+                hideEl('moreMenu');
+              "
+            >
+              <i class="fa-solid fa-clock-rotate-left"></i> 时间线
+            </div>
+            <div
+              class="dropdown-item"
+              onclick="
+                toast('已导出');
+                hideEl('moreMenu');
+              "
+            >
+              <i class="fa-solid fa-download"></i> 导出
+            </div>
+            <div
+              class="dropdown-item"
+              onclick="
+                toast('会话列表');
+                hideEl('moreMenu');
+              "
+            >
+              <i class="fa-solid fa-list"></i> Sessions
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent 运行状态条 -->
+      <div class="agent-status" id="agentBar">
+        <div class="pulse-dot"></div>
+        <span id="agentBarText">Working...</span>
+        <span style="flex: 1"></span>
+      </div>
+
+      <!-- Context Banner -->
+      <div class="ctx-banner" id="ctxBanner">
+        <i class="fa-solid fa-compress" style="color: var(--warn)"></i>
+        <span>上下文已达 42%</span>
+        <i
+          class="fa-solid fa-xmark"
+          style="cursor: pointer; padding: 4px"
+          onclick="
+            hideEl('ctxBanner');
+            toast('已关闭');
+          "
+        ></i>
+      </div>
+
+      <!-- 空状态（初始可见，发送消息后隐藏）-->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-logo">VC</div>
+        <div class="empty-title">Hi，有什么可以帮你的？</div>
+        <div class="empty-desc">我可以帮你编写代码、调试问题、重构架构</div>
+        <div class="suggest-list">
+          <div
+            class="suggest-card"
+            onclick="
+              useSuggestion('帮我实现 Geist 风格的 Light/Dark Mode 切换')
+            "
+          >
+            <div class="suggest-icon"><i class="fa-solid fa-palette"></i></div>
+            <span>实现 Light/Dark Mode 切换</span>
+          </div>
+          <div
+            class="suggest-card"
+            onclick="useSuggestion('检查代码中的性能瓶颈并优化')"
+          >
+            <div class="suggest-icon"><i class="fa-solid fa-bolt"></i></div>
+            <span>检查并优化性能瓶颈</span>
+          </div>
+          <div
+            class="suggest-card"
+            onclick="useSuggestion('/review 当前分支的所有改动')"
+          >
+            <div class="suggest-icon">
+              <i class="fa-solid fa-code-branch"></i>
+            </div>
+            <span>Review 当前分支改动</span>
+          </div>
+          <div
+            class="suggest-card"
+            onclick="
+              useSuggestion('重构 ChatInputBar 组件，拆分为更小的子组件')
+            "
+          >
+            <div class="suggest-icon"><i class="fa-solid fa-cubes"></i></div>
+            <span>重构组件为更小的子组件</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 消息列表 -->
+      <div class="msg-list" id="chatArea" style="display: none">
+        <!-- 消息通过 JS 动态插入 -->
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing" id="typingBlock">
+        <div class="msg-agent-icon">
+          <i
+            class="fa-solid fa-bolt"
+            style="font-size: 9px; color: var(--bg-base)"
+          ></i>
+        </div>
+        <div class="typing-dots">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+
+      <!-- 滚动到底部 FAB -->
+      <div class="scroll-fab" id="scrollFab" onclick="scrollBottom()">
+        <i class="fa-solid fa-chevron-down"></i>
+      </div>
+
+      <!-- 输入区域 -->
+      <div class="input-shell">
+        <!-- Chip 行 -->
+        <div class="chip-row">
+          <div class="chip primary" onclick="toast('Agent 切换菜单')">
+            <i class="fa-solid fa-bolt" style="font-size: 10px"></i> Claude ▾
+          </div>
+          <div class="chip" onclick="toast('模型选择')">Sonnet ▾</div>
+          <div class="chip" onclick="toast('设置')">
+            <i class="fa-solid fa-gear" style="font-size: 10px"></i> 设置
+          </div>
+          <div class="chip" onclick="fillInput('/plan ')">/plan</div>
+          <div class="chip" onclick="fillInput('/review ')">/review</div>
+          <div class="chip" onclick="fillInput('/teach ')">/teach</div>
+        </div>
+        <!-- Composer -->
+        <div class="composer" id="composer">
+          <textarea
+            id="mainInput"
+            class="composer-input"
+            placeholder="有什么想法..."
+            rows="1"
+            onfocus="$('composer').classList.add('focused')"
+            onblur="$('composer').classList.remove('focused')"
+            onkeydown="
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+              }
+            "
+            oninput="autoGrow(this)"
+          ></textarea>
+          <div class="composer-bottom">
+            <div style="position: relative">
+              <button class="act-btn" onclick="toggleEl('attachMenu')">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+              <div class="attach-menu" id="attachMenu">
+                <div
+                  class="attach-item"
+                  onclick="
+                    toast('打开文件');
+                    hideEl('attachMenu');
+                  "
+                >
+                  <i class="fa-solid fa-folder-open"></i> 文件
+                </div>
+                <div
+                  class="attach-item"
+                  onclick="
+                    toast('智能粘贴');
+                    hideEl('attachMenu');
+                  "
+                >
+                  <i class="fa-solid fa-paste"></i> 智能粘贴
+                </div>
+                <div
+                  class="attach-item"
+                  onclick="
+                    toast('选择图片');
+                    hideEl('attachMenu');
+                  "
+                >
+                  <i class="fa-solid fa-image"></i> 图片
+                </div>
+                <div
+                  class="attach-item"
+                  onclick="
+                    toast('拍照');
+                    hideEl('attachMenu');
+                  "
+                >
+                  <i class="fa-solid fa-camera"></i> 拍照
+                </div>
+                <div
+                  class="attach-item"
+                  onclick="
+                    toast('快捷 Prompt');
+                    hideEl('attachMenu');
+                  "
+                >
+                  <i class="fa-solid fa-file-lines"></i> 快捷 Prompt
+                </div>
+              </div>
+            </div>
+            <span style="flex: 1"></span>
+            <button class="act-btn mic" id="micBtn" onclick="toggleVoice()">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+            <button class="act-btn send" id="sendBtn" onclick="sendMessage()">
+              <i class="fa-solid fa-arrow-up"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="home-bar"><div class="home-ind"></div></div>
+
+      <!-- Toast -->
+      <div class="toast" id="appToast"></div>
+    </div>
+
+    <script>
+      // === 工具函数 ===
+      const $ = (id) => document.getElementById(id);
+      let toastTimer,
+        isThinking = false,
+        msgCount = 0,
+        voiceActive = false;
+
+      function toast(msg) {
+        const t = $("appToast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2000);
+      }
+      function toggleTheme() {
+        document.documentElement.classList.toggle("dark");
+        toast(
+          document.documentElement.classList.contains("dark")
+            ? "深色模式"
+            : "浅色模式",
+        );
+      }
+      function toggleEl(id) {
+        const el = $(id);
+        el.classList.toggle("show");
+      }
+      function hideEl(id) {
+        $(id)?.classList.remove("show");
+      }
+      function showEl(id) {
+        $(id)?.classList.add("show");
+      }
+      function fillInput(t) {
+        $("mainInput").value = t;
+        $("mainInput").focus();
+      }
+      function autoGrow(el) {
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 80) + "px";
+      }
+      function scrollBottom() {
+        const c = $("chatArea");
+        c.scrollTop = c.scrollHeight;
+      }
+      function esc(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      // 检测滚动位置，控制 FAB 显示
+      $("chatArea")?.addEventListener("scroll", function () {
+        const c = this;
+        const atBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 60;
+        $("scrollFab").classList.toggle(
+          "show",
+          !atBottom && c.scrollHeight > c.clientHeight,
+        );
+      });
+
+      // 点击外部关闭菜单
+      document.addEventListener("click", (e) => {
+        ["moreMenu", "attachMenu"].forEach((id) => {
+          const el = $(id);
+          if (el && !el.parentElement.contains(e.target))
+            el.classList.remove("show");
+        });
+      });
+
+      // === 空状态 -> 发送建议 ===
+      function useSuggestion(text) {
+        $("mainInput").value = text;
+        sendMessage();
+      }
+
+      // === 语音切换模拟 ===
+      function toggleVoice() {
+        voiceActive = !voiceActive;
+        const btn = $("micBtn");
+        if (voiceActive) {
+          btn.classList.add("active");
+          btn.innerHTML =
+            '<div class="voice-wave"><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div><div class="voice-bar"></div></div>';
+          toast("正在录音...");
+          setTimeout(() => {
+            if (voiceActive) {
+              toggleVoice();
+              $("mainInput").value = "帮我优化这段代码的性能";
+              toast("识别完成");
+            }
+          }, 3000);
+        } else {
+          btn.classList.remove("active");
+          btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        }
+      }
+
+      // === 相对时间格式 ===
+      function relTime(ts) {
+        const d = Math.floor((Date.now() - ts) / 1000);
+        if (d < 60) return "刚刚";
+        if (d < 3600) return Math.floor(d / 60) + "分钟前";
+        const dt = new Date(ts);
+        return (
+          dt.getHours().toString().padStart(2, "0") +
+          ":" +
+          dt.getMinutes().toString().padStart(2, "0")
+        );
+      }
+
+      // === 多步骤场景数据 ===
+      const toolScenarios = [
+        // 场景 1: 代码分析流程
+        {
+          taskMode: "execution",
+          taskName: "分析代码架构",
+          taskStatus: "读取源文件",
+          thinking:
+            "用户希望我分析代码架构。我需要先读取 ChatInputBar.kt 了解当前组件结构，然后用 Grep 搜索关键依赖关系，最后查看 ViewModel 的数据流。",
+          steps: [
+            {
+              icon: "📖",
+              name: "Read",
+              detail: "ChatInputBar.kt",
+              dur: "0.3s",
+              status: "done",
+              result:
+                "// 文件大小: 991 行\n// Composable 参数数量: 54\nfun ChatInputBar(\n    input: String,\n    onInputChange: (String) -> Unit,\n    agentState: ChatViewModel.AgentHeartbeat,\n    ...\n) {",
+            },
+            {
+              icon: "🔍",
+              name: "Grep",
+              detail: "composerStyle usage",
+              dur: "0.1s",
+              status: "done",
+              result:
+                "ChatInputBar.kt:59   composerStyle: ComposerStyle,\nChatInputBar.kt:130  val showAttachmentsAsMenu = composerStyle != ComposerStyle.GEMINI\nChatInputBar.kt:132  val composerContainerShape = RoundedCornerShape(22.dp)\nChatViewModel.kt:88  var composerStyle by mutableStateOf(ComposerStyle.DEFAULT)",
+            },
+            {
+              icon: "📖",
+              name: "Read",
+              detail: "ChatTopBar.kt",
+              dur: "0.2s",
+              status: "done",
+              result:
+                "// 文件大小: 358 行\n// 包含: AgentIcon, ConnectionDot, StatusPill\n// 依赖: ChatViewModel.AgentHeartbeat",
+            },
+            {
+              icon: "🔍",
+              name: "Grep",
+              detail: "MaterialTheme.colorScheme",
+              dur: "0.2s",
+              status: "done",
+              result:
+                "找到 47 处使用\nChatInputBar.kt: 38 处\nChatTopBar.kt: 9 处",
+            },
+            {
+              icon: "📖",
+              name: "Read",
+              detail: "MessageBubble.kt",
+              dur: "0.2s",
+              status: "done",
+              result:
+                "// 文件大小: 292 行\n// 功能: 用户/AI 消息气泡, 长按菜单\n// 包含: 相对时间, 送达状态, TTS 按钮",
+            },
+            {
+              icon: "🧠",
+              name: "LSP",
+              detail: "references: ChatItem.Text",
+              dur: "0.5s",
+              status: "done",
+              result:
+                "引用来源:\n  ChatMessageList.kt:213  is ChatItem.Text ->\n  ChatViewModel.kt:156   ChatItem.Text(role=..)\n  MessageBubble.kt:57    msg: ChatItem.Text",
+            },
+          ],
+        },
+        // 场景 2: 重构流程
+        {
+          taskMode: "execution",
+          taskName: "重构 InputBar 组件",
+          taskStatus: "编辑源文件",
+          thinking:
+            "现在需要将 ChatInputBar 拆分为更小的子组件。我先读取当前文件结构，然后创建 ComposerInput.kt 和 ChipRow.kt 两个新文件，最后编辑原文件使其引用新组件。",
+          steps: [
+            {
+              icon: "📖",
+              name: "Read",
+              detail: "ChatInputBar.kt:1-50",
+              dur: "0.2s",
+              status: "done",
+              result:
+                "package com.yuanio.app.ui.chat\n\nimport androidx.compose.animation.AnimatedVisibility\nimport androidx.compose.foundation.layout.*\n// ... 62 个 import 语句",
+            },
+            {
+              icon: "📝",
+              name: "Write",
+              detail: "ComposerInput.kt [NEW]",
+              dur: "0.4s",
+              status: "done",
+              result:
+                "创建文件: ComposerInput.kt\n写入 156 行\n提取: BasicTextField + decorationBox + voiceListening UI",
+            },
+            {
+              icon: "📝",
+              name: "Write",
+              detail: "ChipRow.kt [NEW]",
+              dur: "0.3s",
+              status: "done",
+              result:
+                "创建文件: ChipRow.kt\n写入 98 行\n提取: LazyRow + Agent/Model/Settings AssistChip",
+            },
+            {
+              icon: "✏️",
+              name: "Edit",
+              detail: "ChatInputBar.kt",
+              dur: "0.6s",
+              status: "done",
+              result:
+                "ChatInputBar.kt:\n  移除 354 行 (ComposerInput + ChipRow)\n  新增 import: ComposerInput, ChipRow\n  净变化: +8 -354 行\n  文件从 991 行减至 645 行",
+            },
+            {
+              icon: "✏️",
+              name: "Edit",
+              detail: "ChatTopBar.kt",
+              dur: "0.2s",
+              status: "done",
+              result: "更新 import 路径\n调整 buildSubtitle() 格式",
+            },
+            {
+              icon: "⚡",
+              name: "Bash",
+              detail: "./gradlew compileDebugKotlin",
+              dur: "3.2s",
+              status: "done",
+              result:
+                "> Task :app:compileDebugKotlin\nw: ChatInputBar.kt:45 'composerContainerColor' is unused\n\nBUILD SUCCESSFUL in 3s\n5 actionable tasks: 2 executed, 3 up-to-date",
+            },
+            {
+              icon: "✏️",
+              name: "Edit",
+              detail: "ChatInputBar.kt:45",
+              dur: "0.1s",
+              status: "done",
+              result: "移除未使用变量 composerContainerColor",
+            },
+          ],
+        },
+        // 场景 3: 调试流程
+        {
+          taskMode: "verification",
+          taskName: "验证构建结果",
+          taskStatus: "运行测试",
+          thinking:
+            "重构完成后需要验证。先运行编译确认无误，然后跑单元测试，最后检查 lint 结果。",
+          steps: [
+            {
+              icon: "⚡",
+              name: "Bash",
+              detail: "./gradlew assembleDebug",
+              dur: "8.1s",
+              status: "done",
+              result:
+                "> Task :app:assembleDebug\n\nBUILD SUCCESSFUL in 8s\n24 actionable tasks: 8 executed, 16 up-to-date\n\nAPK: app/build/outputs/apk/debug/app-debug.apk (12.4 MB)",
+            },
+            {
+              icon: "⚡",
+              name: "Bash",
+              detail: "./gradlew testDebugUnit",
+              dur: "4.5s",
+              status: "done",
+              result:
+                "> Task :app:testDebugUnitTest\n\nTests: 47 passed, 0 failed, 0 skipped\n\nBUILD SUCCESSFUL in 4s",
+            },
+            {
+              icon: "⚡",
+              name: "Bash",
+              detail: "./gradlew lintDebug",
+              dur: "6.2s",
+              status: "done",
+              result:
+                "> Task :app:lintDebug\n\nLint found 2 warnings:\n  ChatInputBar.kt:132 - HardcodedText\n  MessageBubble.kt:90 - UnusedResources\n\n0 errors, 2 warnings",
+            },
+            {
+              icon: "🔍",
+              name: "Grep",
+              detail: "TODO|FIXME|HACK",
+              dur: "0.1s",
+              status: "done",
+              result:
+                "ChatInputBar.kt:475  // TODO: 翻译功能已移入齿轮菜单\nChatMessageList.kt:177  // TODO: streaming indicator",
+            },
+            {
+              icon: "📖",
+              name: "Read",
+              detail: "app-debug.apk (size check)",
+              dur: "0.1s",
+              status: "done",
+              result:
+                "APK 大小: 12.4 MB (±0.0 MB vs 上次构建)\nDex 文件数: 1\nMethod count: 34,521",
+            },
+          ],
+        },
+      ];
+      let scenarioIdx = 0;
+
+      // === 工具步骤点击展开/关闭结果 ===
+      function toggleStepResult(stepEl) {
+        const resultEl = stepEl.nextElementSibling;
+        if (resultEl && resultEl.classList.contains("tool-result")) {
+          resultEl.classList.toggle("show");
+        }
+      }
+
+      // === Thinking 块折叠 ===
+      function toggleThinking(headerEl) {
+        const body = headerEl.nextElementSibling;
+        const chevron = headerEl.querySelector("i");
+        body.classList.toggle("show");
+        chevron.style.transform = body.classList.contains("show")
+          ? "rotate(180deg)"
+          : "";
+      }
+
+      // === 核心：发送消息 ===
+      function sendMessage() {
+        if (isThinking) return;
+        const input = $("mainInput");
+        const text = input.value.trim();
+        if (!text) return;
+        $("emptyState").style.display = "none";
+        $("chatArea").style.display = "flex";
+        const chat = $("chatArea");
+        const now = Date.now();
+        msgCount++;
+
+        // 时间分隔符
+        if (msgCount === 1) {
+          const h = new Date().getHours().toString().padStart(2, "0");
+          const m = new Date().getMinutes().toString().padStart(2, "0");
+          chat.innerHTML += `<div class="time-sep">今天 ${h}:${m}</div>`;
+        }
+
+        // 用户消息
+        const userEl = document.createElement("div");
+        userEl.className = "msg user";
+        userEl.style.cssText =
+          "opacity:0;transform:translateY(8px);transition:all .3s";
+        userEl.innerHTML = `<div class="bubble">${esc(text)}</div><div class="msg-meta"><span>${relTime(now)}</span><span class="delivery">✓✓</span></div>`;
+        chat.appendChild(userEl);
+        setTimeout(() => {
+          userEl.style.opacity = "1";
+          userEl.style.transform = "translateY(0)";
+        }, 10);
+
+        // 更新上下文
+        let ctx = parseInt($("ctxVal").innerText);
+        ctx = Math.min(ctx + Math.floor(Math.random() * 6 + 2), 99);
+        $("ctxVal").innerText = ctx;
+        if (ctx > 80) $("ctxVal").parentElement.style.color = "var(--err)";
+        else if (ctx > 50)
+          $("ctxVal").parentElement.style.color = "var(--warn)";
+
+        // 切换为 thinking 状态
+        isThinking = true;
+        input.value = "";
+        input.style.height = "auto";
+        input.blur();
+        $("statusPill").className = "status-pill running";
+        $("statusPill").textContent = "Running";
+        $("agentBar").classList.add("show");
+        $("agentBarText").textContent = "Analyzing...";
+        $("typingBlock").classList.add("show");
+        scrollBottom();
+
+        const isCmd = text.startsWith("/");
+        const scenario = toolScenarios[scenarioIdx % toolScenarios.length];
+        scenarioIdx++;
+        const delay = 1500 + Math.random() * 800;
+
+        setTimeout(() => {
+          $("agentBarText").textContent = scenario.taskStatus + "...";
+        }, delay * 0.3);
+
+        setTimeout(() => {
+          $("typingBlock").classList.remove("show");
+          isThinking = false;
+          $("statusPill").className = "status-pill idle";
+          $("statusPill").textContent = "Idle";
+          $("agentBar").classList.remove("show");
+
+          // 1) Thinking 块
+          chat.innerHTML += buildThinkingBlock(scenario.thinking);
+
+          // 2) Task Boundary
+          chat.innerHTML += buildTaskBoundary(
+            scenario.taskMode,
+            scenario.taskName,
+            scenario.taskStatus,
+          );
+
+          // 3) 工具调用分组
+          chat.innerHTML += buildToolGroup(scenario.steps);
+
+          // 4) AI 回复
+          const aiEl = document.createElement("div");
+          aiEl.className = "msg ai";
+          aiEl.style.cssText =
+            "opacity:0;transform:translateY(8px);transition:all .3s";
+          const reply = isCmd
+            ? `正在执行内置命令 <code style="background:var(--bg-surface);padding:1px 6px;border-radius:4px;font-family:'Geist Mono',monospace;font-size:12px;border:1px solid var(--border)">${esc(text)}</code>。任务规划已启动。`
+            : getAIReply(text);
+          aiEl.innerHTML = `
+            <div class="bubble">
+              <div class="msg-agent-row"><div class="msg-agent-icon"><i class="fa-solid fa-bolt" style="font-size:9px;color:var(--bg-base)"></i></div><span class="msg-agent-name">Claude</span></div>
+              <div style="margin-top:4px">${reply}</div>
+            </div>
+            <div class="msg-meta"><span>${relTime(Date.now())}</span><button class="tts-btn" onclick="toast('正在朗读')"><i class="fa-solid fa-volume-high"></i></button></div>`;
+          chat.appendChild(aiEl);
+          setTimeout(() => {
+            aiEl.style.opacity = "1";
+            aiEl.style.transform = "translateY(0)";
+            scrollBottom();
+          }, 10);
+
+          // 5) Diff + Approval（第1条消息时展示）
+          if (msgCount === 1) {
+            setTimeout(() => {
+              chat.innerHTML += buildDiffCard();
+              chat.innerHTML += buildApproval();
+              scrollBottom();
+            }, 300);
+          }
+          toast("回复完成");
+        }, delay);
+      }
+
+      // === Thinking 块 ===
+      function buildThinkingBlock(text) {
+        return `<div class="thinking-block">
+          <div class="thinking-header" onclick="toggleThinking(this)">
+            <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--text-3)"></i>
+            <i class="fa-solid fa-brain" style="font-size:10px"></i>
+            <span>Thinking...</span>
+          </div>
+          <div class="thinking-body">${text}</div>
+        </div>`;
+      }
+
+      // === Task Boundary ===
+      function buildTaskBoundary(mode, name, status) {
+        return `<div class="task-boundary">
+          <span class="task-mode ${mode}">${mode}</span>
+          <span class="task-name">${name}</span>
+          <span class="task-status">${status}</span>
+        </div>`;
+      }
+
+      // === 工具调用分组（增强版）===
+      function buildToolGroup(steps) {
+        const totalDur = steps
+          .reduce((s, t) => s + parseFloat(t.dur), 0)
+          .toFixed(1);
+        const doneCount = steps.filter((t) => t.status === "done").length;
+        let stepsHtml = steps
+          .map((t, i) => {
+            const statusIcon =
+              t.status === "done"
+                ? '<i class="fa-solid fa-check"></i>'
+                : t.status === "err"
+                  ? '<i class="fa-solid fa-xmark"></i>'
+                  : '<i class="fa-solid fa-spinner fa-spin"></i>';
+            const resultHtml = t.result
+              ? `<div class="tool-result" id="tr_${Date.now()}_${i}"><div class="res-label">$ ${t.name.toLowerCase()} ${t.detail}</div><div class="res-output">${esc(t.result).replace(/\n/g, "<br>")}</div></div>`
+              : "";
+            return `<div class="tool-step" onclick="toggleStepResult(this)" style="animation-delay:${i * 0.05}s">
+            <span class="icon">${t.icon}</span>
+            <span class="name">${t.name}</span>
+            <span class="detail">${t.detail}</span>
+            <span class="duration">${t.dur}</span>
+            <span class="status-icon ${t.status}">${statusIcon}</span>
+          </div>${resultHtml}`;
+          })
+          .join("");
+        const runningDot =
+          doneCount < steps.length ? '<div class="shimmer-dot"></div>' : "";
+        return `<div class="tool-group">
+          <div class="tool-group-header" onclick="this.nextElementSibling.classList.toggle('show');this.querySelector('.chevron').style.transform=this.nextElementSibling.classList.contains('show')?'rotate(180deg)':''">
+            <i class="fa-solid fa-chevron-down chevron" style="font-size:10px;color:var(--text-3);transition:transform .2s"></i>
+            <span class="count">${steps.length} 个步骤 · ${totalDur}s</span>
+            ${runningDot}
+          </div>
+          <div class="tool-group-body">${stepsHtml}</div>
+        </div>`;
+      }
+
+      // === Diff 卡片 ===
+      function buildDiffCard() {
+        return `<div class="diff-card" onclick="toast('查看完整 Diff')">
+          <div class="diff-header"><i class="fa-regular fa-file-code"></i><span>ChatInputBar.kt</span><div class="diff-stats"><span class="diff-add">+85</span><span class="diff-rm">-12</span></div></div>
+          <div class="diff-body"><div class="diff-line ctx">&nbsp;&nbsp;Surface(</div><div class="diff-line add">+&nbsp;&nbsp;shape = RoundedCornerShape(22.dp),</div><div class="diff-line add">+&nbsp;&nbsp;color = surfaceVariant.copy(alpha = 0.55f)</div><div class="diff-line rm">-&nbsp;&nbsp;shape = RectangleShape</div><div class="diff-line ctx">&nbsp;&nbsp;) {</div></div>
+        </div>`;
+      }
+
+      // === 审批卡片 ===
+      function buildApproval() {
+        return `<div class="approval" id="approvalCard">
+          <div class="approval-title"><i class="fa-solid fa-triangle-exclamation"></i> 确认执行</div>
+          <div class="approval-desc">是否将更改部署到 Android 项目？<br><br>命令：<code>./gradlew assembleDebug</code></div>
+          <div class="approval-btns"><button class="btn btn-no" onclick="handleReject()">拒绝</button><button class="btn btn-yes" onclick="handleApprove(this)"><i class="fa-solid fa-rocket"></i> 批准</button></div>
+        </div>`;
+      }
+
+      // === AI 回复内容 ===
+      function getAIReply(text) {
+        const replies = [
+          "已经完成了分析。这段代码的核心问题在于 <strong>状态管理</strong> 过于分散，建议采用 <code>ViewModel</code> 集中管理 UI 状态，同时利用 Compose 的 <code>remember</code> 和 <code>derivedStateOf</code> 优化重组性能。",
+          "根据 Geist 设计语言的规范，我推荐使用 <strong>极简主义</strong> 的布局方案：减少视觉噪音、统一间距为 8dp 的倍数、使用 <code>surfaceVariant</code> 作为容器背景色。这样可以让界面更加清爽。",
+          "好的，我已经查看了相关文件。目前的实现有几个可以优化的点：\n<br>1. <strong>组件拆分</strong>：ChatInputBar 过于庞大（991行），建议拆分为 ComposerInput、ActionRow、ChipRow 三个子组件\n<br>2. <strong>性能优化</strong>：LazyRow 内的 AssistChip 可以提取为独立 Composable 减少重组\n<br>3. <strong>动画</strong>：建议用 AnimatedVisibility 替代手动管理 display 状态",
+          "这个架构方案非常清晰！我完全同意使用 Material You 的设计理念。Geist 风格在这里作为了一个很好的补充，它强调了 <strong>排版优先</strong> 和 <strong>留白空间</strong> 的重要性。",
+        ];
+        return replies[msgCount % replies.length];
+      }
+
+      // === 审批操作 ===
+      function handleApprove(btn) {
+        if (isThinking) return;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 执行中...';
+        btn.classList.add("off");
+        document.querySelector(".btn-no").classList.add("off");
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> 完成';
+          btn.classList.remove("off");
+          btn.classList.add("ok");
+          setTimeout(() => {
+            const card = $("approvalCard");
+            if (card) {
+              card.style.opacity = "0";
+              card.style.transform = "scale(.97)";
+              card.style.transition = "all .3s";
+              setTimeout(() => card.remove(), 300);
+            }
+            toast("执行完成！");
+          }, 800);
+        }, 1200);
+      }
+      function handleReject() {
+        if (isThinking) return;
+        const card = $("approvalCard");
+        if (card) {
+          card.style.opacity = "0";
+          card.style.transform = "scale(.97)";
+          card.style.transition = "all .3s";
+          setTimeout(() => card.remove(), 300);
+        }
+        toast("已取消");
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,176 @@
+{
+  "generatedAt": "2026-03-04T06:34:33.533Z",
+  "environment": {
+    "os": "win32",
+    "arch": "x64",
+    "bunVersion": "1.3.9",
+    "nodeVersion": "v24.3.0",
+    "serverUrl": "http://127.0.0.1:3000",
+    "autoRelay": true,
+    "agent": "codex",
+    "relayClockOffsetMs": -1.09521484375,
+    "relayClockRttMs": 0.41030000000000655,
+    "relayClockSamples": 7,
+    "permissionMode": "yolo",
+    "relayEventLoopLagStart": {
+      "count": 256,
+      "p50": 9.655549999326468,
+      "p95": 11.190425000153482,
+      "max": 28.739599999971688,
+      "last": 10.427600000053644
+    },
+    "relayEventLoopLagEnd": {
+      "count": 256,
+      "p50": 9.569499999284744,
+      "p95": 11.713700000662357,
+      "max": 28.739599999971688,
+      "last": 8.316500000655651
+    }
+  },
+  "handshake": {
+    "pairCreateMs": 32.76569999999998,
+    "pairJoinMs": 22.022800000000018,
+    "deriveAgentKeyMs": 0.5268999999999551,
+    "deriveAppKeyMs": 0.20589999999998554,
+    "appConnectMs": 13.778699999999958
+  },
+  "scenarios": [
+    {
+      "name": "agent-e2e",
+      "warmup": 0,
+      "iterations": 1,
+      "payloadBytes": {
+        "prompt": 162
+      },
+      "metrics": {
+        "appEncodeMs": {
+          "count": 1,
+          "min": 0.23849999999993088,
+          "max": 0.23849999999993088,
+          "mean": 0.23849999999993088,
+          "p50": 0.23849999999993088,
+          "p90": 0.23849999999993088,
+          "p95": 0.23849999999993088,
+          "p99": 0.23849999999993088
+        },
+        "sendToAckFirstMs": {
+          "count": 1,
+          "min": 31.527399999999943,
+          "max": 31.527399999999943,
+          "mean": 31.527399999999943,
+          "p50": 31.527399999999943,
+          "p90": 31.527399999999943,
+          "p95": 31.527399999999943,
+          "p99": 31.527399999999943
+        },
+        "sendToAckWorkingMs": {
+          "count": 1,
+          "min": 31.527399999999943,
+          "max": 31.527399999999943,
+          "mean": 31.527399999999943,
+          "p50": 31.527399999999943,
+          "p90": 31.527399999999943,
+          "p95": 31.527399999999943,
+          "p99": 31.527399999999943
+        },
+        "sendToAckOkMs": {
+          "count": 1,
+          "min": 22246.399999999998,
+          "max": 22246.399999999998,
+          "mean": 22246.399999999998,
+          "p50": 22246.399999999998,
+          "p90": 22246.399999999998,
+          "p95": 22246.399999999998,
+          "p99": 22246.399999999998
+        },
+        "sendToFirstThinkingMs": {
+          "count": 1,
+          "min": 31.917399999999816,
+          "max": 31.917399999999816,
+          "mean": 31.917399999999816,
+          "p50": 31.917399999999816,
+          "p90": 31.917399999999816,
+          "p95": 31.917399999999816,
+          "p99": 31.917399999999816
+        },
+        "sendToFirstChunkMs": {
+          "count": 1,
+          "min": 14710.7935,
+          "max": 14710.7935,
+          "mean": 14710.7935,
+          "p50": 14710.7935,
+          "p90": 14710.7935,
+          "p95": 14710.7935,
+          "p99": 14710.7935
+        },
+        "sendToFirstFileDiffMs": {
+          "count": 1,
+          "min": 15008.044,
+          "max": 15008.044,
+          "mean": 15008.044,
+          "p50": 15008.044,
+          "p90": 15008.044,
+          "p95": 15008.044,
+          "p99": 15008.044
+        },
+        "sendToEndMs": {
+          "count": 1,
+          "min": 22246.468699999998,
+          "max": 22246.468699999998,
+          "mean": 22246.468699999998,
+          "p50": 22246.468699999998,
+          "p90": 22246.468699999998,
+          "p95": 22246.468699999998,
+          "p99": 22246.468699999998
+        },
+        "thinkingCount": {
+          "count": 1,
+          "min": 3,
+          "max": 3,
+          "mean": 3,
+          "p50": 3,
+          "p90": 3,
+          "p95": 3,
+          "p99": 3
+        },
+        "chunkCount": {
+          "count": 1,
+          "min": 2,
+          "max": 2,
+          "mean": 2,
+          "p50": 2,
+          "p90": 2,
+          "p95": 2,
+          "p99": 2
+        },
+        "chunkChars": {
+          "count": 1,
+          "min": 44,
+          "max": 44,
+          "mean": 44,
+          "p50": 44,
+          "p90": 44,
+          "p95": 44,
+          "p99": 44
+        },
+        "fileDiffCount": {
+          "count": 1,
+          "min": 1,
+          "max": 1,
+          "mean": 1,
+          "p50": 1,
+          "p90": 1,
+          "p95": 1,
+          "p99": 1
+        }
+      },
+      "fileDiffSamples": [
+        {
+          "path": "D:\\100_Projects\\110_Daily\\Yuanio\\tmp/e2e-file-diff/protocol-bench-shared-create-only.txt",
+          "action": "created",
+          "diffPreview": "--- a/D:\\100_Projects\\110_Daily\\Yuanio\\tmp/e2e-file-diff/protocol-bench-shared-create-only.txt\n+++ b/D:\\100_Projects\\110_Daily\\Yuanio\\tmp/e2e-file-diff/protocol-bench-shared-create-only.txt\n@@ preview @@\n-\n+alpha\n+beta"
+        }
+      ]
+    }
+  ]
+}

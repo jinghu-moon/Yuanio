@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        允许 HTTP 明文通信：Yuanio 支持局域网模式，
+        需要通过 HTTP 连接动态 LAN IP 地址（如 192.168.x.x:3000）。
+        Android 的 domain-config 不支持 IP 地址段匹配，
+        因此需要全局允许明文。生产环境通信仍走 HTTPS Tunnel。
+    -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

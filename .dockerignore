@@ -1,0 +1,8 @@
+node_modules
+.git
+*.db
+refer/
+docs/
+android-app/
+desktop-agent/
+.github/

@@ -1,0 +1,207 @@
+{
+  "source": "D:\\100_Projects\\110_Daily\\Yuanio\\docs\\latency-baseline.json",
+  "generatedAt": "2026-03-03T11:20:10.944Z",
+  "baselineGeneratedAt": "2026-03-03T11:17:06.292Z",
+  "breakdowns": [
+    {
+      "scenario": "text-small",
+      "kind": "text",
+      "e2eMetric": "sendToFirstChunkMs",
+      "p50TotalMs": 15,
+      "p95TotalMs": 17.05,
+      "layers": [
+        {
+          "key": "app_crypto",
+          "name": "App 侧序列化+加解密",
+          "p50Ms": 0.18,
+          "p95Ms": 0.31,
+          "shareP50Pct": 1.2,
+          "shareP95Pct": 1.79,
+          "source": "measured"
+        },
+        {
+          "key": "agent_crypto",
+          "name": "Agent 侧序列化+加解密",
+          "p50Ms": 0.13,
+          "p95Ms": 0.23,
+          "shareP50Pct": 0.89,
+          "shareP95Pct": 1.35,
+          "source": "measured"
+        },
+        {
+          "key": "relay_transport",
+          "name": "Relay+传输+调度",
+          "p50Ms": 14.69,
+          "p95Ms": 16.51,
+          "shareP50Pct": 97.91,
+          "shareP95Pct": 96.86,
+          "source": "derived",
+          "note": "relayToAgent p50/p95=6.00/6.00ms"
+        },
+        {
+          "key": "ui_render",
+          "name": "UI 渲染(Compose)",
+          "p50Ms": null,
+          "p95Ms": null,
+          "shareP50Pct": null,
+          "shareP95Pct": null,
+          "source": "not_measured",
+          "note": "当前基线运行在 CLI，未采集 Android 帧渲染耗时。"
+        }
+      ],
+      "anomalies": [
+        "sendToRelayMs 出现负值，存在跨进程/跨主机时钟偏移，需用单调时钟改造。",
+        "sendToAckMs 尾延迟尖峰明显 (p95=17.05ms, p99=749.61ms)。"
+      ]
+    },
+    {
+      "scenario": "text-large",
+      "kind": "text",
+      "e2eMetric": "sendToFirstChunkMs",
+      "p50TotalMs": 15,
+      "p95TotalMs": 17.05,
+      "layers": [
+        {
+          "key": "app_crypto",
+          "name": "App 侧序列化+加解密",
+          "p50Ms": 0.19,
+          "p95Ms": 0.35,
+          "shareP50Pct": 1.25,
+          "shareP95Pct": 2.03,
+          "source": "measured"
+        },
+        {
+          "key": "agent_crypto",
+          "name": "Agent 侧序列化+加解密",
+          "p50Ms": 0.14,
+          "p95Ms": 0.28,
+          "shareP50Pct": 0.9,
+          "shareP95Pct": 1.66,
+          "source": "measured"
+        },
+        {
+          "key": "relay_transport",
+          "name": "Relay+传输+调度",
+          "p50Ms": 14.68,
+          "p95Ms": 16.42,
+          "shareP50Pct": 97.84,
+          "shareP95Pct": 96.31,
+          "source": "derived",
+          "note": "relayToAgent p50/p95=6.00/6.00ms"
+        },
+        {
+          "key": "ui_render",
+          "name": "UI 渲染(Compose)",
+          "p50Ms": null,
+          "p95Ms": null,
+          "shareP50Pct": null,
+          "shareP95Pct": null,
+          "source": "not_measured",
+          "note": "当前基线运行在 CLI，未采集 Android 帧渲染耗时。"
+        }
+      ],
+      "anomalies": [
+        "sendToRelayMs 出现负值，存在跨进程/跨主机时钟偏移，需用单调时钟改造。",
+        "sendToAckMs 尾延迟尖峰明显 (p95=17.05ms, p99=749.12ms)。"
+      ]
+    },
+    {
+      "scenario": "binary-small",
+      "kind": "binary",
+      "e2eMetric": "sendToEchoMs",
+      "p50TotalMs": 0,
+      "p95TotalMs": 1,
+      "layers": [
+        {
+          "key": "app_crypto",
+          "name": "App 侧序列化+加解密",
+          "p50Ms": 0.06,
+          "p95Ms": 0.1,
+          "shareP50Pct": null,
+          "shareP95Pct": 9.97,
+          "source": "measured"
+        },
+        {
+          "key": "agent_crypto",
+          "name": "Agent 侧序列化+加解密",
+          "p50Ms": 0.05,
+          "p95Ms": 0.14,
+          "shareP50Pct": null,
+          "shareP95Pct": 14.09,
+          "source": "measured"
+        },
+        {
+          "key": "relay_transport",
+          "name": "Relay+传输+调度",
+          "p50Ms": 0,
+          "p95Ms": 0.76,
+          "shareP50Pct": null,
+          "shareP95Pct": 75.94,
+          "source": "derived"
+        },
+        {
+          "key": "ui_render",
+          "name": "UI 渲染(Compose)",
+          "p50Ms": null,
+          "p95Ms": null,
+          "shareP50Pct": null,
+          "shareP95Pct": null,
+          "source": "not_measured",
+          "note": "当前基线运行在 CLI，未采集 Android 帧渲染耗时。"
+        }
+      ],
+      "anomalies": [
+        "sendToEchoMs 的 P50 为 0ms（毫秒粒度下限），P50 占比不可用，请以 P95 与均值为主。"
+      ]
+    },
+    {
+      "scenario": "binary-large",
+      "kind": "binary",
+      "e2eMetric": "sendToEchoMs",
+      "p50TotalMs": 0,
+      "p95TotalMs": 1,
+      "layers": [
+        {
+          "key": "app_crypto",
+          "name": "App 侧序列化+加解密",
+          "p50Ms": 0.06,
+          "p95Ms": 0.08,
+          "shareP50Pct": null,
+          "shareP95Pct": 8.28,
+          "source": "measured"
+        },
+        {
+          "key": "agent_crypto",
+          "name": "Agent 侧序列化+加解密",
+          "p50Ms": 0.06,
+          "p95Ms": 0.08,
+          "shareP50Pct": null,
+          "shareP95Pct": 8.5,
+          "source": "measured"
+        },
+        {
+          "key": "relay_transport",
+          "name": "Relay+传输+调度",
+          "p50Ms": 0,
+          "p95Ms": 0.83,
+          "shareP50Pct": null,
+          "shareP95Pct": 83.22,
+          "source": "derived"
+        },
+        {
+          "key": "ui_render",
+          "name": "UI 渲染(Compose)",
+          "p50Ms": null,
+          "p95Ms": null,
+          "shareP50Pct": null,
+          "shareP95Pct": null,
+          "source": "not_measured",
+          "note": "当前基线运行在 CLI，未采集 Android 帧渲染耗时。"
+        }
+      ],
+      "anomalies": [
+        "sendToEchoMs 的 P50 为 0ms（毫秒粒度下限），P50 占比不可用，请以 P95 与均值为主。"
+      ]
+    }
+  ]
+}

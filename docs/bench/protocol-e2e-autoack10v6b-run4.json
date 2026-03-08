@@ -1,0 +1,66 @@
+{
+  "status": "pass",
+  "generatedAt": "2026-03-04T14:02:37.354Z",
+  "serverUrl": "http://127.0.0.1:4441",
+  "autoRelay": false,
+  "timeoutMs": 8000,
+  "steps": [
+    {
+      "name": "relay-health-or-start",
+      "status": "pass",
+      "durationMs": 6.29
+    },
+    {
+      "name": "pair-create",
+      "status": "pass",
+      "durationMs": 9.56
+    },
+    {
+      "name": "pair-join",
+      "status": "pass",
+      "durationMs": 1.58
+    },
+    {
+      "name": "socket-connect-agent",
+      "status": "pass",
+      "durationMs": 7.96
+    },
+    {
+      "name": "socket-connect-app",
+      "status": "pass",
+      "durationMs": 4.02
+    },
+    {
+      "name": "ack-round-trip",
+      "status": "pass",
+      "durationMs": 6.15
+    },
+    {
+      "name": "ack-required-matrix-pending-clear",
+      "status": "pass",
+      "durationMs": 405.16
+    },
+    {
+      "name": "replay-after-cursor",
+      "status": "pass",
+      "durationMs": 141.03
+    },
+    {
+      "name": "recovery-pending-ack-clear",
+      "status": "pass",
+      "durationMs": 127.93
+    }
+  ],
+  "metrics": {
+    "ackRttMs": 5.17,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 1.71,
+    "ackRequiredMatrixAckClearP95Ms": 1.27,
+    "replayFirstPageCount": 1,
+    "replaySecondPageCount": 1,
+    "replayUniqueIds": 2,
+    "recoveryPendingAppearMs": 124.82,
+    "recoveryAckClearMs": 1.03
+  }
+}
