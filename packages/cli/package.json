@@ -1,7 +1,7 @@
 {
   "name": "yuanio",
   "version": "0.1.0",
-  "description": "Remote control Claude Code from your phone",
+  "description": "Desktop-side CLI launcher and control bridge for Yuanio remote coding workflows",
   "bin": {
     "yuanio": "src/index.ts"
   },

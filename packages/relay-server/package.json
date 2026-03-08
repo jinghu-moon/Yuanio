@@ -1,6 +1,7 @@
 {
   "name": "@yuanio/relay-server",
   "private": true,
+  "description": "Encrypted relay server for Yuanio mobile-to-desktop coordination",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@hono/node-server": "^1",

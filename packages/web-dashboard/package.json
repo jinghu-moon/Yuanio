@@ -2,6 +2,7 @@
   "name": "@yuanio/web-dashboard",
   "version": "0.1.0",
   "private": true,
+  "description": "Experimental web dashboard for Yuanio relay control and monitoring",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "bun run src/server.ts",

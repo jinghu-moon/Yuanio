@@ -1,8 +1,21 @@
 # Yuanio
 
-Remote-first mobile control for local AI coding workflows.
+Remote-first Android control for local AI coding agents and developer workflows.
 
-Yuanio connects an Android app, a Bun-based relay server, and a local CLI/daemon layer so you can monitor, continue, and manage coding sessions from a phone or tablet.
+Yuanio lets you monitor, continue, and manage local coding sessions from your phone or tablet. It connects an Android client, a Bun-based relay server, and a local CLI/daemon layer so desktop agent workflows are no longer tied to a single desk, terminal, or network environment.
+
+## Why Yuanio
+
+- Keep long-running coding sessions visible when you step away from the keyboard.
+- Review approvals, diffs, logs, and terminal output from Android.
+- Bridge desktop agents and mobile control through a relay-friendly architecture.
+- Support remote-first workflows instead of assuming a fixed local environment.
+
+## Current scope
+
+Yuanio is currently focused on Android-based remote control for local developer workflows, including chat-style interaction, approval handling, relay transport, terminal surfaces, and session lifecycle management.
+
+Today the repository is optimized for fast iteration rather than polished public packaging, but the codebase already contains the main end-to-end foundations for an open remote coding companion.
 
 ## Status
 
@@ -10,22 +23,24 @@ This repository is being prepared for a public GitHub release.
 
 The public app repository intentionally excludes local secrets, runtime state, build outputs, and most large third-party reference mirrors that were used during research and prototyping.
 
-## What is in this repository
+## Repository contents
 
 - `android-app/` - Android application built with Kotlin and Jetpack Compose.
-- `packages/cli/` - local CLI launcher and session entrypoint.
-- `packages/relay-server/` - Bun relay server for encrypted message forwarding.
-- `packages/shared/` - shared protocol and crypto utilities.
-- `docs/` - architecture, protocol, deployment, benchmarking, and design notes.
-- `tools/` - small local maintenance scripts, including icon validation.
+- `packages/cli/` - local CLI launcher, TUI entrypoint, and desktop-side control flow.
+- `packages/relay-server/` - Bun relay server for encrypted forwarding and coordination.
+- `packages/shared/` - shared protocol, crypto, and transport primitives.
+- `packages/web-dashboard/` - experimental web dashboard surfaces.
+- `docs/` - architecture, protocol, deployment, benchmarking, and workflow notes.
+- `tools/` - maintenance scripts such as icon validation helpers.
 
 ## Key capabilities
 
 - Remote session monitoring from Android.
 - Approval and diff review flows for agent actions.
 - Relay-based encrypted transport between mobile and desktop.
-- Local/remote session handoff model.
+- Local/remote session handoff patterns.
 - Android terminal and chat-oriented interaction surfaces.
+- Shared protocol evolution across Android, CLI, and relay layers.
 
 ## Repository layout
 
@@ -41,12 +56,12 @@ tools/                  maintenance utilities
 
 ## Quick start
 
-### Workspace prerequisites
+### Prerequisites
 
 - Bun
 - Node.js
 - Java 17+
-- Android SDK / Android Studio (for Android builds)
+- Android SDK / Android Studio
 
 ### Install dependencies
 
@@ -54,7 +69,7 @@ tools/                  maintenance utilities
 bun install
 ```
 
-### Useful commands
+### Common commands
 
 ```bash
 bun run launch
@@ -85,15 +100,22 @@ cd android-app
 
 ## Public release boundaries
 
-The following classes of local files are intentionally excluded from the public repository:
+The public repository intentionally excludes classes of local-only materials such as:
 
-- signing materials and local Firebase config
+- signing materials and private service configuration
 - local databases and runtime state
 - local AI agent caches and working memory
 - logs, screenshots, temporary captures, and crash dumps
-- large third-party source mirrors and archive snapshots under `refer/`
+- most large third-party source mirrors and archive snapshots under `refer/`
 
-See `.gitignore` and `THIRD_PARTY.md` for details.
+See `.gitignore` and `THIRD_PARTY.md` for attribution and boundary details.
+
+## Non-goals for now
+
+- Full cloud-hosted SaaS positioning
+- Multi-platform client parity beyond Android
+- Release-process polish over development velocity
+- Public redistribution of every research mirror used during prototyping
 
 ## License
 
