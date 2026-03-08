@@ -1,5 +1,10 @@
 # Yuanio
 
+[![Release](https://img.shields.io/github/v/release/jinghu-moon/Yuanio?display_name=tag)](https://github.com/jinghu-moon/Yuanio/releases)
+[![License](https://img.shields.io/github/license/jinghu-moon/Yuanio)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](android-app/)
+[![Runtime](https://img.shields.io/badge/runtime-Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
+
 Remote-first Android control for local AI coding agents and developer workflows.
 
 Yuanio lets you monitor, continue, and manage local coding sessions from your phone or tablet. It connects an Android client, a Bun-based relay server, and a local CLI/daemon layer so desktop agent workflows are no longer tied to a single desk, terminal, or network environment.
