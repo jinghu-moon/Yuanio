@@ -9,7 +9,13 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LOCAL_DIR = REPO_ROOT / "android-app" / "app" / "src" / "main" / "res" / "drawable"
-REFERENCE_DIR = (
+PUBLIC_REFERENCE_DIR = (
+    REPO_ROOT
+    / "tools"
+    / "tabler-icons-reference"
+    / "drawable"
+)
+LEGACY_REFERENCE_DIR = (
     REPO_ROOT
     / "refer"
     / "compose-icons-main"
@@ -43,7 +49,7 @@ class IconPair:
 
     @property
     def reference_path(self) -> Path:
-        return REFERENCE_DIR / self.reference_name
+        return resolve_reference_dir() / self.reference_name
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,12 +95,21 @@ def iter_pairs() -> list[IconPair]:
     return [IconPair(local_name, reference_name) for local_name, reference_name in ICON_MAP.items()]
 
 
+def resolve_reference_dir() -> Path:
+    if PUBLIC_REFERENCE_DIR.exists():
+        return PUBLIC_REFERENCE_DIR
+    return LEGACY_REFERENCE_DIR
+
+
 def validate_directories() -> int | None:
     if not LOCAL_DIR.exists():
         print(f"[error] local drawable dir missing: {LOCAL_DIR}")
         return 2
-    if not REFERENCE_DIR.exists():
-        print(f"[error] reference drawable dir missing: {REFERENCE_DIR}")
+    reference_dir = resolve_reference_dir()
+    if not reference_dir.exists():
+        print(f"[error] reference drawable dir missing: {reference_dir}")
+        print(f"[hint] checked public reference dir: {PUBLIC_REFERENCE_DIR}")
+        print(f"[hint] checked legacy reference dir: {LEGACY_REFERENCE_DIR}")
         return 2
     return None
 
@@ -107,7 +122,7 @@ def main() -> int:
 
     print("[check] validating local Tabler drawables against compose-icons reference")
     print(f"[check] local dir: {LOCAL_DIR}")
-    print(f"[check] reference dir: {REFERENCE_DIR}")
+    print(f"[check] reference dir: {resolve_reference_dir()}")
     if args.fix:
         print("[mode] fix enabled")
 
