@@ -1,42 +1,70 @@
 import { io } from "socket.io-client";
 import {
-  generateKeyPair,
-  deriveSharedKey,
-  createEnvelope,
-  openEnvelope,
+  DEFAULT_E2EE_INFO,
   MessageType,
+  PROTOCOL_VERSION,
   SeqCounter,
+  createEnvelopeWeb,
+  deriveAesGcmKey,
+  generateWebKeyPair,
+  openEnvelopeWeb,
+  type Envelope,
 } from "@yuanio/shared";
-import type { Envelope } from "@yuanio/shared";
 import { createRelaySocketOptions } from "./relay-options";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const serverUrl = "http://localhost:3000";
-const prompt = "hello";
+interface PairCreateResponse {
+  pairingCode: string;
+  sessionToken: string;
+  deviceId: string;
+  sessionId: string;
+}
+
+function getArg(flag: string, fallback: string): string {
+  const idx = process.argv.indexOf(flag);
+  if (idx < 0) return fallback;
+  return process.argv[idx + 1] ?? fallback;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const serverUrl = getArg("--server", "http://localhost:3000");
+const prompt = getArg("--prompt", "say hello");
+const cliRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 async function createPairWithRetry() {
-  const kp = generateKeyPair();
+  const keyPair = await generateWebKeyPair();
   let res = await fetch(`${serverUrl}/api/v1/pair/create`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ publicKey: kp.publicKey }),
+    headers: {
+      "Content-Type": "application/json",
+      "x-yuanio-protocol-version": PROTOCOL_VERSION,
+    },
+    body: JSON.stringify({ publicKey: keyPair.publicKey, protocolVersion: PROTOCOL_VERSION }),
   });
 
   if (res.status === 429) {
     console.log("[wrapper] rate limited, wait 70s and retry...");
-    await new Promise((r) => setTimeout(r, 70000));
+    await sleep(70000);
     res = await fetch(`${serverUrl}/api/v1/pair/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publicKey: kp.publicKey }),
+      headers: {
+        "Content-Type": "application/json",
+        "x-yuanio-protocol-version": PROTOCOL_VERSION,
+      },
+      body: JSON.stringify({ publicKey: keyPair.publicKey, protocolVersion: PROTOCOL_VERSION }),
     });
   }
 
   if (!res.ok) {
-    throw new Error(`pair/create failed: ${res.status}`);
+    throw new Error(`pair/create failed: ${res.status} ${await res.text()}`);
   }
 
-  const data = await res.json();
-  return { kp, data };
+  const data = await res.json() as PairCreateResponse;
+  return { keyPair, data };
 }
 
 async function waitForAppKey(pairingCode: string) {
@@ -45,16 +73,16 @@ async function waitForAppKey(pairingCode: string) {
     const res = await fetch(`${serverUrl}/api/v1/pair/status/${pairingCode}`);
     const data = await res.json();
     if (data.joined && data.appPublicKey) return data.appPublicKey as string;
-    await new Promise((r) => setTimeout(r, 300));
+    await sleep(300);
   }
   throw new Error("app join timeout");
 }
 
-const { kp: agentKp, data: pair } = await createPairWithRetry();
-const { pairingCode, sessionToken, deviceId, sessionId } = pair as any;
+const { keyPair: agentKeyPair, data: pair } = await createPairWithRetry();
+const { pairingCode, sessionToken, deviceId, sessionId } = pair;
 console.log(`[wrapper] pairingCode=${pairingCode}`);
 
-let sharedKey: Uint8Array | null = null;
+let sharedKey: CryptoKey | null = null;
 let pendingPrompt: Envelope | null = null;
 const seq = new SeqCounter();
 
@@ -70,14 +98,14 @@ socket.on("message", (env: Envelope) => {
     pendingPrompt = env;
     return;
   }
-  handlePrompt(env);
+  void handlePrompt(env);
 });
 
-function handlePrompt(env: Envelope) {
+async function handlePrompt(env: Envelope) {
   if (!sharedKey) return;
-  const userPrompt = openEnvelope(env, sharedKey);
+  const userPrompt = await openEnvelopeWeb(env, sharedKey);
   const reply = `OK: ${userPrompt}`;
-  const chunk = createEnvelope(
+  const chunk = await createEnvelopeWeb(
     deviceId,
     "broadcast",
     sessionId,
@@ -86,7 +114,7 @@ function handlePrompt(env: Envelope) {
     sharedKey,
     seq.next(),
   );
-  const end = createEnvelope(
+  const end = await createEnvelopeWeb(
     deviceId,
     "broadcast",
     sessionId,
@@ -99,27 +127,32 @@ function handlePrompt(env: Envelope) {
   socket.emit("message", end);
 }
 
-const appKeyPromise = waitForAppKey(pairingCode).then((appPublicKey) => {
-  sharedKey = deriveSharedKey(agentKp.secretKey, appPublicKey);
+const appKeyPromise = waitForAppKey(pairingCode).then(async (appPublicKey) => {
+  sharedKey = await deriveAesGcmKey({
+    privateKey: agentKeyPair.privateKey,
+    publicKey: appPublicKey,
+    salt: sessionId,
+    info: DEFAULT_E2EE_INFO,
+  });
   console.log("[wrapper] shared key ready");
   if (pendingPrompt) {
-    const p = pendingPrompt;
+    const promptEnvelope = pendingPrompt;
     pendingPrompt = null;
-    handlePrompt(p);
+    await handlePrompt(promptEnvelope);
   }
 });
 
 const proc = Bun.spawn([
   "bun",
   "run",
-  "packages/cli/src/test-e2e.ts",
+  "src/test-e2e.ts",
   "--pairing-code",
   pairingCode,
   "--server",
   serverUrl,
   "--prompt",
   prompt,
-], { cwd: process.cwd(), stdout: "pipe", stderr: "pipe" });
+], { cwd: cliRoot, stdout: "pipe", stderr: "pipe" });
 
 const [out, err, code] = await Promise.all([
   new Response(proc.stdout).text(),

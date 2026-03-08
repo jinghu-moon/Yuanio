@@ -21,7 +21,6 @@ jobs:
       - name: Run hook smoke tests
         run: npm run test:hooks:smoke
 
-
   tabler-icons:
     runs-on: ubuntu-latest
     steps:
@@ -54,7 +53,6 @@ jobs:
           bun-version: latest
       - run: bun install
 
-      # 启动 relay server
       - name: Start relay server
         run: |
           cd packages/relay-server
@@ -62,21 +60,10 @@ jobs:
           sleep 2
           curl -f http://localhost:3000/health
 
-      # 启动 CLI 配对
-      - name: Start CLI pairing
+      - name: Run E2E test with mock agent
         run: |
           cd packages/cli
-          bun run src/index.ts --server http://localhost:3000 --pair > /tmp/cli-output.txt 2>&1 &
-          sleep 3
-          PAIRING_CODE=$(grep -oP '\d{3}-\d{3}' /tmp/cli-output.txt | head -1)
-          echo "PAIRING_CODE=$PAIRING_CODE" >> $GITHUB_ENV
-
-      # 运行 E2E 测试
-      - name: Run E2E test
-        run: |
-          cd packages/cli
-          bun run src/test-e2e.ts \
-            --pairing-code ${{ env.PAIRING_CODE }} \
+          bun run src/run-e2e-with-mock.ts \
             --server http://localhost:3000 \
             --prompt "say hello"
         timeout-minutes: 2
