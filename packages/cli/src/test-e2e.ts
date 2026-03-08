@@ -1,10 +1,25 @@
 import { io } from "socket.io-client";
 import {
-  generateKeyPair, deriveSharedKey,
-  createEnvelope, openEnvelope,
-  MessageType, SeqCounter,
+  DEFAULT_E2EE_INFO,
+  MessageType,
+  PROTOCOL_VERSION,
+  SeqCounter,
+  createEnvelopeWeb,
+  deriveAesGcmKey,
+  generateWebKeyPair,
+  openEnvelopeWeb,
+  type AckMessage,
+  type Envelope,
 } from "@yuanio/shared";
-import type { Envelope } from "@yuanio/shared";
+import { createRelaySocketOptions } from "./relay-options";
+
+interface PairJoinResponse {
+  agentPublicKey: string;
+  sessionToken: string;
+  deviceId: string;
+  sessionId: string;
+  protocolVersion?: string;
+}
 
 const args = process.argv.slice(2);
 const serverUrl = args.includes("--server")
@@ -15,7 +30,7 @@ const pairingCode = args.includes("--pairing-code")
   : null;
 const prompt = args.includes("--prompt")
   ? args[args.indexOf("--prompt") + 1]
-  : "说你好";
+  : "say hello";
 
 if (!pairingCode) {
   console.error("Usage: --pairing-code XXX-XXX [--server url] [--prompt text]");
@@ -23,14 +38,20 @@ if (!pairingCode) {
 }
 
 async function main() {
-  const kp = generateKeyPair();
+  const keyPair = await generateWebKeyPair();
 
-  // 1. 加入配对
   console.log("[e2e] 加入配对:", pairingCode);
   const joinRes = await fetch(`${serverUrl}/api/v1/pair/join`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: pairingCode, publicKey: kp.publicKey }),
+    headers: {
+      "Content-Type": "application/json",
+      "x-yuanio-protocol-version": PROTOCOL_VERSION,
+    },
+    body: JSON.stringify({
+      code: pairingCode,
+      publicKey: keyPair.publicKey,
+      protocolVersion: PROTOCOL_VERSION,
+    }),
   });
 
   if (!joinRes.ok) {
@@ -38,55 +59,80 @@ async function main() {
     process.exit(1);
   }
 
-  const { agentPublicKey, sessionToken, deviceId, sessionId } = await joinRes.json();
+  const { agentPublicKey, sessionToken, deviceId, sessionId } = await joinRes.json() as PairJoinResponse;
   console.log("[e2e] 配对成功, sessionId:", sessionId);
 
-  // 2. DH 共享密钥
-  const sharedKey = deriveSharedKey(kp.secretKey, agentPublicKey);
-
-  // 3. 连接 /relay
-  const socket = io(`${serverUrl}/relay`, {
-    auth: { token: sessionToken },
+  const sharedKey = await deriveAesGcmKey({
+    privateKey: keyPair.privateKey,
+    publicKey: agentPublicKey,
+    salt: sessionId,
+    info: DEFAULT_E2EE_INFO,
   });
+
+  const socket = io(`${serverUrl}/relay`, createRelaySocketOptions(sessionToken));
 
   const seq = new SeqCounter();
   let sent = false;
-  const sendPrompt = () => {
+  let promptMessageId: string | null = null;
+
+  const sendPrompt = async () => {
     if (sent) return;
     sent = true;
-    const envelope = createEnvelope(
-      deviceId, "broadcast", sessionId,
-      MessageType.PROMPT, prompt, sharedKey, seq.next(),
+    const envelope = await createEnvelopeWeb(
+      deviceId,
+      "broadcast",
+      sessionId,
+      MessageType.PROMPT,
+      prompt,
+      sharedKey,
+      seq.next(),
     );
+    promptMessageId = envelope.id;
     console.log("[e2e] 发送 prompt:", prompt);
     socket.emit("message", envelope);
   };
 
   socket.on("connect", () => {
     console.log("[e2e] 已连接 relay, 等待 agent 上线...");
-    // 兜底：3秒后若 agent 已在房间则直接发
-    setTimeout(sendPrompt, 3000);
+    setTimeout(() => {
+      void sendPrompt();
+    }, 3000);
   });
 
-  socket.on("device:online", (info: any) => {
-    if (info.role === "agent") {
+  socket.on("device:online", (info: { role?: string }) => {
+    if (info?.role === "agent") {
       console.log("[e2e] agent 已上线");
-      sendPrompt();
+      void sendPrompt();
     }
   });
 
-  // 5. 接收流式回复
-  socket.on("message", (envelope: Envelope) => {
-    if (envelope.type === MessageType.STREAM_END) {
-      console.log("\n[e2e]  完成");
+  socket.on("ack", (ack: AckMessage & { reason?: string }) => {
+    if (!promptMessageId || ack.messageId !== promptMessageId) return;
+    if (ack.state === "terminal") {
+      console.error("[e2e] agent 终止:", ack.reason || "unknown");
       socket.disconnect();
-      process.exit(0);
+      process.exit(1);
     }
+  });
 
-    if (envelope.type === MessageType.STREAM_CHUNK) {
-      const text = openEnvelope(envelope, sharedKey);
-      process.stdout.write(text);
-    }
+  socket.on("message", (envelope: Envelope) => {
+    void (async () => {
+      if (envelope.type === MessageType.STREAM_END) {
+        console.log("\n[e2e] 完成");
+        socket.disconnect();
+        process.exit(0);
+      }
+
+      if (envelope.type === MessageType.STREAM_CHUNK) {
+        const text = await openEnvelopeWeb(envelope, sharedKey);
+        process.stdout.write(text);
+      }
+    })().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[e2e] 解密失败:", message);
+      socket.disconnect();
+      process.exit(1);
+    });
   });
 
   socket.on("connect_error", (err) => {
@@ -94,9 +140,8 @@ async function main() {
     process.exit(1);
   });
 
-  // 超时退出
   setTimeout(() => {
-    console.error("\n[e2e]  超时");
+    console.error("\n[e2e] 超时");
     process.exit(1);
   }, 120_000);
 }
