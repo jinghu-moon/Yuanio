@@ -59,9 +59,9 @@ fun ConnectionBanner(
                 Icon(
                     painter = painterResource(
                         if (connState == ConnectionState.DISCONNECTED) {
-                            R.drawable.ic_ms_error
+                            R.drawable.ic_tb_alert_circle
                         } else {
-                            R.drawable.ic_ms_refresh
+                            R.drawable.ic_tb_refresh
                         }
                     ),
                     contentDescription = null,

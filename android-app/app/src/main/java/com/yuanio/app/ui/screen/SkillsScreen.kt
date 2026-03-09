@@ -81,7 +81,7 @@ fun SkillsScreen(onBack: () -> Unit, vm: SkillsViewModel = viewModel()) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_arrow_back),
+                            painter = painterResource(R.drawable.ic_tb_arrow_left),
                             contentDescription = stringResource(R.string.common_back)
                         )
                     }
@@ -89,7 +89,7 @@ fun SkillsScreen(onBack: () -> Unit, vm: SkillsViewModel = viewModel()) {
                 actions = {
                     IconButton(onClick = { vm.refreshSkills(scope) }) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_refresh),
+                            painter = painterResource(R.drawable.ic_tb_refresh),
                             contentDescription = stringResource(R.string.common_refresh)
                         )
                     }

@@ -1,4 +1,4 @@
-package com.yuanio.app.ui.model
+﻿package com.yuanio.app.ui.model
 
 import androidx.compose.runtime.Immutable
 import com.yuanio.app.data.TodoItem
@@ -27,6 +27,34 @@ enum class ApprovalType {
 }
 
 @Immutable
+enum class ToolCallStatus(val protocolValue: String) {
+    RUNNING("running"),
+    SUCCESS("done"),
+    ERROR("error"),
+    AWAITING_APPROVAL("awaiting_approval");
+
+    val isTerminal: Boolean
+        get() = this == SUCCESS || this == ERROR
+
+    val isInFlight: Boolean
+        get() = this == RUNNING || this == AWAITING_APPROVAL
+
+    override fun toString(): String = protocolValue
+
+    companion object {
+        fun fromProtocolValue(rawStatus: String?, result: String? = null): ToolCallStatus {
+            return when (rawStatus?.trim()?.lowercase()) {
+                "running", "executing", "validating", "scheduled" -> RUNNING
+                "done", "success", "completed" -> SUCCESS
+                "error", "failed", "cancelled", "canceled" -> ERROR
+                "awaiting_approval", "approval_required", "pending_approval" -> AWAITING_APPROVAL
+                else -> if (!result.isNullOrBlank()) SUCCESS else RUNNING
+            }
+        }
+    }
+}
+
+@Immutable
 sealed class ChatItem {
     abstract val agent: String?
 
@@ -34,7 +62,7 @@ sealed class ChatItem {
         get() = when (this) {
             is Text -> "text:$id"
             is Thinking -> "thinking:${turnId ?: "${agent.orEmpty()}:${ephemeral}"}"
-            is ToolCall -> "tool:${toolUseId ?: "${tool}:${status}:${summary.orEmpty()}"}"
+            is ToolCall -> "tool:${toolUseId ?: "${tool}:${status.protocolValue}:${summary.orEmpty()}"}"
             is UsageInfo -> "usage:${taskId ?: "${inputTokens}:${outputTokens}:${cacheCreationTokens}:${cacheReadTokens}"}"
             is FileDiff -> "file_diff:$path:$action:${diff.hashCode()}"
             is Approval -> "approval:$id"
@@ -70,7 +98,7 @@ sealed class ChatItem {
     @Immutable
     data class ToolCall(
         val tool: String,
-        val status: String,
+        val status: ToolCallStatus,
         val result: String?,
         val summary: String? = null,
         val toolUseId: String? = null,

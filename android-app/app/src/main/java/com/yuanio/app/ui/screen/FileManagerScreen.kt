@@ -189,7 +189,7 @@ fun FileManagerScreen(onBack: () -> Unit, onNavigateGit: () -> Unit = {}, vm: Fi
                 contentColor = MaterialTheme.colorScheme.background
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_ms_add),
+                    painter = painterResource(R.drawable.ic_tb_plus),
                     contentDescription = stringResource(R.string.file_manager_cd_new_item)
                 )
             }
@@ -278,13 +278,13 @@ fun FileManagerScreen(onBack: () -> Unit, onNavigateGit: () -> Unit = {}, vm: Fi
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 if (path != ".") {
                                     CompactIconButton(
-                                        iconRes = R.drawable.ic_ms_keyboard_arrow_up,
+                                        iconRes = R.drawable.ic_tb_chevron_up,
                                         contentDescription = stringResource(R.string.file_manager_cd_parent_dir),
                                         onClick = { vm.navigateUp() }
                                     )
                                 }
                                 CompactIconButton(
-                                    iconRes = R.drawable.ic_ms_refresh,
+                                    iconRes = R.drawable.ic_tb_refresh,
                                     contentDescription = stringResource(R.string.file_manager_cd_refresh_dir),
                                     onClick = { vm.ls(path) }
                                 )
@@ -515,7 +515,7 @@ private fun FileHeaderCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CompactIconButton(
-                    iconRes = R.drawable.ic_ms_arrow_back,
+                    iconRes = R.drawable.ic_tb_arrow_left,
                     contentDescription = stringResource(R.string.common_back),
                     onClick = onBack
                 )
@@ -544,19 +544,19 @@ private fun FileHeaderCard(
                     }
                 }
                 CompactIconButton(
-                    iconRes = R.drawable.ic_ms_refresh,
+                    iconRes = R.drawable.ic_tb_refresh,
                     contentDescription = stringResource(R.string.file_manager_cd_refresh_dir),
                     onClick = onRefresh
                 )
                 Spacer(Modifier.width(6.dp))
                 CompactIconButton(
-                    iconRes = R.drawable.ic_ms_add,
+                    iconRes = R.drawable.ic_tb_plus,
                     contentDescription = stringResource(R.string.file_manager_cd_upload_file),
                     onClick = onUpload
                 )
                 Spacer(Modifier.width(6.dp))
                 CompactIconButton(
-                    iconRes = R.drawable.ic_ms_commit,
+                    iconRes = R.drawable.ic_tb_git_commit,
                     contentDescription = stringResource(R.string.file_manager_cd_git),
                     onClick = onNavigateGit
                 )
@@ -583,7 +583,7 @@ private fun FileHeaderCard(
                 }
                 if (onNavigateUp != null) {
                     CompactIconButton(
-                        iconRes = R.drawable.ic_ms_keyboard_arrow_up,
+                        iconRes = R.drawable.ic_tb_chevron_up,
                         contentDescription = stringResource(R.string.file_manager_cd_parent_dir),
                         onClick = onNavigateUp
                     )
@@ -604,7 +604,7 @@ private fun SearchField(search: String, onSearchChange: (String) -> Unit) {
         placeholder = { Text(stringResource(R.string.file_manager_search_placeholder)) },
         leadingIcon = {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_search),
+                painter = painterResource(R.drawable.ic_tb_search),
                 contentDescription = stringResource(R.string.chat_topbar_menu_search),
                 tint = colors.onSurfaceVariant
             )
@@ -690,7 +690,7 @@ private fun StorageCard(path: String, folderCount: Int, fileCount: Int) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_ms_folder),
+                        painter = painterResource(R.drawable.ic_tb_folder),
                         contentDescription = null,
                         tint = colors.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
@@ -813,7 +813,7 @@ private fun WorkspaceCwdCard(
                     )
                 }
                 CompactIconButton(
-                    iconRes = R.drawable.ic_ms_refresh,
+                    iconRes = R.drawable.ic_tb_refresh,
                     contentDescription = stringResource(R.string.file_manager_cd_refresh_browser),
                     onClick = onRefresh
                 )
@@ -930,7 +930,7 @@ private fun PinnedEntryCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_ms_folder),
+                    painter = painterResource(R.drawable.ic_tb_folder),
                     contentDescription = null,
                     tint = accent,
                     modifier = Modifier.size(20.dp)
@@ -1000,7 +1000,7 @@ private fun FileListItem(
             ) {
                 Icon(
                     painter = painterResource(
-                        if (entry.isDir) R.drawable.ic_ms_folder else R.drawable.ic_ms_description
+                        if (entry.isDir) R.drawable.ic_tb_folder else R.drawable.ic_tb_file_description
                     ),
                     contentDescription = null,
                     tint = iconTint,
@@ -1066,7 +1066,7 @@ private fun EntryMenu(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_more_vert),
+                painter = painterResource(R.drawable.ic_tb_dots_vertical),
                 contentDescription = stringResource(R.string.common_more),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1132,7 +1132,7 @@ private fun EmptyResultCard(query: String, filter: FileFilter) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_folder),
+                painter = painterResource(R.drawable.ic_tb_folder),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(28.dp)
@@ -1228,7 +1228,7 @@ private fun FileEditorView(path: String, initial: String, onSave: (String) -> Un
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_arrow_back),
+                            painter = painterResource(R.drawable.ic_tb_arrow_left),
                             contentDescription = stringResource(R.string.common_close)
                         )
                     }

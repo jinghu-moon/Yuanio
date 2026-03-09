@@ -1,6 +1,7 @@
 package com.yuanio.app.data
 
 import com.yuanio.app.ui.model.ChatItem
+import com.yuanio.app.ui.model.ToolCallStatus
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -166,8 +167,12 @@ class AgentEventParser {
         val obj = JSONObject(payload)
         val tool = obj.getString("tool")
         val params = obj.optJSONObject("params")
-        val status = obj.getString("status")
-        val summary = if (status == "running") {
+        val result = obj.opt("result")?.takeIf { it != JSONObject.NULL }?.toString()
+        val status = ToolCallStatus.fromProtocolValue(
+            rawStatus = obj.optString("status").takeIf { it.isNotBlank() },
+            result = result,
+        )
+        val summary = if (status.isInFlight) {
             ToolSummary.formatOneLiner(tool, params)
         } else {
             ToolSummary.formatOneLiner(tool, null)
@@ -175,7 +180,7 @@ class AgentEventParser {
         val item = ChatItem.ToolCall(
             tool = tool,
             status = status,
-            result = obj.opt("result")?.takeIf { it != JSONObject.NULL }?.toString(),
+            result = result,
             summary = summary,
             toolUseId = obj.optString("toolUseId").takeIf { it.isNotBlank() },
             agent = obj.optString("agent").takeIf { it.isNotBlank() } ?: context.fallbackAgent,

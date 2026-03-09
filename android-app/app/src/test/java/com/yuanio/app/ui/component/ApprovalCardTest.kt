@@ -1,5 +1,6 @@
 ﻿package com.yuanio.app.ui.component
 
+import androidx.compose.ui.graphics.Color
 import com.yuanio.app.ui.model.ApprovalType
 import com.yuanio.app.ui.model.ChatItem
 import org.junit.Assert.assertEquals
@@ -64,5 +65,23 @@ class ApprovalCardTest {
         assertEquals(ApprovalType.MCP, model.type)
         assertEquals(ApprovalPreviewMode.TEXT, model.previewMode)
         assertEquals("query=project roadmap", model.previewContent)
+    }
+
+    @Test
+    fun `dismiss 计划会隐藏卡片并锁定操作`() {
+        val plan = startApprovalDismiss(ApprovalDismissPlan(), ApprovalDismissDecision.APPROVE)
+
+        assertEquals(false, plan.visible)
+        assertEquals(false, plan.actionsEnabled)
+        assertEquals(ApprovalDismissDecision.APPROVE, plan.decision)
+    }
+
+    @Test
+    fun `dismiss 计划一旦开始应保持首次决策`() {
+        val started = startApprovalDismiss(ApprovalDismissPlan(), ApprovalDismissDecision.REJECT)
+        val ignored = startApprovalDismiss(started, ApprovalDismissDecision.APPROVE)
+
+        assertEquals(ApprovalDismissDecision.REJECT, ignored.decision)
+        assertEquals(started, ignored)
     }
 }

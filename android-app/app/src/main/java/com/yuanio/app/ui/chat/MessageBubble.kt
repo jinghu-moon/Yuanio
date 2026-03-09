@@ -112,7 +112,6 @@ fun MessageBubble(
                             BrandIcon(
                                 brand = brand,
                                 modifier = Modifier.size(12.dp),
-                                tint = agentColor(msg.agent)
                             )
                             Spacer(Modifier.width(4.dp))
                         }
@@ -207,7 +206,7 @@ fun MessageBubble(
                 ) {
                     Icon(
                         painter = painterResource(
-                            if (isSpeaking) R.drawable.ic_ms_stop else R.drawable.ic_ms_volume_up
+                            if (isSpeaking) R.drawable.ic_tb_player_stop else R.drawable.ic_tb_volume
                         ),
                         contentDescription = if (isSpeaking) cdStopRead else cdRead,
                         modifier = Modifier.size(14.dp),

@@ -38,7 +38,7 @@ object MessageExporter {
                     sb.appendLine()
                 }
                 is ChatItem.ToolCall -> {
-                    sb.appendLine(context.getString(R.string.message_exporter_tool_call, item.tool, item.status))
+                    sb.appendLine(context.getString(R.string.message_exporter_tool_call, item.tool, item.status.protocolValue))
                     item.result?.let { sb.appendLine(context.getString(R.string.message_exporter_result, it)) }
                     sb.appendLine()
                 }

@@ -54,7 +54,7 @@ class TerminalForegroundService : Service() {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_ms_terminal)
+            .setSmallIcon(R.drawable.ic_tb_terminal_2)
             .setContentTitle(getString(R.string.terminal_service_notification_title))
             .setContentText(getString(R.string.terminal_service_notification_text))
             .setOngoing(true)

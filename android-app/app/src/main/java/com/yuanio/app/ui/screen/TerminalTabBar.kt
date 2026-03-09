@@ -63,7 +63,7 @@ fun TerminalTabBar(
                                         modifier = Modifier.size(18.dp),
                                     ) {
                                         Icon(
-                                            painterResource(R.drawable.ic_ms_close),
+                                            painterResource(R.drawable.ic_tb_x),
                                             contentDescription = stringResource(R.string.common_close),
                                         )
                                     }
@@ -76,7 +76,7 @@ fun TerminalTabBar(
         }
         IconButton(onClick = onAddTab) {
             Icon(
-                painterResource(R.drawable.ic_ms_add),
+                painterResource(R.drawable.ic_tb_plus),
                 contentDescription = stringResource(R.string.terminal_cd_new_terminal),
             )
         }

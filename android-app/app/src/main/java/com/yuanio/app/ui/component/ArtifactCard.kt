@@ -135,14 +135,14 @@ private fun ArtifactHeader(
         // 操作按钮
         IconButton(onClick = onCopy, modifier = Modifier.size(32.dp)) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_content_copy),
+                painter = painterResource(R.drawable.ic_tb_copy),
                 contentDescription = cdCopy,
                 modifier = Modifier.size(16.dp)
             )
         }
         IconButton(onClick = onShare, modifier = Modifier.size(32.dp)) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_share),
+                painter = painterResource(R.drawable.ic_tb_share),
                 contentDescription = cdShare,
                 modifier = Modifier.size(16.dp)
             )
@@ -150,8 +150,8 @@ private fun ArtifactHeader(
         IconButton(onClick = onSave, modifier = Modifier.size(32.dp)) {
             Icon(
                 painter = painterResource(
-                    if (isSaved) R.drawable.ic_ms_bookmark
-                    else R.drawable.ic_ms_bookmark_border
+                    if (isSaved) R.drawable.ic_tb_bookmark_filled
+                    else R.drawable.ic_tb_bookmark
                 ),
                 contentDescription = if (isSaved) cdUnsave else cdSave,
                 modifier = Modifier.size(16.dp),

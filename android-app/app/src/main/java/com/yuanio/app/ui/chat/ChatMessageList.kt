@@ -1,7 +1,10 @@
-﻿package com.yuanio.app.ui.chat
+package com.yuanio.app.ui.chat
 
 import android.text.format.DateFormat
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -26,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
@@ -41,6 +43,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -50,12 +53,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.yuanio.app.R
+import com.yuanio.app.ui.component.ActionGlyph
+import com.yuanio.app.ui.component.ActionGlyphIcon
 import com.yuanio.app.ui.component.ApprovalCard
 import com.yuanio.app.ui.component.DiffView
 import com.yuanio.app.ui.component.ThinkingBlock
@@ -63,6 +67,7 @@ import com.yuanio.app.ui.component.TokenCountBadge
 import com.yuanio.app.ui.component.TodoCard
 import com.yuanio.app.ui.component.ToolCallCard
 import com.yuanio.app.ui.model.ChatItem
+import com.yuanio.app.ui.model.ToolCallStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -240,9 +245,9 @@ fun ChatMessageList(
                         }
                     },
                 ) {
-                    Icon(
-                        painterResource(R.drawable.ic_ms_keyboard_arrow_down),
-                        contentDescription = stringResource(R.string.chat_message_cd_scroll_bottom)
+                    ActionGlyphIcon(
+                        glyph = ActionGlyph.CHEVRON_DOWN,
+                        contentDescription = stringResource(R.string.chat_message_cd_scroll_bottom),
                     )
                 }
                 if (unreadCount > 0) {
@@ -278,44 +283,59 @@ private fun ChatItemView(
     searchQuery: String,
     relativeTimeTick: Long,
 ) {
-    Box(modifier = Modifier.fillMaxWidth().animateContentSize()) {
-        when (item) {
-            is ChatItem.Text -> MessageBubble(
-                msg = item,
-                isStreaming = streaming && isLastItem && item.role == "ai",
-                searchQuery = if (searchActive) searchQuery else "",
-                isSpeaking = speakingIndex == index,
-                onRetry = { callbacks.onRetry(item) },
-                onFork = { callbacks.onFork(index) },
-                onEdit = { callbacks.onEdit(item) },
-                onUndoSend = { callbacks.onUndoSend(item) },
-                canEdit = callbacks.canEdit(item),
-                canUndoSend = callbacks.canUndoSend(item),
-                onSpeak = { callbacks.onSpeak(item.content, index) },
-                onStopSpeaking = callbacks.onStopSpeaking,
-                onTaskClick = callbacks.onTaskClick,
-                relativeTimeTick = relativeTimeTick
-            )
-            is ChatItem.ToolCall -> ToolCallCard(
-                tool = item.tool,
-                status = item.status,
-                result = item.result,
-                summary = item.summary,
-                agent = item.agent
-            )
-            is ChatItem.Thinking -> ThinkingBlock(
-                content = item.content,
-                agent = item.agent,
-            )
-            is ChatItem.UsageInfo -> TokenCountBadge(totalTokens = item.totalTokens)
-            is ChatItem.FileDiff -> DiffView(item.path, item.diff, item.action)
-            is ChatItem.HookEvent -> HookEventChip(item)
-            is ChatItem.Approval -> ApprovalCard(
-                approval = item,
-                onApprove = { callbacks.onApprove(item.id) },
-                onReject = { callbacks.onReject(item.id) }
-            )
-            is ChatItem.TodoUpdate -> TodoCard(todos = item.todos, taskId = item.taskId, agent = item.agent)
+    var entered by rememberSaveable(item.stableKey) { mutableStateOf(false) }
+
+    LaunchedEffect(item.stableKey) {
+        entered = true
+    }
+
+    AnimatedVisibility(
+        visible = entered,
+        enter = fadeIn(animationSpec = tween(180)) +
+            slideInVertically(
+                animationSpec = tween(220),
+                initialOffsetY = { fullHeight -> fullHeight / 6 },
+            ),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth().animateContentSize()) {
+            when (item) {
+                is ChatItem.Text -> MessageBubble(
+                    msg = item,
+                    isStreaming = streaming && isLastItem && item.role == "ai",
+                    searchQuery = if (searchActive) searchQuery else "",
+                    isSpeaking = speakingIndex == index,
+                    onRetry = { callbacks.onRetry(item) },
+                    onFork = { callbacks.onFork(index) },
+                    onEdit = { callbacks.onEdit(item) },
+                    onUndoSend = { callbacks.onUndoSend(item) },
+                    canEdit = callbacks.canEdit(item),
+                    canUndoSend = callbacks.canUndoSend(item),
+                    onSpeak = { callbacks.onSpeak(item.content, index) },
+                    onStopSpeaking = callbacks.onStopSpeaking,
+                    onTaskClick = callbacks.onTaskClick,
+                    relativeTimeTick = relativeTimeTick
+                )
+                is ChatItem.ToolCall -> ToolCallCard(
+                    tool = item.tool,
+                    status = item.status,
+                    result = item.result,
+                    summary = item.summary,
+                    agent = item.agent
+                )
+                is ChatItem.Thinking -> ThinkingBlock(
+                    content = item.content,
+                    agent = item.agent,
+                )
+                is ChatItem.UsageInfo -> TokenCountBadge(totalTokens = item.totalTokens)
+                is ChatItem.FileDiff -> DiffView(item.path, item.diff, item.action)
+                is ChatItem.HookEvent -> HookEventChip(item)
+                is ChatItem.Approval -> ApprovalCard(
+                    approval = item,
+                    onApprove = { callbacks.onApprove(item.id) },
+                    onReject = { callbacks.onReject(item.id) }
+                )
+                is ChatItem.TodoUpdate -> TodoCard(todos = item.todos, taskId = item.taskId, agent = item.agent)
+            }
         }
     }
 }
@@ -323,11 +343,11 @@ private fun ChatItemView(
 @Composable
 private fun HookEventChip(item: ChatItem.HookEvent) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            painter = painterResource(R.drawable.ic_ms_bolt),
+        ActionGlyphIcon(
+            glyph = ActionGlyph.BOLT,
             contentDescription = stringResource(R.string.chat_message_cd_event),
             modifier = Modifier.size(14.dp),
-            tint = MaterialTheme.colorScheme.outline
+            iconTint = MaterialTheme.colorScheme.outline,
         )
         Spacer(Modifier.size(4.dp))
         Text(
@@ -433,7 +453,7 @@ private fun ToolCallGroupView(
     expandedMap: MutableMap<Int, Boolean>,
 ) {
     var allExpanded by remember { mutableStateOf(false) }
-    val runningCount = items.count { it.status == "running" }
+    val runningCount = items.count { it.status == ToolCallStatus.RUNNING }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -453,14 +473,11 @@ private fun ToolCallGroupView(
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    painter = painterResource(
-                        if (allExpanded) R.drawable.ic_ms_keyboard_arrow_down
-                        else R.drawable.ic_ms_keyboard_arrow_up
-                    ),
+                ActionGlyphIcon(
+                    glyph = if (allExpanded) ActionGlyph.CHEVRON_DOWN else ActionGlyph.CHEVRON_UP,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.outline,
+                    iconTint = MaterialTheme.colorScheme.outline,
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -529,18 +546,24 @@ private fun StepItem(
             )
             Spacer(Modifier.width(4.dp))
             when (step.status) {
-                "running" -> ShimmerDot()
-                "done" -> Icon(
-                    painter = painterResource(R.drawable.ic_ms_check_circle),
+                ToolCallStatus.RUNNING -> ShimmerDot()
+                ToolCallStatus.SUCCESS -> ActionGlyphIcon(
+                    glyph = ActionGlyph.CHECK,
                     contentDescription = stringResource(R.string.chat_message_cd_done),
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    iconTint = MaterialTheme.colorScheme.primary,
                 )
-                else -> Icon(
-                    painter = painterResource(R.drawable.ic_ms_error),
+                ToolCallStatus.AWAITING_APPROVAL -> ActionGlyphIcon(
+                    glyph = ActionGlyph.HOURGLASS,
+                    contentDescription = stringResource(R.string.chat_topbar_status_waiting_approval),
+                    modifier = Modifier.size(14.dp),
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                )
+                ToolCallStatus.ERROR -> ActionGlyphIcon(
+                    glyph = ActionGlyph.ALERT_CIRCLE,
                     contentDescription = stringResource(R.string.chat_message_cd_error),
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.error,
+                    iconTint = MaterialTheme.colorScheme.error,
                 )
             }
         }

@@ -374,7 +374,7 @@ fun TerminalScreen(vm: TerminalViewModel = viewModel()) {
                 actions = {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
-                            painterResource(R.drawable.ic_ms_more_vert),
+                            painterResource(R.drawable.ic_tb_dots_vertical),
                             contentDescription = stringResource(R.string.terminal_cd_more)
                         )
                     }
@@ -489,19 +489,19 @@ fun TerminalScreen(vm: TerminalViewModel = viewModel()) {
                         Spacer(Modifier.width(8.dp))
                         IconButton(onClick = { moveSearch(-1) }) {
                             Icon(
-                                painterResource(R.drawable.ic_ms_keyboard_arrow_up),
+                                painterResource(R.drawable.ic_tb_chevron_up),
                                 contentDescription = stringResource(R.string.terminal_cd_previous)
                             )
                         }
                         IconButton(onClick = { moveSearch(1) }) {
                             Icon(
-                                painterResource(R.drawable.ic_ms_keyboard_arrow_down),
+                                painterResource(R.drawable.ic_tb_chevron_down),
                                 contentDescription = stringResource(R.string.terminal_cd_next)
                             )
                         }
                         IconButton(onClick = { searchQuery = ""; searchResults = emptyList(); searchCursor = -1 }) {
                             Icon(
-                                painterResource(R.drawable.ic_ms_close),
+                                painterResource(R.drawable.ic_tb_x),
                                 contentDescription = stringResource(R.string.common_clear)
                             )
                         }

@@ -187,7 +187,7 @@ fun SessionListScreen(
                 actions = {
                     IconButton(onClick = { vm.refresh() }) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_refresh),
+                            painter = painterResource(R.drawable.ic_tb_refresh),
                             contentDescription = stringResource(R.string.common_refresh)
                         )
                     }
@@ -207,7 +207,7 @@ fun SessionListScreen(
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { vm.setSearchQuery("") }) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_ms_close),
+                                painter = painterResource(R.drawable.ic_tb_x),
                                 contentDescription = stringResource(R.string.common_clear)
                             )
                         }
@@ -244,7 +244,7 @@ fun SessionListScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_warning),
+                            painter = painterResource(R.drawable.ic_tb_alert_triangle),
                             contentDescription = stringResource(R.string.notifier_error_title),
                             tint = MaterialTheme.colorScheme.error
                         )
@@ -274,7 +274,7 @@ fun SessionListScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_chat_bubble),
+                            painter = painterResource(R.drawable.ic_tb_message_circle),
                             contentDescription = stringResource(R.string.session_cd_empty),
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(56.dp)
@@ -380,7 +380,7 @@ private fun SessionItem(
                 if (onResume != null) {
                     IconButton(onClick = onResume) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_refresh),
+                            painter = painterResource(R.drawable.ic_tb_refresh),
                             contentDescription = stringResource(R.string.session_cd_resume),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
@@ -389,7 +389,7 @@ private fun SessionItem(
                 }
                 IconButton(onClick = onEditTitle) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_ms_edit),
+                        painter = painterResource(R.drawable.ic_tb_edit),
                         contentDescription = stringResource(R.string.session_cd_edit_title),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(18.dp)
@@ -397,7 +397,7 @@ private fun SessionItem(
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_ms_delete),
+                        painter = painterResource(R.drawable.ic_tb_trash),
                         contentDescription = stringResource(R.string.common_delete),
                         tint = MaterialTheme.colorScheme.outline
                     )
@@ -521,7 +521,7 @@ private fun TagEditorDialog(
                                 label = { Text(tags[idx]) },
                                 trailingIcon = {
                                     Icon(
-                                        painter = painterResource(R.drawable.ic_ms_close),
+                                        painter = painterResource(R.drawable.ic_tb_x),
                                         contentDescription = stringResource(R.string.common_remove),
                                         modifier = Modifier.size(14.dp)
                                     )

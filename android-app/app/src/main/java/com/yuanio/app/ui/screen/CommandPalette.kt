@@ -110,7 +110,7 @@ fun CommandPalette(
                 },
                 leadingIcon = {
                     Icon(
-                        painterResource(R.drawable.ic_ms_search),
+                        painterResource(R.drawable.ic_tb_search),
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
                     )

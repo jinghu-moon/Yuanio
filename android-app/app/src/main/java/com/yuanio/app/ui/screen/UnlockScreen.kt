@@ -98,7 +98,7 @@ fun UnlockScreen(
             border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.6f))
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_lock),
+                painter = painterResource(R.drawable.ic_tb_lock),
                 contentDescription = null,
                 tint = colors.onSurface,
                 modifier = Modifier
@@ -254,7 +254,7 @@ fun UnlockScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_ms_fingerprint),
+                    painter = painterResource(R.drawable.ic_tb_fingerprint),
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )

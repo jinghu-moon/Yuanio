@@ -43,6 +43,7 @@ import com.yuanio.app.crypto.CryptoManager
 import com.yuanio.app.ui.common.UiText
 import com.yuanio.app.ui.model.ChatItem
 import com.yuanio.app.ui.model.DeliveryStatus
+import com.yuanio.app.ui.model.ToolCallStatus
 import com.yuanio.app.widget.AgentWidget
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1547,14 +1548,14 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 val status = event.item.status
                 val toolUseId = event.item.toolUseId
                 if (viewingActive) {
-                    if (status == "done" || status == "error") {
+                    if (status.isTerminal) {
                         val toolName = event.item.tool
                         val result = event.item.result
                         val items = _items.value.toMutableList()
                         val idx = if (toolUseId != null) {
                             items.indexOfLast { it is ChatItem.ToolCall && it.toolUseId == toolUseId }
                         } else {
-                            items.indexOfLast { it is ChatItem.ToolCall && it.status == "running" && it.tool == toolName }
+                            items.indexOfLast { it is ChatItem.ToolCall && it.status.isInFlight && it.tool == toolName }
                         }
                         if (idx >= 0) {
                             val existing = items[idx] as ChatItem.ToolCall

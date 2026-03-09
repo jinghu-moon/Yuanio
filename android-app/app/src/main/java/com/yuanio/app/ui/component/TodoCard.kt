@@ -32,9 +32,9 @@ private fun TodoItemRow(todo: TodoItem) {
     ) {
         // 状态图标
         val (icon, tint) = when {
-            isCompleted -> R.drawable.ic_ms_check_circle to MaterialTheme.colorScheme.primary
-            isInProgress -> R.drawable.ic_ms_refresh to MaterialTheme.colorScheme.tertiary
-            else -> R.drawable.ic_ms_hourglass_top to MaterialTheme.colorScheme.outline
+            isCompleted -> R.drawable.ic_tb_circle_check to MaterialTheme.colorScheme.primary
+            isInProgress -> R.drawable.ic_tb_refresh to MaterialTheme.colorScheme.tertiary
+            else -> R.drawable.ic_tb_hourglass_empty to MaterialTheme.colorScheme.outline
         }
         Icon(
             painter = painterResource(icon),
@@ -85,7 +85,7 @@ fun TodoCard(
             // 标题行
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_ms_list),
+                    painter = painterResource(R.drawable.ic_tb_list_details),
                     contentDescription = stringResource(R.string.cd_todo),
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.secondary

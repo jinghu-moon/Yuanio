@@ -34,13 +34,13 @@ fun TerminalToolbar(
 ) {
     // 快捷操作按钮定义
     val buttons = listOf(
-        ToolbarAction("copy", R.string.terminal_menu_copy_selection, R.drawable.ic_ms_description, onCopy),
-        ToolbarAction("paste", R.string.terminal_menu_paste, R.drawable.ic_ms_description, onPaste),
-        ToolbarAction("clear", R.string.terminal_menu_clear_screen, R.drawable.ic_ms_refresh, onClear),
-        ToolbarAction("search", R.string.chat_topbar_menu_search, R.drawable.ic_ms_search, onToggleSearch),
-        ToolbarAction("command", R.string.terminal_menu_quick_commands, R.drawable.ic_ms_bolt, onQuickCommands),
-        ToolbarAction("tabs", R.string.terminal_menu_tab_manager, R.drawable.ic_ms_list, onTabManager),
-        ToolbarAction("more", R.string.terminal_cd_more, R.drawable.ic_ms_more_vert, onMore),
+        ToolbarAction("copy", R.string.terminal_menu_copy_selection, R.drawable.ic_tb_file_description, onCopy),
+        ToolbarAction("paste", R.string.terminal_menu_paste, R.drawable.ic_tb_file_description, onPaste),
+        ToolbarAction("clear", R.string.terminal_menu_clear_screen, R.drawable.ic_tb_refresh, onClear),
+        ToolbarAction("search", R.string.chat_topbar_menu_search, R.drawable.ic_tb_search, onToggleSearch),
+        ToolbarAction("command", R.string.terminal_menu_quick_commands, R.drawable.ic_tb_bolt, onQuickCommands),
+        ToolbarAction("tabs", R.string.terminal_menu_tab_manager, R.drawable.ic_tb_list_details, onTabManager),
+        ToolbarAction("more", R.string.terminal_cd_more, R.drawable.ic_tb_dots_vertical, onMore),
     )
 
     LazyRow(

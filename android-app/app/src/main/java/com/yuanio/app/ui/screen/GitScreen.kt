@@ -71,7 +71,7 @@ fun GitScreen(onBack: () -> Unit, vm: GitViewModel = viewModel()) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_arrow_back),
+                            painter = painterResource(R.drawable.ic_tb_arrow_left),
                             contentDescription = stringResource(R.string.common_back)
                         )
                     }
@@ -85,7 +85,7 @@ fun GitScreen(onBack: () -> Unit, vm: GitViewModel = viewModel()) {
                         }
                     }) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_refresh),
+                            painter = painterResource(R.drawable.ic_tb_refresh),
                             contentDescription = stringResource(R.string.common_refresh)
                         )
                     }
@@ -197,7 +197,7 @@ private fun FileStatusRow(file: String, color: Color, clickable: Boolean, onClic
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_description),
+                painter = painterResource(R.drawable.ic_tb_file_description),
                 contentDescription = null,
                 tint = color,
                 modifier = Modifier.size(18.dp)
@@ -323,7 +323,7 @@ private fun BranchRow(branch: GitBranch, isCurrent: Boolean) {
         ) {
             if (isCurrent) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_ms_check_circle),
+                    painter = painterResource(R.drawable.ic_tb_circle_check),
                     contentDescription = stringResource(R.string.git_cd_current_branch),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
@@ -357,7 +357,7 @@ private fun DiffOverlay(file: String, diff: String, onClose: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_arrow_back),
+                            painter = painterResource(R.drawable.ic_tb_arrow_left),
                             contentDescription = stringResource(R.string.common_close)
                         )
                     }

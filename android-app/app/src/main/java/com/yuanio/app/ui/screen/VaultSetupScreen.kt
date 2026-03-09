@@ -116,7 +116,7 @@ fun VaultSetupScreen(
             border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.6f))
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_lock),
+                painter = painterResource(R.drawable.ic_tb_lock),
                 contentDescription = null,
                 modifier = Modifier
                     .size(50.dp)

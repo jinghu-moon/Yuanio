@@ -161,7 +161,7 @@ fun PairingScreen(onPaired: () -> Unit, vm: PairingViewModel = viewModel()) {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_ms_qr_code_scanner),
+                                painter = painterResource(R.drawable.ic_tb_qrcode),
                                 contentDescription = stringResource(R.string.pairing_cd_scan),
                                 modifier = Modifier.size(18.dp)
                             )
@@ -184,7 +184,7 @@ fun PairingScreen(onPaired: () -> Unit, vm: PairingViewModel = viewModel()) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_ms_warning),
+                                painter = painterResource(R.drawable.ic_tb_alert_triangle),
                                 contentDescription = stringResource(R.string.notifier_error_title),
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -210,7 +210,7 @@ fun PairingScreen(onPaired: () -> Unit, vm: PairingViewModel = viewModel()) {
                         Spacer(Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_ms_check_circle),
+                                painter = painterResource(R.drawable.ic_tb_circle_check),
                                 contentDescription = stringResource(R.string.pairing_cd_end_to_end),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -220,7 +220,7 @@ fun PairingScreen(onPaired: () -> Unit, vm: PairingViewModel = viewModel()) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_ms_warning),
+                                painter = painterResource(R.drawable.ic_tb_alert_triangle),
                                 contentDescription = stringResource(R.string.pairing_cd_verify_server),
                                 tint = MaterialTheme.colorScheme.tertiary
                             )

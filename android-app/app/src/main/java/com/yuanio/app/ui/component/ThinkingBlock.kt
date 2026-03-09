@@ -51,7 +51,7 @@ fun ThinkingBlock(
                     glyph = if (expanded) ActionGlyph.CHEVRON_DOWN else ActionGlyph.CHEVRON_UP,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    iconTint = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(

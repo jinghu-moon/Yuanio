@@ -88,31 +88,31 @@ fun InputActionRow(
             )
         } else {
             AttachmentActionButton(
-                iconRes = R.drawable.ic_ms_folder,
+                iconRes = R.drawable.ic_tb_folder,
                 contentDescriptionRes = R.string.chat_input_cd_files,
                 enabled = state.viewingActiveSession,
                 onClick = onOpenFiles,
             )
             AttachmentActionButton(
-                iconRes = R.drawable.ic_ms_image,
+                iconRes = R.drawable.ic_tb_photo,
                 contentDescriptionRes = R.string.chat_input_cd_images,
                 enabled = state.viewingActiveSession,
                 onClick = onPickImage,
             )
             AttachmentActionButton(
-                iconRes = R.drawable.ic_ms_photo_camera,
+                iconRes = R.drawable.ic_tb_camera,
                 contentDescriptionRes = R.string.chat_input_cd_take_photo,
                 enabled = state.viewingActiveSession,
                 onClick = onTakePhoto,
             )
             AttachmentActionButton(
-                iconRes = R.drawable.ic_ms_content_copy,
+                iconRes = R.drawable.ic_tb_copy,
                 contentDescriptionRes = R.string.chat_input_cd_smart_paste,
                 enabled = state.viewingActiveSession,
                 onClick = onSmartPaste,
             )
             AttachmentActionButton(
-                iconRes = R.drawable.ic_ms_description,
+                iconRes = R.drawable.ic_tb_file_description,
                 contentDescriptionRes = R.string.chat_input_cd_file_content,
                 enabled = state.viewingActiveSession,
                 onClick = onOpenQuickPrompt,
@@ -159,7 +159,7 @@ fun InputActionRow(
         ) {
             Icon(
                 painter = painterResource(
-                    if (state.voiceListening) R.drawable.ic_ms_stop else R.drawable.ic_ms_mic,
+                    if (state.voiceListening) R.drawable.ic_tb_player_stop else R.drawable.ic_tb_microphone,
                 ),
                 contentDescription = if (state.voiceListening) {
                     stringResource(R.string.chat_input_cd_voice_stop)
@@ -191,7 +191,7 @@ fun InputActionRow(
         ) {
             Icon(
                 painter = painterResource(
-                    if (state.streaming) R.drawable.ic_ms_stop else R.drawable.ic_ms_send,
+                    if (state.streaming) R.drawable.ic_tb_player_stop else R.drawable.ic_tb_send_2,
                 ),
                 contentDescription = if (state.streaming) {
                     stringResource(R.string.chat_input_cd_stop)
@@ -219,7 +219,7 @@ private fun AttachmentMenuButton(
     Box {
         IconButton(onClick = onExpand, enabled = enabled) {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_add),
+                painter = painterResource(R.drawable.ic_tb_plus),
                 contentDescription = stringResource(R.string.common_more),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

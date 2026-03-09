@@ -43,7 +43,7 @@ fun TemplateChipRow(
                 onClick = onAddTemplateClick,
                 label = {
                     Icon(
-                        painter = painterResource(R.drawable.ic_ms_add),
+                        painter = painterResource(R.drawable.ic_tb_plus),
                         contentDescription = stringResource(R.string.cd_add_template)
                     )
                 }

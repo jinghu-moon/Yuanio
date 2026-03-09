@@ -1,4 +1,4 @@
-﻿# Yuanio Refactoring Blueprint
+# Yuanio Refactoring Blueprint
 
 > **Version**: 2.1.1 – Protocol-First + Android Phased Convergence
 > **Updated**: 2026-03-08
@@ -149,7 +149,7 @@ private val DarkSurfaces = YuanioSurfaces(
 
 ### 2.2 Dual-Icon System (Tabler vs Lobe)
 
-**现状**: 使用 Material Symbols drawable (`ic_ms_*`)；BrandIcon composable 已存在但部分使用 tint 着色
+**现状**: 使用 Tabler drawable (`ic_tb_*`)；BrandIcon composable 已存在但部分使用 tint 着色
 
 **已有能力**: `BrandIcon` composable, `agentToBrand()`, `agentColor()` 函数均已实现
 
@@ -165,8 +165,8 @@ private val DarkSurfaces = YuanioSurfaces(
 
 | 文件 (仓库根相对路径) | 当前 | 替换为 |
 |------|------|--------|
-| `android-app/.../ui/component/MainBottomBar.kt` L18-19 | `ic_ms_chat_bubble` 等 | `TablerIcons.MessageCircle` 等 |
-| `android-app/.../ui/component/ApprovalCard.kt` L39 | `ic_ms_warning` | `TablerIcons.AlertTriangle` |
+| `android-app/.../ui/component/MainBottomBar.kt` L18-19 | `ic_tb_message_circle` 等 | `TablerIcons.MessageCircle` 等 |
+| `android-app/.../ui/component/ApprovalCard.kt` L39 | `ic_tb_alert_triangle` | `TablerIcons.AlertTriangle` |
 | `android-app/.../ui/component/ThinkingBlock.kt` | Chevron icons | `TablerIcons.ChevronDown` |
 
 ---
@@ -199,14 +199,19 @@ private val DarkSurfaces = YuanioSurfaces(
 
 **无需改动**。连接层保持现状。
 
-### 3.3 GlobalSessionManager — 推迟到 P5
+### 3.3 GlobalSessionManager ? ??? P5
 
-**现状**: `ChatViewModel` 直接持有 `RelayClient` 和 session 状态，Terminal/Files 不共享 agent 上下文。
+**??**: `SessionGateway` / `DefaultSessionGateway` ?????? session ?????`ChatViewModel` ??? gateway ???????Terminal / Files ???????????
 
-**设计**: 不在第一阶段引入。原因：
-1. 当前已有 `YuanioApp.kt` 级单例初始化模式（10 个 Prefs singleton）
-2. 先用接口 + `YuanioApp` 托管单例，把边界跑顺
-3. P5 稳定后再决定是否引入 Hilt
+**??**:
+1. ???? `GlobalSessionManager`
+2. ? `SessionGateway` ??? Screen ??????
+3. `YuanioApp` ???????????? Prefs ???????
+4. `Hilt` ????????????????
+
+**2026-03-09 ??**:
+- `GlobalSessionManager` ?????????????
+- `SessionGateway` / `DefaultSessionGateway` ???????????????
 
 ### 3.4 Feature Flags — 复用现有 Prefs 模式（P3 起引入）
 
@@ -312,6 +317,8 @@ FeaturePrefs.init(this)
 | `hook_event` | `HOOK_EVENT` (JSON payload) | L1896 | ✅ 对齐 |
 | `usage` | `USAGE_REPORT` (JSON cumulative) | L1614 | ✅ 对齐 |
 | `error` | `STREAM_CHUNK` (text `[ERROR]`) | L1432 (作为文本) | ⚠️ 无区分 |
+
+**P0 Constraint Note**: keep `error` as `STREAM_CHUNK` text fallback in the current contract. Do not add an Android-only error card before shared protocol and CLI dispatch are extended.
 | `status` | 条件跳过 | L1669 | ⚠️ 部分 |
 
 ### 5.2 Android 解析了但 CLI 不分发的类型
@@ -900,54 +907,56 @@ fun autoRejectTimeout(riskLevel: String): Long? = when (riskLevel.lowercase()) {
 
 ---
 
-### P4: 性能层 — Metrics 驱动优化
+### P4: ??? ? Metrics ????
 
-**目标**: 基于 Compose Metrics 报告决定是否需要进一步优化
+**??**: ?? Compose Metrics ?????????????????
 
-**依赖**: P1 (key/contentType 已就位), P2+P3 稳定
+**??**: P1 (key/contentType ???), P2+P3 ??
 
-| # | 内容 | 产出文件 | 类型 |
+| # | ?? | ???? | ?? |
 |---|------|----------|------|
-| 4.1 | Compose Stability 审计 — 确保所有 ChatItem 子类被识别为 Stable | `stability_config.conf` (新) | 配置 |
-| 4.2 | 添加 `@Immutable`/`@Stable` 注解 | `android-app/.../ui/model/ChatItem.kt` | 增强 |
-| 4.3 | 自动滚动策略: 用户上滚暂停 + "↓ New" FAB | `android-app/.../ui/chat/ChatMessageList.kt` | 增强 |
-| 4.4 | 搜索去抖 (100ms debounce) + 结果跳转 | `android-app/.../ui/screen/ChatViewModel.kt` | 增强 |
-| 4.5 | **条件性**: 若 Compose Metrics 显示流式消息性能不足 → 实施 StreamingMarkdown 增量引擎 | `StreamingMarkdown.kt` (新, 按需) | 按需 |
-| 4.6 | **条件性**: 若 1000 条消息 OOM → 实施消息 LRU 分页 | `MessageRepository.kt` (新, 按需) | 按需 |
+| 4.1 | Compose Metrics / stability ???? | `android-app/app/build.gradle.kts` + `.ai/analysis/` | ?? |
+| 4.2 | ?? `@Immutable`/`@Stable` ?? | `android-app/.../ui/model/ChatItem.kt` | ?? |
+| 4.3 | ??????: ?????? + "? New" FAB | `android-app/.../ui/chat/ChatMessageList.kt` | ?? |
+| 4.4 | ???? (100ms debounce) + ???? | `android-app/.../ui/screen/ChatViewModel.kt` | ?? |
+| 4.5 | **???**: ????????????? ? ?? `StreamingMarkdown` ???? | `StreamingMarkdown.kt` (?, ??) | ?? |
+| 4.6 | **???**: ??????? OOM / ???????? ? ?? `MessageRepository` LRU/?? | `MessageRepository.kt` (?, ??) | ?? |
 
-**验证**:
+**??**:
 ```bash
-# Compose Metrics 报告
-cd android-app && ./gradlew assembleRelease
-cat app/build/compose_metrics/app_release-composables.txt
-
-# 关键指标:
-# - ChatItem 子类全部标记为 "skippable"
-# - streaming item 的 restartCount 远大于 completed items
-
-# 1000 条消息压测
-# 手动: 发送/接收 1000 条消息，检查内存 (Android Profiler) 和滚动帧率
+cd android-app && ./gradlew :app:testDebugUnitTest --tests "*TerminalPerformanceTest" --console=plain --info
 ```
+
+**2026-03-09 ????**:
+- `TerminalPerformanceTest` ?????/??/ANSI/??????????????
+- ????????? `StreamingMarkdown` ????
+- ????????? `MessageRepository` LRU/??
+- ?? 4.5 / 4.6 ????????????
 
 ---
 
-### P5: 会话共享层 — 跨 Screen 状态同步
+### P5: ????? ? ? Screen ????
 
-**目标**: 提取连接管理和 session 状态为全局可共享
+**??**: ??????? session ????????
 
-**依赖**: P0-P4 全部稳定
+**??**: P0-P4 ????
 
-| # | 内容 | 产出文件 | 类型 |
+| # | ?? | ???? | ?? |
 |---|------|----------|------|
-| 5.1 | 定义 `SessionGateway` 接口 — 连接状态 + session 管理 | `android-app/.../data/SessionGateway.kt` (新) | 新建 |
-| 5.2 | 实现 `DefaultSessionGateway` — 从 ChatViewModel 提取 RelayClient/LocalRelayClient 管理 | `android-app/.../data/DefaultSessionGateway.kt` (新) | 提取 |
-| 5.3 | `YuanioApp` 托管 `SessionGateway` 单例 | `android-app/.../YuanioApp.kt` (增强) | 增强 |
-| 5.4 | `ChatViewModel` 改为接收 `SessionGateway` | `android-app/.../ui/screen/ChatViewModel.kt` (重构) | 重构 |
-| 5.5 | 评估是否引入 Hilt (基于此时的复杂度决定) | 决策文档 | 评估 |
+| 5.1 | ?? `SessionGateway` ?? ? ???? + session ?? | `android-app/.../data/SessionGateway.kt` (?) | ?? |
+| 5.2 | ?? `DefaultSessionGateway` ? ? ChatViewModel ?? RelayClient/LocalRelayClient ?? | `android-app/.../data/DefaultSessionGateway.kt` (?) | ?? |
+| 5.3 | `YuanioApp` ?? `SessionGateway` ?? | `android-app/.../YuanioApp.kt` (??) | ?? |
+| 5.4 | `ChatViewModel` ???? `SessionGateway` | `android-app/.../ui/screen/ChatViewModel.kt` (??) | ?? |
+| 5.5 | ?????? Hilt | ???? | ?? |
 
-**验证**:
-- ChatViewModel 通过 `SessionGateway` 接口访问连接，行为不变
-- Terminal/Files 可以查询连接状态 (通过 `YuanioApp.sessionGateway`)
+**??**:
+- ChatViewModel ?? `SessionGateway` ???????????
+- Terminal/Files ???????? (?? `YuanioApp.sessionGateway`)
+
+**2026-03-09 ????**:
+- `GlobalSessionManager` ?????? `SessionGateway` / `DefaultSessionGateway` ??
+- `Hilt` ??????? `keep-out`???? `@HiltAndroidApp` / `@AndroidEntryPoint`
+- ?????? DI???????????????????? `YuanioApp` ?????????? ADR
 
 ---
 
@@ -1111,16 +1120,20 @@ cd android-app && ./gradlew testDebugUnitTest --tests "*AgentEventParserTest"
 
 ## Appendix B: Architecture Decision Records
 
-### ADR-1: 不在 P0 引入 Hilt
+### ADR-1: ?? P0 ?? Hilt
 
-**上下文**: 蓝图 v2.0 在 Phase 0 同时引入 GlobalSessionManager + Hilt + FeatureFlags DSL + MessageRepository + StreamingMarkdown
+**???**: ?? v2.0 ? Phase 0 ???? GlobalSessionManager + Hilt + FeatureFlags DSL + MessageRepository + StreamingMarkdown
 
-**决策**: 推迟 Hilt 到 P5。先用接口 + YuanioApp 托管单例
+**??**: ?? Hilt ? P5????? + YuanioApp ????
 
-**理由**:
-1. 项目已有 10 个 Prefs singleton 的初始化模式，团队熟悉
-2. Hilt 引入涉及 gradle 配置变更、@HiltAndroidApp、@AndroidEntryPoint 改造，风险叠加
-3. P0 的核心目标是"事件解析对齐"，与 DI 框架无关
+**??**:
+1. ???? 10 ? Prefs singleton ???????????
+2. Hilt ???? gradle ?????@HiltAndroidApp?@AndroidEntryPoint ???????
+3. P0 ??????"??????"?? DI ????
+
+**2026-03-09 ??**:
+- P5 ??? `SessionGateway`???????????????? Hilt
+- ? ADR ????????????? `keep-out`
 
 ### ADR-2: ToolCallStatus 保留 4 种而非 7 种
 
@@ -1145,16 +1158,20 @@ cd android-app && ./gradlew testDebugUnitTest --tests "*AgentEventParserTest"
 2. 低风险审批自动拒绝会打断连续性
 3. 作为安全兜底功能，应由用户显式开启
 
-### ADR-4: Markdown 优化采用两级策略
+### ADR-4: Markdown ????????
 
-**上下文**: 蓝图 v2.0 直接实施 StreamingMarkdown 节点增量引擎
+**???**: ?? v2.0 ???? StreamingMarkdown ??????
 
-**决策**: P1 先做 remember 缓存 + 流式消息独立 item；P4 根据 Compose Metrics 按需实施增量引擎
+**??**: P1 ?? remember ?? + ?????? item?P4 ?? Compose Metrics ????????
 
-**理由**:
-1. `remember(content) { splitCodeBlocks(content) }` 的改动量 < 10 行，即可消除已完成消息的重复解析
-2. 流式消息独立 `item(key="streaming")` 避免全列表重组合
-3. 节点增量引擎是 ~300 行的新组件，应有 profiling 证据支撑
+**??**:
+1. `remember(content) { splitCodeBlocks(content) }` ???? < 10 ????????????????
+2. ?????? `item(key="streaming")` ????????
+3. ??????? ~300 ???????? profiling ????
+
+**2026-03-09 ??**:
+- `TerminalPerformanceTest --info` ??????????? `StreamingMarkdown`
+- `MessageRepository` LRU/?????????????????
 
 ### ADR-5: 路径使用仓库根相对路径
 

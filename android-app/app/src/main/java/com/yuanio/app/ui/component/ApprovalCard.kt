@@ -1,5 +1,9 @@
-﻿package com.yuanio.app.ui.component
+package com.yuanio.app.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,7 +22,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.yuanio.app.R
 import com.yuanio.app.ui.model.ApprovalType
 import com.yuanio.app.ui.model.ChatItem
+import kotlinx.coroutines.delay
 
 internal enum class ApprovalPreviewMode {
     NONE,
@@ -39,6 +48,11 @@ internal enum class ApprovalMetaType {
     TOOL,
     PERMISSION,
     CONTEXT,
+}
+
+internal enum class ApprovalDismissDecision {
+    APPROVE,
+    REJECT,
 }
 
 internal data class ApprovalMetaItem(
@@ -59,6 +73,14 @@ internal data class ApprovalCardModel(
     val metadata: List<String>
         get() = metaItems.map { "${it.type.name.lowercase()}: ${it.value}" }
 }
+
+internal data class ApprovalDismissPlan(
+    val visible: Boolean = true,
+    val actionsEnabled: Boolean = true,
+    val decision: ApprovalDismissDecision? = null,
+)
+
+internal const val ApprovalDismissAnimationMillis = 200
 
 internal fun buildApprovalCardModel(approval: ChatItem.Approval): ApprovalCardModel {
     val previewMode = when {
@@ -100,6 +122,18 @@ internal fun inferApprovalPreviewAction(preview: String?): String {
     }
 }
 
+internal fun startApprovalDismiss(
+    current: ApprovalDismissPlan,
+    decision: ApprovalDismissDecision,
+): ApprovalDismissPlan {
+    if (current.decision != null) return current
+    return ApprovalDismissPlan(
+        visible = false,
+        actionsEnabled = false,
+        decision = decision,
+    )
+}
+
 @Composable
 fun ApprovalCard(
     approval: ChatItem.Approval,
@@ -108,159 +142,190 @@ fun ApprovalCard(
     modifier: Modifier = Modifier,
 ) {
     val model = remember(approval) { buildApprovalCardModel(approval) }
+    var dismissPlan by remember(approval.id) { mutableStateOf(ApprovalDismissPlan()) }
 
-    Surface(
+    LaunchedEffect(dismissPlan.decision) {
+        when (dismissPlan.decision) {
+            ApprovalDismissDecision.APPROVE -> {
+                delay(ApprovalDismissAnimationMillis.toLong())
+                onApprove()
+            }
+            ApprovalDismissDecision.REJECT -> {
+                delay(ApprovalDismissAnimationMillis.toLong())
+                onReject()
+            }
+            null -> Unit
+        }
+    }
+
+    AnimatedVisibility(
+        visible = dismissPlan.visible,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, riskColor(approval.riskLevel).copy(alpha = 0.5f)),
-        color = Color.Transparent,
+        exit = fadeOut(animationSpec = tween(ApprovalDismissAnimationMillis)) +
+            scaleOut(
+                targetScale = 0.97f,
+                animationSpec = tween(ApprovalDismissAnimationMillis),
+            ),
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ActionGlyphIcon(
-                    glyph = ActionGlyph.WARNING,
-                    contentDescription = stringResource(R.string.approval_cd_request),
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                val brand = agentToBrand(approval.agent)
-                if (brand != null) {
-                    BrandIcon(
-                        brand = brand,
-                        modifier = Modifier.size(14.dp),
-                        tint = agentColor(approval.agent!!),
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, riskColor(approval.riskLevel).copy(alpha = 0.5f)),
+            color = Color.Transparent,
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ActionGlyphIcon(
+                        glyph = ActionGlyph.WARNING,
+                        contentDescription = stringResource(R.string.approval_cd_request),
+                        iconTint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(6.dp))
+                    val brand = agentToBrand(approval.agent)
+                    if (brand != null) {
+                        BrandIcon(
+                            brand = brand,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text(
+                        text = stringResource(R.string.approval_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ApprovalTypeBadge(model.type)
                 }
-                Text(
-                    text = stringResource(R.string.approval_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f),
-                )
-                ApprovalTypeBadge(model.type)
-            }
 
-            Spacer(Modifier.height(8.dp))
-            Text(approval.desc, style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.approval_risk, riskLabel(approval.riskLevel)),
-                style = MaterialTheme.typography.bodySmall,
-                color = riskColor(approval.riskLevel),
-            )
-            if (approval.riskSummary.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(approval.desc, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = approval.riskSummary,
+                    text = stringResource(R.string.approval_risk, riskLabel(approval.riskLevel)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = riskColor(approval.riskLevel),
                 )
-            }
-
-            if (model.metaItems.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                model.metaItems.forEach { item ->
+                if (approval.riskSummary.isNotBlank()) {
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "${approvalMetaLabel(item.type)}: ${item.value}",
+                        text = approval.riskSummary,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
-            }
 
-            when (model.previewMode) {
-                ApprovalPreviewMode.DIFF -> {
-                    Spacer(Modifier.height(10.dp))
-                    DiffViewer(
-                        path = model.previewPath,
-                        diff = model.previewContent.orEmpty(),
-                        action = model.previewAction,
-                        initiallyExpanded = false,
-                        showToggle = true,
-                        collapsedLineCount = 8,
-                    )
-                }
-                ApprovalPreviewMode.TEXT -> {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = stringResource(R.string.approval_preview),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                    ) {
+                if (model.metaItems.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    model.metaItems.forEach { item ->
                         Text(
-                            text = model.previewContent.orEmpty(),
+                            text = "${approvalMetaLabel(item.type)}: ${item.value}",
                             style = MaterialTheme.typography.bodySmall,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                 }
-                ApprovalPreviewMode.NONE -> Unit
-            }
 
-            if (model.diffHighlights.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.approval_diff_highlights),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                model.diffHighlights.take(3).forEach { line ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                    ) {
+                when (model.previewMode) {
+                    ApprovalPreviewMode.DIFF -> {
+                        Spacer(Modifier.height(10.dp))
+                        DiffViewer(
+                            path = model.previewPath,
+                            diff = model.previewContent.orEmpty(),
+                            action = model.previewAction,
+                            initiallyExpanded = false,
+                            showToggle = true,
+                            collapsedLineCount = 8,
+                        )
+                    }
+                    ApprovalPreviewMode.TEXT -> {
+                        Spacer(Modifier.height(10.dp))
                         Text(
-                            text = line,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            maxLines = 2,
+                            text = stringResource(R.string.approval_preview),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        ) {
+                            Text(
+                                text = model.previewContent.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            )
+                        }
                     }
+                    ApprovalPreviewMode.NONE -> Unit
                 }
-            }
 
-            if (model.files.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.approval_files),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                model.files.forEach { file ->
+                if (model.diffHighlights.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.approval_file_item, file),
+                        text = stringResource(R.string.approval_diff_highlights),
                         style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onReject) {
-                    Text(
-                        text = stringResource(R.string.notifier_action_reject),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    model.diffHighlights.take(3).forEach { line ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        ) {
+                            Text(
+                                text = line,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                maxLines = 2,
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = onApprove,
-                    colors = ButtonDefaults.buttonColors(containerColor = riskColor(approval.riskLevel)),
-                ) {
-                    Text(stringResource(R.string.notifier_action_approve))
+
+                if (model.files.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.approval_files),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    model.files.forEach { file ->
+                        Text(
+                            text = stringResource(R.string.approval_file_item, file),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = {
+                            dismissPlan = startApprovalDismiss(dismissPlan, ApprovalDismissDecision.REJECT)
+                        },
+                        enabled = dismissPlan.actionsEnabled,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.notifier_action_reject),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            dismissPlan = startApprovalDismiss(dismissPlan, ApprovalDismissDecision.APPROVE)
+                        },
+                        enabled = dismissPlan.actionsEnabled,
+                        colors = ButtonDefaults.buttonColors(containerColor = riskColor(approval.riskLevel)),
+                    ) {
+                        Text(stringResource(R.string.notifier_action_approve))
+                    }
                 }
             }
         }

@@ -90,7 +90,7 @@ fun ChipRow(
                 InputSelectorChip(
                     label = stringResource(R.string.chat_input_cd_settings),
                     onClick = { showOptionsMenu = true },
-                    leadingIconRes = R.drawable.ic_ms_settings,
+                    leadingIconRes = R.drawable.ic_tb_settings,
                 )
                 OptionsSettingsMenu(
                     expanded = showOptionsMenu,
@@ -130,7 +130,7 @@ private fun InputSelectorChip(
         },
         trailingIcon = {
             Icon(
-                painter = painterResource(R.drawable.ic_ms_keyboard_arrow_down),
+                painter = painterResource(R.drawable.ic_tb_chevron_down),
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
             )

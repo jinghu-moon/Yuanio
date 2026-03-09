@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -253,7 +254,7 @@ private class SshSessionDelegateStub(private val profile: SshProfile) : SshSessi
     }
     override fun openShell(cols: Int, rows: Int) {}
     override fun writeInput(data: ByteArray) {}
-    override fun getInputStream(): InputStream = InputStream.nullInputStream()
+    override fun getInputStream(): InputStream = ByteArrayInputStream(ByteArray(0))
     override fun resize(cols: Int, rows: Int) {}
     override fun setKeepAlive(intervalSec: Int) {}
     override fun addPortForwarding(rule: String) {}

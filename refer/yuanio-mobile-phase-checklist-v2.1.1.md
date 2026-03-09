@@ -90,11 +90,10 @@
 ## Phase P4 - Performance Layer
 - status: `completed`
 - summary:
-  - Added compose metrics/stability configuration.
+  - Captured compose metrics baseline and kept `StreamingMarkdown` / `MessageRepository` deferred by evidence.
   - Improved chat auto-scroll and search debounce.
   - Kept markdown/LRU work deferred because metrics baseline is already acceptable.
 - key_targets:
-  - `android-app/stability_config.conf`
   - `android-app/app/build.gradle.kts`
   - `android-app/app/src/main/java/com/yuanio/app/ui/chat/ChatMessageList.kt`
   - `android-app/app/src/main/java/com/yuanio/app/ui/screen/ChatViewModel.kt`
@@ -106,6 +105,9 @@
 - status: `completed`
 - entry_condition:
   - [x] `P4` exit gate passed.
+- architecture_closure:
+  - `GlobalSessionManager` is retired in favor of `SessionGateway` / `DefaultSessionGateway`.
+  - `Hilt` remains keep-out for the current architecture stage.
 - nodes:
   - [x] `P5-N1` Define `SessionGateway` contract.
   - [x] `P5-N2` Implement `DefaultSessionGateway`.
@@ -163,6 +165,11 @@
 - result:
   - Extracted the long-press menu into `MessageContextMenu`.
   - Added lightweight `animateContentSize()` wrapping for chat items.
+
+## Backfill Notes (2026-03-09)
+- `P3`: `ApprovalCard` now dismisses with local `fadeOut + scaleOut(0.97f)` before approval callbacks fire.
+- `P4`: `TerminalPerformanceTest --info` passed; `StreamingMarkdown` and `MessageRepository` stay deferred.
+- `P6`: targeted chat/terminal surfaces no longer use `ic_ms_*`; brand icons render with intrinsic colors; `ChatMessageList` adds `fadeIn + slideInVertically`.
 
 ## Verification Record
 - phase: `P6`

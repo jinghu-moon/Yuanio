@@ -1,11 +1,11 @@
-package com.yuanio.app.ui.chat
+﻿package com.yuanio.app.ui.chat
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.yuanio.app.ui.screen.ChatItem
+import com.yuanio.app.ui.model.ChatItem
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,6 +33,10 @@ class ChatMessageListTest {
                         onSuggestionClick = {},
                         onRetry = {},
                         onFork = {},
+                        onEdit = {},
+                        onUndoSend = {},
+                        canEdit = { false },
+                        canUndoSend = { false },
                         onSpeak = { _, _ -> },
                         onStopSpeaking = {},
                         onTaskClick = {},

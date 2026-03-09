@@ -68,6 +68,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yuanio.app.ui.model.ToolCallStatus
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yuanio.app.R
 import com.yuanio.app.data.ComposerDraftStore
@@ -1992,11 +1993,11 @@ private fun buildTimelineEntries(items: List<ChatItem>): List<TimelineEntry> {
     items.forEachIndexed { index, item ->
         when (item) {
             is ChatItem.ToolCall -> {
-                val label = if (item.status == "error") "error" else "tool_call"
+                val label = if (item.status == ToolCallStatus.ERROR) "error" else "tool_call"
                 val summary = buildString {
                     append(item.tool)
                     append(" · ")
-                    append(item.status)
+                    append(item.status.protocolValue)
                     item.summary?.takeIf { it.isNotBlank() }?.let { append(" · ${it.take(42)}") }
                 }
                 out += TimelineEntry(index, label, summary, System.currentTimeMillis())

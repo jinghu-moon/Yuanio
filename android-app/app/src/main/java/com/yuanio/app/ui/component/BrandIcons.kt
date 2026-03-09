@@ -1,4 +1,4 @@
-package com.yuanio.app.ui.component
+﻿package com.yuanio.app.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
@@ -26,12 +26,20 @@ enum class ActionGlyph {
     WARNING,
     CHEVRON_DOWN,
     CHEVRON_UP,
+    MORE_VERTICAL,
+    X,
+    CHECK,
+    BOLT,
+    ALERT_CIRCLE,
+    HOURGLASS,
+    PLUS,
 }
 
 private val ClaudeBrandColor = Color(0xFFD97757)
 private val AnthropicBrandColor = Color(0xFF141413)
 private val OpenAIBrandColor = Color(0xFF000000)
 private val GeminiBrandColor = Color(0xFF3186FF)
+internal val BrandIconDefaultTint: Color = Color.Unspecified
 
 fun agentToBrand(agent: String?): Brand? = when (agent?.lowercase()) {
     "claude" -> Brand.CLAUDE
@@ -81,19 +89,26 @@ fun actionGlyphRes(glyph: ActionGlyph): Int = when (glyph) {
     ActionGlyph.WARNING -> R.drawable.ic_tb_alert_triangle
     ActionGlyph.CHEVRON_DOWN -> R.drawable.ic_tb_chevron_down
     ActionGlyph.CHEVRON_UP -> R.drawable.ic_tb_chevron_up
+    ActionGlyph.MORE_VERTICAL -> R.drawable.ic_tb_dots_vertical
+    ActionGlyph.X -> R.drawable.ic_tb_x
+    ActionGlyph.CHECK -> R.drawable.ic_tb_check
+    ActionGlyph.BOLT -> R.drawable.ic_tb_bolt
+    ActionGlyph.ALERT_CIRCLE -> R.drawable.ic_tb_alert_circle
+    ActionGlyph.HOURGLASS -> R.drawable.ic_tb_hourglass_empty
+    ActionGlyph.PLUS -> R.drawable.ic_tb_plus
 }
 
 @Composable
 fun BrandIcon(
     brand: Brand,
     modifier: Modifier = Modifier,
-    tint: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = BrandIconDefaultTint,
 ) {
     Icon(
         painter = painterResource(brandIconRes(brand)),
         contentDescription = brandLabel(brand),
         modifier = modifier,
-        tint = tint,
+        tint = iconTint,
     )
 }
 
@@ -101,14 +116,14 @@ fun BrandIcon(
 fun ActionGlyphIcon(
     glyph: ActionGlyph,
     modifier: Modifier = Modifier,
-    tint: Color = MaterialTheme.colorScheme.onSurface,
+    iconTint: Color = MaterialTheme.colorScheme.onSurface,
     contentDescription: String? = null,
 ) {
     Icon(
         painter = painterResource(actionGlyphRes(glyph)),
         contentDescription = contentDescription,
         modifier = modifier,
-        tint = tint,
+        tint = iconTint,
     )
 }
 
@@ -129,7 +144,6 @@ fun BrandChipRow(
                     BrandIcon(
                         brand = brand,
                         modifier = Modifier.size(16.dp),
-                        tint = brandColor(brand),
                     )
                 }
             )

@@ -119,7 +119,7 @@ fun PinKeypad(
                                 if (pin.isNotEmpty()) onPinChange(pin.dropLast(1))
                             }) {
                                 Icon(
-                                    painter = painterResource(R.drawable.ic_ms_backspace),
+                                    painter = painterResource(R.drawable.ic_tb_backspace),
                                     contentDescription = stringResource(R.string.common_delete),
                                     tint = colors.onSurface,
                                     modifier = Modifier.size(24.dp)

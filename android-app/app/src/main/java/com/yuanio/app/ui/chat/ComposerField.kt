@@ -248,7 +248,7 @@ fun ComposerField(
                 ) {
                     IconButton(onClick = { showMarkdownTools = !showMarkdownTools }) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_ms_description),
+                            painter = painterResource(R.drawable.ic_tb_file_description),
                             contentDescription = stringResource(R.string.chat_input_markdown_tools),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),

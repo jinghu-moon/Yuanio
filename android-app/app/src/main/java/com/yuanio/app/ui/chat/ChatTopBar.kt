@@ -26,7 +26,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,7 +41,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,8 +49,9 @@ import com.yuanio.app.R
 import com.yuanio.app.data.ConnectionState
 import com.yuanio.app.data.ModelMode
 import com.yuanio.app.data.PermissionMode
+import com.yuanio.app.ui.component.ActionGlyph
+import com.yuanio.app.ui.component.ActionGlyphIcon
 import com.yuanio.app.ui.component.BrandIcon
-import com.yuanio.app.ui.component.agentColor
 import com.yuanio.app.ui.component.agentToBrand
 import com.yuanio.app.ui.screen.ChatViewModel
 import com.yuanio.app.ui.theme.LocalYuanioColors
@@ -101,7 +100,6 @@ fun ChatTopBar(
                         BrandIcon(
                             brand = brand,
                             modifier = Modifier.size(20.dp),
-                            tint = agentColor(agentState.agent)
                         )
                         Spacer(Modifier.width(8.dp))
                     }
@@ -225,19 +223,19 @@ fun ChatTopBar(
             }
 
             IconButton(onClick = onNewSession) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_ms_add),
+                ActionGlyphIcon(
+                    glyph = ActionGlyph.PLUS,
                     contentDescription = stringResource(R.string.chat_topbar_cd_new_session),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             Box {
                 IconButton(onClick = { moreMenuExpanded = true }) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_ms_more_vert),
+                    ActionGlyphIcon(
+                        glyph = ActionGlyph.MORE_VERTICAL,
                         contentDescription = stringResource(R.string.chat_topbar_cd_more_actions),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 DropdownMenu(
@@ -316,9 +314,9 @@ fun ChatTopBar(
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(
-                                painterResource(R.drawable.ic_ms_close),
-                                contentDescription = stringResource(R.string.chat_topbar_cd_clear_search)
+                            ActionGlyphIcon(
+                                glyph = ActionGlyph.X,
+                                contentDescription = stringResource(R.string.chat_topbar_cd_clear_search),
                             )
                         }
                     }
