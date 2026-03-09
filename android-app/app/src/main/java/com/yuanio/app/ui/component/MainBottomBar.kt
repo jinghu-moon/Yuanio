@@ -14,10 +14,10 @@ enum class MainTab(
     val glyph: ActionGlyph,
     @param:StringRes @field:StringRes val contentDescRes: Int,
 ) {
-    CHAT(R.string.main_tab_chat, ActionGlyph.CHAT, R.string.main_tab_chat_cd),
+    HOME(R.string.main_tab_home, ActionGlyph.HOME, R.string.main_tab_home_cd),
+    SESSIONS(R.string.main_tab_sessions, ActionGlyph.CHAT, R.string.main_tab_sessions_cd),
     TERMINAL(R.string.main_tab_terminal, ActionGlyph.TERMINAL, R.string.main_tab_terminal_cd),
-    FILES(R.string.main_tab_files, ActionGlyph.FILES, R.string.main_tab_files_cd),
-    SKILLS(R.string.main_tab_skills, ActionGlyph.SKILLS, R.string.main_tab_skills_cd),
+    ENVIRONMENT(R.string.main_tab_environment, ActionGlyph.ENVIRONMENT, R.string.main_tab_environment_cd),
     SETTINGS(R.string.main_tab_settings, ActionGlyph.SETTINGS, R.string.main_tab_settings_cd),
 }
 

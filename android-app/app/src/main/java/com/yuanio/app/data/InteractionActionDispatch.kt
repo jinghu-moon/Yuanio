@@ -14,6 +14,12 @@ data class InteractionActionIntentPayload(
     val source: String = "notification",
 )
 
+enum class InteractionDispatchResult {
+    SENT,
+    QUEUED,
+    FAILED,
+}
+
 private val ALLOWED_INTERACTION_ACTIONS = setOf(
     "continue",
     "stop",
@@ -75,3 +81,37 @@ fun sendInteractionAction(
     return true
 }
 
+fun sendOrQueueInteractionAction(
+    context: Context,
+    payload: InteractionActionIntentPayload,
+): InteractionDispatchResult {
+    val keyStore = KeyStore(context)
+    if (keyStore.isVaultConfigured && keyStore.isVaultLocked) {
+        PendingInteractionActionStore(context).append(payload)
+        return InteractionDispatchResult.QUEUED
+    }
+    val sent = sendInteractionAction(context, payload)
+    if (sent) {
+        return InteractionDispatchResult.SENT
+    }
+    PendingInteractionActionStore(context).append(payload)
+    return InteractionDispatchResult.QUEUED
+}
+
+fun sendOrQueueApprovalResponse(
+    context: Context,
+    approvalId: String,
+    approved: Boolean,
+    taskId: String? = null,
+): InteractionDispatchResult {
+    if (approvalId.isBlank()) return InteractionDispatchResult.FAILED
+    return sendOrQueueInteractionAction(
+        context = context,
+        payload = InteractionActionIntentPayload(
+            action = if (approved) "approve" else "reject",
+            approvalId = approvalId,
+            taskId = taskId,
+            reason = "approval_response",
+        )
+    )
+}

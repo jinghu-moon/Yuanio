@@ -18,6 +18,8 @@ import com.yuanio.app.R
 enum class Brand { CLAUDE, ANTHROPIC, OPENAI, GEMINI }
 
 enum class ActionGlyph {
+    HOME,
+    ENVIRONMENT,
     CHAT,
     TERMINAL,
     FILES,
@@ -81,6 +83,8 @@ fun brandIconRes(brand: Brand): Int = when (brand) {
 }
 
 fun actionGlyphRes(glyph: ActionGlyph): Int = when (glyph) {
+    ActionGlyph.HOME -> R.drawable.ic_tb_home
+    ActionGlyph.ENVIRONMENT -> R.drawable.ic_tb_server_2
     ActionGlyph.CHAT -> R.drawable.ic_tb_message_circle
     ActionGlyph.TERMINAL -> R.drawable.ic_tb_terminal_2
     ActionGlyph.FILES -> R.drawable.ic_tb_folder

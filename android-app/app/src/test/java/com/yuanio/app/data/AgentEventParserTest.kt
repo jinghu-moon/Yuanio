@@ -69,6 +69,14 @@ class AgentEventParserTest {
     }
 
     @Test
+    fun `approval_req keeps optional taskId`() {
+        val payload = """{"id":"apv_task_1","taskId":"task_123","description":"Patch file","tool":"Edit","affectedFiles":["src/app.ts"],"riskLevel":"high"}"""
+        val parsed = parser.parse(type = "approval_req", payload = payload)
+        val event = parsed as ParsedAgentEvent.ApprovalRequest
+        assertEquals("task_123", event.item.taskId)
+    }
+
+    @Test
     fun `approval_req 保留 preview context 与 diffHighlights`() {
         val payload = """{"id":"apv_002","description":"Patch file","tool":"Edit","affectedFiles":["src/app.ts"],"riskLevel":"high","riskSummary":"Dangerous edit","preview":"@@ -1 +1 @@\n-old\n+new","context":"cwd=/repo","permissionMode":"bypass","diffHighlights":["+new line","-old line"],"agent":"claude"}"""
         val parsed = parser.parse(type = "approval_req", payload = payload)
@@ -222,6 +230,38 @@ class AgentEventParserTest {
         assertEquals(2, event.rounds)
         assertEquals("manual", event.reason)
         assertEquals(98765L, event.at)
+    }
+
+    @Test
+    fun `task_queue_status fixture 解析队列与运行中任务`() {
+        val payload = """{"queued":[{"id":"q1","prompt":"fix ci","agent":"codex","priority":80,"createdAt":1700000000000},{"id":"q2","prompt":"write docs","priority":10,"createdAt":1700000001000}],"running":["task_a","task_b"],"mode":"parallel"}"""
+        val parsed = parser.parse(type = "task_queue_status", payload = payload)
+        val event = parsed as ParsedAgentEvent.TaskQueueStatusUpdate
+        assertEquals(2, event.queued.size)
+        assertEquals("q1", event.queued[0].id)
+        assertEquals("fix ci", event.queued[0].prompt)
+        assertEquals("codex", event.queued[0].agent)
+        assertEquals(80, event.queued[0].priority)
+        assertEquals(1700000000000L, event.queued[0].createdAt)
+        assertEquals(listOf("task_a", "task_b"), event.running)
+        assertEquals("parallel", event.mode)
+    }
+
+    @Test
+    fun `task_summary fixture 解析耗时 diff 与 token 用量`() {
+        val payload = """{"taskId":"task_42","duration":3200,"gitDiff":{"stat":"2 files changed","filesChanged":2,"insertions":12,"deletions":3},"usage":{"inputTokens":1200,"outputTokens":340,"cacheCreationTokens":50,"cacheReadTokens":70}}"""
+        val parsed = parser.parse(type = "task_summary", payload = payload)
+        val event = parsed as ParsedAgentEvent.TaskSummaryUpdate
+        assertEquals("task_42", event.taskId)
+        assertEquals(3200L, event.durationMs)
+        assertEquals("2 files changed", event.gitStat)
+        assertEquals(2, event.filesChanged)
+        assertEquals(12, event.insertions)
+        assertEquals(3, event.deletions)
+        assertEquals(1200, event.inputTokens)
+        assertEquals(340, event.outputTokens)
+        assertEquals(50, event.cacheCreationTokens)
+        assertEquals(70, event.cacheReadTokens)
     }
 
     @Test

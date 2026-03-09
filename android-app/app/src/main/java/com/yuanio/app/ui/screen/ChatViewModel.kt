@@ -1,6 +1,7 @@
 package com.yuanio.app.ui.screen
 
 import android.app.Application
+import com.yuanio.app.YuanioApp
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,7 +14,6 @@ import com.yuanio.app.data.FeaturePrefs
 import com.yuanio.app.data.KeyStore
 import com.yuanio.app.data.Notifier
 import com.yuanio.app.data.ApiClient
-import com.yuanio.app.data.DefaultSessionGateway
 import com.yuanio.app.data.MessageExporter
 import com.yuanio.app.data.ModelMode
 import com.yuanio.app.data.PermissionMode
@@ -39,6 +39,9 @@ import com.yuanio.app.data.NotificationPrefs
 import com.yuanio.app.data.AgentEventParser
 import com.yuanio.app.data.AgentParseContext
 import com.yuanio.app.data.ParsedAgentEvent
+import com.yuanio.app.data.WorkflowQueuedTask
+import com.yuanio.app.data.WorkflowSnapshotStore
+import com.yuanio.app.data.WorkflowTaskSummary
 import com.yuanio.app.crypto.CryptoManager
 import com.yuanio.app.ui.common.UiText
 import com.yuanio.app.ui.model.ChatItem
@@ -96,13 +99,18 @@ internal fun Flow<String>.debouncedSearchQuery(
     }
 }.distinctUntilChanged()
 
+internal fun resolveSessionGateway(app: Application): SessionGateway {
+    require(app is YuanioApp) { "ChatViewModel requires YuanioApp" }
+    return app.sessionGateway
+}
+
 class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private val agentEventParser = AgentEventParser()
     private val keyStore = KeyStore(app)
     private val history = ChatHistory(app)
     private val draftStore = DraftStore(app)
-    private val sessionGateway: SessionGateway = DefaultSessionGateway()
+    private val sessionGateway: SessionGateway = resolveSessionGateway(app)
     private val relay: MessageTransport?
         get() = sessionGateway.transport
     private var activeSessionId: String? = null
@@ -593,6 +601,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         _safeApprovalCount.value = pendingApprovals.values.count { isSafeApprovalRisk(it.riskLevel) }
         _pendingApprovalQueue.value = pendingApprovals.values.toList()
         _turnState.value = _turnState.value.copy(pendingApprovals = pendingApprovals.size)
+        syncWorkflowSnapshotState()
     }
 
     private fun queueDraft(text: String) {
@@ -737,6 +746,20 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             diffHighlights = diffHighlights,
             lastError = lastError,
         )
+        syncWorkflowSnapshotState()
+    }
+
+    private fun syncWorkflowSnapshotState() {
+        WorkflowSnapshotStore.syncConversationState(
+            sessionId = _viewSessionId.value ?: activeSessionId ?: keyStore.sessionId,
+            runningTaskCount = _turnState.value.runningTasks,
+            pendingApprovalCount = _turnState.value.pendingApprovals,
+            activeApprovalId = _turnState.value.activeApprovalId,
+            riskLevel = _turnState.value.riskLevel,
+            riskSummary = _turnState.value.riskSummary,
+            pendingApprovals = pendingApprovals.values.toList(),
+            todos = _todos.value,
+        )
     }
 
     private fun loadHistoryItems(sessionId: String): List<ChatItem.Text> {
@@ -759,6 +782,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         _streaming.value = false
         _waiting.value = false
         _terminalLines.value = emptyList()
+        syncWorkflowSnapshotState()
     }
 
     /** 从 KeyStore 读取当前查看会话 */
@@ -1592,6 +1616,15 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     val event = agentEventParser.parse(type, payload, parseContext) as? ParsedAgentEvent.UsageReport
                     if (event != null) {
                         val info = event.item
+                        info.taskId?.let { taskId ->
+                            WorkflowSnapshotStore.upsertTaskUsage(
+                                taskId = taskId,
+                                inputTokens = info.inputTokens,
+                                outputTokens = info.outputTokens,
+                                cacheCreationTokens = info.cacheCreationTokens,
+                                cacheReadTokens = info.cacheReadTokens,
+                            )
+                        }
                         val taskId = info.taskId
                         val items = _items.value.toMutableList()
                         val existingIdx = items.indexOfLast {
@@ -1604,6 +1637,42 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                             _items.value = items + info
                         }
                     }
+                }
+            }
+            "task_queue_status" -> {
+                val event = agentEventParser.parse(type, payload, parseContext) as? ParsedAgentEvent.TaskQueueStatusUpdate ?: return
+                WorkflowSnapshotStore.syncTaskQueueStatus(
+                    queuedTasks = event.queued.map {
+                        WorkflowQueuedTask(
+                            id = it.id,
+                            prompt = it.prompt,
+                            agent = it.agent,
+                            priority = it.priority,
+                            createdAt = it.createdAt,
+                        )
+                    },
+                    runningTaskIds = event.running,
+                    queueMode = event.mode,
+                )
+            }
+            "task_summary" -> {
+                val event = agentEventParser.parse(type, payload, parseContext) as? ParsedAgentEvent.TaskSummaryUpdate ?: return
+                if (event.taskId.isNotBlank()) {
+                    WorkflowSnapshotStore.upsertTaskSummary(
+                        WorkflowTaskSummary(
+                            taskId = event.taskId,
+                            durationMs = event.durationMs,
+                            gitStat = event.gitStat,
+                            filesChanged = event.filesChanged,
+                            insertions = event.insertions,
+                            deletions = event.deletions,
+                            inputTokens = event.inputTokens,
+                            outputTokens = event.outputTokens,
+                            cacheCreationTokens = event.cacheCreationTokens,
+                            cacheReadTokens = event.cacheReadTokens,
+                            updatedAt = System.currentTimeMillis(),
+                        )
+                    )
                 }
             }
             "file_diff" -> {
@@ -1866,6 +1935,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 val event = agentEventParser.parse(type, payload, parseContext) as? ParsedAgentEvent.TodoUpdate
                 if (event != null) {
                     _todos.value = event.item.todos
+                    syncWorkflowSnapshotState()
                     if (viewingActive) {
                         addItem(event.item)
                     }
@@ -4020,4 +4090,3 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         sessionGateway.disconnect()
     }
 }
-

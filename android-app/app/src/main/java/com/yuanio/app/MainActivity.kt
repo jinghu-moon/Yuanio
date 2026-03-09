@@ -99,7 +99,8 @@ class MainActivity : FragmentActivity() {
                                 setupError.value = null
                                 unlockMessage.value = null
                                 refreshState()
-                            }
+                            },
+                            startPaired = false,
                         )
                     }
 
@@ -121,6 +122,7 @@ class MainActivity : FragmentActivity() {
                         YuanioNavGraph(
                             navController = navController,
                             onPaired = { refreshState() },
+                            startPaired = true,
                         )
                     }
                 }

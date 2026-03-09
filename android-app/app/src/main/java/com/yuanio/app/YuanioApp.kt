@@ -13,9 +13,14 @@ import com.yuanio.app.data.ImIntegrationPrefs
 import com.yuanio.app.data.VoiceInputPrefs
 import com.yuanio.app.data.ComposerStylePrefs
 import com.yuanio.app.data.FeaturePrefs
+import com.yuanio.app.data.DefaultSessionGateway
+import com.yuanio.app.data.SessionGateway
+import com.yuanio.app.data.WorkflowSnapshotStore
 import com.yuanio.app.ui.theme.LanguagePreference
 
 class YuanioApp : Application() {
+    val sessionGateway: SessionGateway by lazy { DefaultSessionGateway() }
+
     companion object {
         const val CH_AGENT = "agent_status"
         const val CH_TOOL = "tool_calls"
@@ -36,6 +41,7 @@ class YuanioApp : Application() {
         FeaturePrefs.init(this)
         LocalConnectionPrefs.init(this)
         ImIntegrationPrefs.init(this)
+        WorkflowSnapshotStore.init(this)
 
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannels(listOf(

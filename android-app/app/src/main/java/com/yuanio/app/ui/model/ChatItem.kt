@@ -139,6 +139,7 @@ sealed class ChatItem {
         val preview: String? = null,
         val context: String? = null,
         val permissionMode: String? = null,
+        val taskId: String? = null,
         override val agent: String? = null,
     ) : ChatItem()
 

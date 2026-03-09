@@ -108,6 +108,9 @@ ActionGlyphIcon(
 ### Validation
 
 - `bun run check:tabler-icons`
+- `bun run check:android-guards`
+- `bun run check:android-architecture`
+- `bun run check:android-deferred-gates`
 - `bun run check:tabler-icons:fix`
 - `python tools/check_tabler_icons.py`
 - `python tools/check_tabler_icons.py --fix`

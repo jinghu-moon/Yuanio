@@ -19,12 +19,39 @@ data class AgentParseContext(
 )
 
 sealed interface ParsedAgentEvent {
+    data class QueuedTask(
+        val id: String,
+        val prompt: String,
+        val agent: String?,
+        val priority: Int,
+        val createdAt: Long,
+    )
+
     data class StreamChunk(val text: String) : ParsedAgentEvent
     data class StreamEnd(val finalText: String?) : ParsedAgentEvent
     data class TerminalOutput(val text: String) : ParsedAgentEvent
     data class Thinking(val item: ChatItem.Thinking, val done: Boolean) : ParsedAgentEvent
     data class ToolCall(val item: ChatItem.ToolCall, val paramsSummary: String) : ParsedAgentEvent
     data class UsageReport(val item: ChatItem.UsageInfo, val cumulative: Boolean) : ParsedAgentEvent
+    data class TaskQueueStatusUpdate(
+        val queued: List<QueuedTask>,
+        val running: List<String>,
+        val mode: String,
+    ) : ParsedAgentEvent
+
+    data class TaskSummaryUpdate(
+        val taskId: String,
+        val durationMs: Long,
+        val gitStat: String,
+        val filesChanged: Int,
+        val insertions: Int,
+        val deletions: Int,
+        val inputTokens: Int,
+        val outputTokens: Int,
+        val cacheCreationTokens: Int,
+        val cacheReadTokens: Int,
+    ) : ParsedAgentEvent
+
     data class FileDiff(val item: ChatItem.FileDiff) : ParsedAgentEvent
     data class DiffActionResult(
         val path: String,
@@ -125,6 +152,8 @@ class AgentEventParser {
             "thinking" -> parseThinking(payload, context)
             "tool_call" -> parseToolCall(payload, context)
             "usage_report" -> parseUsageReport(payload, context)
+            "task_queue_status" -> parseTaskQueueStatus(payload)
+            "task_summary" -> parseTaskSummary(payload)
             "file_diff" -> parseFileDiff(payload, context)
             "diff_action_result" -> parseDiffActionResult(payload)
             "status" -> parseStatus(payload, context)
@@ -201,6 +230,50 @@ class AgentEventParser {
                 agent = context.fallbackAgent,
             ),
             cumulative = obj.optBoolean("cumulative", false),
+        )
+    }
+
+    private fun parseTaskQueueStatus(payload: String): ParsedAgentEvent.TaskQueueStatusUpdate {
+        val obj = JSONObject(payload)
+        val queued = mutableListOf<ParsedAgentEvent.QueuedTask>()
+        val queuedArr = obj.optJSONArray("queued")
+        if (queuedArr != null) {
+            for (index in 0 until queuedArr.length()) {
+                val item = queuedArr.optJSONObject(index) ?: continue
+                val id = item.optString("id").trim()
+                val prompt = item.optString("prompt").trim()
+                if (id.isBlank() || prompt.isBlank()) continue
+                queued += ParsedAgentEvent.QueuedTask(
+                    id = id,
+                    prompt = prompt,
+                    agent = item.optString("agent").takeIf { it.isNotBlank() },
+                    priority = item.optInt("priority", 0),
+                    createdAt = item.optLong("createdAt", 0L),
+                )
+            }
+        }
+        return ParsedAgentEvent.TaskQueueStatusUpdate(
+            queued = queued,
+            running = parseStringArray(obj.optJSONArray("running")) { it.trim() },
+            mode = obj.optString("mode", "sequential"),
+        )
+    }
+
+    private fun parseTaskSummary(payload: String): ParsedAgentEvent.TaskSummaryUpdate {
+        val obj = JSONObject(payload)
+        val gitDiff = obj.optJSONObject("gitDiff") ?: JSONObject()
+        val usage = obj.optJSONObject("usage") ?: JSONObject()
+        return ParsedAgentEvent.TaskSummaryUpdate(
+            taskId = obj.optString("taskId"),
+            durationMs = obj.optLong("duration", 0L),
+            gitStat = gitDiff.optString("stat", ""),
+            filesChanged = gitDiff.optInt("filesChanged", 0),
+            insertions = gitDiff.optInt("insertions", 0),
+            deletions = gitDiff.optInt("deletions", 0),
+            inputTokens = usage.optInt("inputTokens", 0),
+            outputTokens = usage.optInt("outputTokens", 0),
+            cacheCreationTokens = usage.optInt("cacheCreationTokens", 0),
+            cacheReadTokens = usage.optInt("cacheReadTokens", 0),
         )
     }
 
@@ -342,6 +415,7 @@ class AgentEventParser {
                 preview = obj.optString("preview").takeIf { it.isNotBlank() },
                 context = obj.optString("context").takeIf { it.isNotBlank() },
                 permissionMode = obj.optString("permissionMode").takeIf { it.isNotBlank() },
+                taskId = obj.optString("taskId").takeIf { it.isNotBlank() },
                 agent = obj.optString("agent").takeIf { it.isNotBlank() } ?: context.fallbackAgent,
             )
         )

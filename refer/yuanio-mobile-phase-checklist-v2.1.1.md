@@ -1,4 +1,4 @@
-﻿# Yuanio Mobile v2.1.1 Executable Phase Checklist
+# Yuanio Mobile v2.1.1 Executable Phase Checklist
 
 - Source of Truth: `refer/yuanio-mobile-comprehensive-blueprint.md`
 - Blueprint Version: `v2.1.1`

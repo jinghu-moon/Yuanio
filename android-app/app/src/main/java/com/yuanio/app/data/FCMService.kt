@@ -221,7 +221,7 @@ class ApprovalResponseReceiver : BroadcastReceiver() {
             approvalId = approvalId,
             reason = "legacy_approval_notification",
         )
-        queueOrSendInteractionAction(context, payload)
+        sendOrQueueInteractionAction(context, payload)
     }
 }
 
@@ -237,19 +237,7 @@ class InteractionActionReceiver : BroadcastReceiver() {
             prompt = intent.getStringExtra(Notifier.EXTRA_INTERACTION_PROMPT),
             reason = intent.getStringExtra(Notifier.EXTRA_INTERACTION_REASON),
         )
-        queueOrSendInteractionAction(context, payload)
-    }
-}
-
-private fun queueOrSendInteractionAction(context: Context, payload: InteractionActionIntentPayload) {
-    val keyStore = KeyStore(context)
-    if (keyStore.isVaultConfigured && keyStore.isVaultLocked) {
-        PendingInteractionActionStore(context).append(payload)
-        return
-    }
-    val sent = sendInteractionAction(context, payload)
-    if (!sent) {
-        PendingInteractionActionStore(context).append(payload)
+        sendOrQueueInteractionAction(context, payload)
     }
 }
 

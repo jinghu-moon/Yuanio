@@ -1,6 +1,7 @@
 package com.yuanio.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.tween
@@ -140,8 +141,25 @@ fun ApprovalCard(
     onApprove: () -> Unit,
     onReject: () -> Unit,
     modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
 ) {
     val model = remember(approval) { buildApprovalCardModel(approval) }
+    val borderColor by animateColorAsState(
+        targetValue = if (highlighted) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+        } else {
+            riskColor(approval.riskLevel).copy(alpha = 0.5f)
+        },
+        label = "approvalCardBorderColor",
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (highlighted) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        } else {
+            Color.Transparent
+        },
+        label = "approvalCardContainerColor",
+    )
     var dismissPlan by remember(approval.id) { mutableStateOf(ApprovalDismissPlan()) }
 
     LaunchedEffect(dismissPlan.decision) {
@@ -169,8 +187,8 @@ fun ApprovalCard(
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, riskColor(approval.riskLevel).copy(alpha = 0.5f)),
-            color = Color.Transparent,
+            border = BorderStroke(1.dp, borderColor),
+            color = containerColor,
         ) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -340,6 +358,7 @@ fun ApprovalCard(
     onApprove: () -> Unit,
     onReject: () -> Unit,
     modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
     riskLevel: String = "medium",
     riskSummary: String = "",
     diffHighlights: List<String> = emptyList(),
@@ -359,6 +378,7 @@ fun ApprovalCard(
         onApprove = onApprove,
         onReject = onReject,
         modifier = modifier,
+        highlighted = highlighted,
     )
 }
 

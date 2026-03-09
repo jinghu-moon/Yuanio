@@ -118,6 +118,7 @@ fun ChatScreen(
     onNavigateTerminal: () -> Unit = {},
     onNewSession: () -> Unit = {},
     requestedSessionId: String? = null,
+    requestedTaskId: String? = null,
     vm: ChatViewModel = viewModel()
 ) {
     val fileVm: FileManagerViewModel = viewModel()
@@ -194,6 +195,7 @@ fun ChatScreen(
     var runtimeDetailsExpanded by rememberSaveable { mutableStateOf(false) }
     var selectedQuickReplyGroup by rememberSaveable { mutableStateOf(QUICK_GROUP_SCENARIO) }
     var voiceDraftText by rememberSaveable { mutableStateOf<String?>(null) }
+    var taskDetailDispatched by rememberSaveable(requestedTaskId) { mutableStateOf(false) }
     var draftReadySessionId by remember { mutableStateOf<String?>(null) }
     val slashSuggestions by remember(input) {
         derivedStateOf { vm.slashCommandSuggestions(input) }
@@ -562,6 +564,15 @@ fun ChatScreen(
             )
             else -> vm.requestRemoteSessionSwitch(requestedSessionId)
         }
+    }
+    LaunchedEffect(requestedTaskId, uiState.connState, taskDetailDispatched) {
+        val taskId = requestedTaskId?.trim().orEmpty()
+        if (taskId.isBlank()) return@LaunchedEffect
+        if (taskDetailDispatched) return@LaunchedEffect
+        if (uiState.connState != com.yuanio.app.data.ConnectionState.CONNECTED) return@LaunchedEffect
+        vm.switchToActiveSession()
+        vm.viewTask(taskId)
+        taskDetailDispatched = true
     }
     LaunchedEffect(viewSessionId) {
         val sid = viewSessionId ?: return@LaunchedEffect
