@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.messaging.FirebaseMessaging
 import com.yuanio.app.R
 import com.yuanio.app.data.ChatHistory
+import com.yuanio.app.data.ChatHistoryEntry
 import com.yuanio.app.data.ConnectionState
 import com.yuanio.app.data.EnvelopeHelper
 import com.yuanio.app.data.FeaturePrefs
@@ -104,6 +105,60 @@ internal fun resolveSessionGateway(app: Application): SessionGateway {
     return app.sessionGateway
 }
 
+private fun normalizeChatTextTaskId(taskId: String?): String? {
+    return taskId?.trim()?.ifBlank { null }
+}
+
+private fun extractChatTextTaskId(text: String): String? {
+    return Regex("""/task\s+([a-zA-Z0-9._:-]{6,})""")
+        .find(text)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.trim()
+        ?.ifBlank { null }
+}
+
+internal fun resolveLatestHistoryTaskId(items: List<ChatItem.Text>): String? {
+    return items.asReversed().firstNotNullOfOrNull { item ->
+        normalizeChatTextTaskId(item.taskId) ?: extractChatTextTaskId(item.content)
+    }
+}
+
+internal fun resolveOutgoingChatTextTaskId(currentTaskId: String?, text: String): String? {
+    return extractChatTextTaskId(text) ?: normalizeChatTextTaskId(currentTaskId)
+}
+
+internal fun mergeStreamingChatText(
+    current: List<ChatItem>,
+    content: String,
+    currentAgent: String?,
+    currentTaskId: String?,
+): List<ChatItem> {
+    val normalizedTaskId = normalizeChatTextTaskId(currentTaskId)
+    val items = current.toMutableList()
+    val last = items.lastOrNull()
+    if (last is ChatItem.Text && last.role == "ai") {
+        items[items.lastIndex] = last.copy(
+            content = content,
+            taskId = last.taskId ?: normalizedTaskId,
+            agent = currentAgent ?: last.agent,
+        )
+    } else {
+        items.add(ChatItem.Text("ai", content, taskId = normalizedTaskId, agent = currentAgent))
+    }
+    return items
+}
+
+private fun ChatItem.Text.toHistoryEntry(): ChatHistoryEntry {
+    return ChatHistoryEntry(
+        type = role,
+        content = content,
+        taskId = normalizeChatTextTaskId(taskId),
+        agent = agent?.trim()?.ifBlank { null },
+        ts = ts,
+    )
+}
+
 class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private val agentEventParser = AgentEventParser()
@@ -162,6 +217,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     )
     private val pendingPrompts = mutableMapOf<String, PendingPrompt>()
     private val ackHandler = Handler(Looper.getMainLooper())
+    private var currentTextTaskId: String? = null
     private val inboundAckRequiredTypes = setOf(
         "prompt",
         "approval_resp",
@@ -763,14 +819,31 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun loadHistoryItems(sessionId: String): List<ChatItem.Text> {
-        return history.load(sessionId).mapNotNull { (t, c) ->
-            if (t == "user" || t == "ai") ChatItem.Text(t, c) else null
+        return history.loadEntries(sessionId).mapNotNull { entry ->
+            if (entry.type == "user" || entry.type == "ai") {
+                ChatItem.Text(
+                    role = entry.type,
+                    content = entry.content,
+                    ts = entry.ts.takeIf { it > 0L } ?: System.currentTimeMillis(),
+                    taskId = entry.taskId,
+                    agent = entry.agent,
+                )
+            } else {
+                null
+            }
         }
     }
 
     private fun persistHistoryFor(sessionId: String, items: List<ChatItem.Text>) {
-        val pairs = items.map { it.role to it.content }
-        history.save(sessionId, pairs)
+        history.saveEntries(sessionId, items.map { it.toHistoryEntry() })
+    }
+
+    private fun updateCurrentTextTaskId(taskId: String?) {
+        currentTextTaskId = normalizeChatTextTaskId(taskId)
+    }
+
+    private fun resolveCurrentTextTaskIdForOutgoing(text: String): String? {
+        return resolveOutgoingChatTextTaskId(currentTextTaskId, text)
     }
 
     private fun setViewSession(sessionId: String, persistSelection: Boolean) {
@@ -778,7 +851,9 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         _viewingActiveSession.value = sessionId == activeSessionId
         if (persistSelection) keyStore.lastViewedSessionId = sessionId
 
-        _items.value = loadHistoryItems(sessionId)
+        val historyItems = loadHistoryItems(sessionId)
+        _items.value = historyItems
+        updateCurrentTextTaskId(resolveLatestHistoryTaskId(historyItems))
         _streaming.value = false
         _waiting.value = false
         _terminalLines.value = emptyList()
@@ -1495,12 +1570,19 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     val items = loadHistoryItems(activeId).toMutableList()
                     val content = NoiseFilter.clean(streamBuffer.toString())
+                    val currentAgent = _agentState.value.agent
+                    val taskId = currentTextTaskId
                     val last = items.lastOrNull()
                     if (last != null && last.role == "ai") {
-                        items[items.lastIndex] = ChatItem.Text("ai", content)
+                        items[items.lastIndex] = last.copy(
+                            content = content,
+                            taskId = last.taskId ?: taskId,
+                            agent = currentAgent ?: last.agent,
+                        )
                     } else {
-                        items.add(ChatItem.Text("ai", content))
+                        items.add(ChatItem.Text("ai", content, taskId = taskId, agent = currentAgent))
                     }
+                    updateCurrentTextTaskId(taskId)
                     persistHistoryFor(activeId, items)
                     toastRes(R.string.chat_vm_toast_current_session_new_message)
                 }
@@ -1903,7 +1985,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                             }.ifBlank { "(no output)" }
                         }
                     } else "(no output)"
-                    addItem(ChatItem.Text("ai", "```\n$output\n```", agent = "shell"))
+                    addItem(ChatItem.Text("ai", "```\n$output\n```", taskId = currentTextTaskId, agent = "shell"))
                 }
             }
             "hook_event" -> {
@@ -2071,16 +2153,16 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun updateStreamMessage() {
-        val current = _items.value.toMutableList()
         val content = NoiseFilter.clean(streamBuffer.toString())
-        val currentAgent = _agentState.value.agent
-        val last = current.lastOrNull()
-        if (last is ChatItem.Text && last.role == "ai") {
-            current[current.lastIndex] = ChatItem.Text("ai", content, agent = currentAgent)
-        } else {
-            current.add(ChatItem.Text("ai", content, agent = currentAgent))
-        }
-        _items.value = current
+        val taskId = currentTextTaskId
+        val merged = mergeStreamingChatText(
+            current = _items.value,
+            content = content,
+            currentAgent = _agentState.value.agent,
+            currentTaskId = taskId,
+        )
+        updateCurrentTextTaskId(taskId)
+        _items.value = merged
     }
 
     private fun clearEphemeralThinkingItems() {
@@ -2096,8 +2178,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun persistHistory() {
         val sid = _viewSessionId.value ?: return
-        val pairs = _items.value.filterIsInstance<ChatItem.Text>().map { it.role to it.content }
-        history.save(sid, pairs)
+        history.saveEntries(sid, _items.value.filterIsInstance<ChatItem.Text>().map { it.toHistoryEntry() })
     }
 
     fun canUndoUserMessage(msg: ChatItem.Text, nowMs: Long = System.currentTimeMillis()): Boolean {
@@ -2182,8 +2263,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val relayClient = relay ?: return false
         if (!relayClient.isConnected) return false
 
-        val msg = ChatItem.Text("user", text, delivery = DeliveryStatus.SENDING)
+        val messageTaskId = resolveCurrentTextTaskIdForOutgoing(text)
+        val msg = ChatItem.Text("user", text, delivery = DeliveryStatus.SENDING, taskId = messageTaskId)
         addItem(msg)
+        updateCurrentTextTaskId(messageTaskId)
 
         if (text.startsWith("/")) {
             recordRecentCommand(text)
@@ -2498,8 +2581,15 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val parsed = parseSlashCommand(text) ?: return false
         val command = parsed.first
         val args = parsed.second
-        val addSystem = { content: String ->
-            addItem(ChatItem.Text("ai", content, agent = "system"))
+        fun addSystem(content: String, taskId: String? = null) {
+            addItem(
+                ChatItem.Text(
+                    "ai",
+                    content,
+                    taskId = normalizeChatTextTaskId(taskId),
+                    agent = "system",
+                )
+            )
         }
         when (command) {
             "help" -> {
@@ -2659,6 +2749,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     addSystem(s(R.string.chat_vm_usage_task))
                     return true
                 }
+                updateCurrentTextTaskId(taskId)
                 val optionArgs = args.drop(1)
                 val page = parsePositiveIntArg(
                     raw = optionArgs.firstOrNull { it.all(Char::isDigit) }
@@ -2702,7 +2793,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                             lines.add(s(R.string.chat_vm_task_pagination_hint, taskId, prevPage, nextPage))
                         }
                     }
-                    addSystem(lines.joinToString("\n"))
+                    addSystem(lines.joinToString("\n"), taskId = taskId)
                 }
                 if (!ok) toastRes(R.string.chat_vm_toast_task_failed_disconnected)
                 return ok
@@ -3181,12 +3272,14 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         if (!requireActiveSession(s(R.string.chat_vm_action_retry))) return
         // 移除失败消息，重新发送
         _items.value = _items.value.filter { it !== msg }
+        updateCurrentTextTaskId(msg.taskId)
         send(msg.content)
     }
 
     fun viewTask(taskId: String) {
         val id = taskId.trim()
         if (id.isBlank()) return
+        updateCurrentTextTaskId(id)
         send("/task $id")
     }
 
@@ -3212,14 +3305,14 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         if (!state.enabled) return
         if (state.iteration >= state.maxIterations) {
             _autoPilot.value = state.copy(enabled = false)
-            addItem(ChatItem.Text("system", s(R.string.chat_vm_autopilot_reached_max_rounds, state.maxIterations)))
+            addItem(ChatItem.Text("system", s(R.string.chat_vm_autopilot_reached_max_rounds, state.maxIterations), taskId = currentTextTaskId))
             return
         }
         // 检测上一条 AI 回复是否包含完成标记
         val lastAi = _items.value.lastOrNull { it is ChatItem.Text && it.role == "ai" } as? ChatItem.Text
         if (lastAi != null && isAutoPilotComplete(lastAi.content)) {
             _autoPilot.value = state.copy(enabled = false)
-            addItem(ChatItem.Text("system", s(R.string.chat_vm_autopilot_detected_done)))
+            addItem(ChatItem.Text("system", s(R.string.chat_vm_autopilot_detected_done), taskId = currentTextTaskId))
             return
         }
         _autoPilot.value = state.copy(iteration = state.iteration + 1)
@@ -3732,7 +3825,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val sid = _viewSessionId.value ?: keyStore.sessionId ?: return
         val forked = _items.value.take(index + 1).filterIsInstance<ChatItem.Text>()
         val forkId = "${sid}_fork_${System.currentTimeMillis()}"
-        history.save(forkId, forked.map { it.role to it.content })
+        history.saveEntries(forkId, forked.map { it.toHistoryEntry() })
         _items.value = _items.value.take(index + 1)
         toastRes(R.string.chat_vm_toast_forked_from_here)
         persistHistory()

@@ -24,7 +24,10 @@ data class Artifact(
     val lang: String,
     val content: String,
     val title: String = "",
-    val savedAt: Long = System.currentTimeMillis()
+    val savedAt: Long = System.currentTimeMillis(),
+    val taskId: String? = null,
+    val sessionId: String? = null,
+    val sourceHint: String? = null,
 )
 
 object ArtifactStore {
@@ -40,10 +43,8 @@ object ArtifactStore {
 
     fun save(artifact: Artifact) {
         val list = loadAll().toMutableList()
-        // 去重
         list.removeAll { it.id == artifact.id }
         list.add(0, artifact)
-        // 限制数量
         while (list.size > MAX_ITEMS) list.removeAt(list.lastIndex)
         persist(list)
     }
@@ -66,24 +67,32 @@ object ArtifactStore {
                     lang = obj.optString("lang", ""),
                     content = obj.getString("content"),
                     title = obj.optString("title", ""),
-                    savedAt = obj.optLong("savedAt", 0L)
+                    savedAt = obj.optLong("savedAt", 0L),
+                    taskId = obj.optString("taskId").trim().ifBlank { null },
+                    sessionId = obj.optString("sessionId").trim().ifBlank { null },
+                    sourceHint = obj.optString("sourceHint").trim().ifBlank { null },
                 )
             }
-        } catch (_: Exception) { emptyList() }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     fun isSaved(id: String): Boolean = loadAll().any { it.id == id }
 
     private fun persist(list: List<Artifact>) {
         val arr = JSONArray()
-        for (a in list) {
+        for (artifact in list) {
             arr.put(JSONObject().apply {
-                put("id", a.id)
-                put("type", a.type.name)
-                put("lang", a.lang)
-                put("content", a.content)
-                put("title", a.title)
-                put("savedAt", a.savedAt)
+                put("id", artifact.id)
+                put("type", artifact.type.name)
+                put("lang", artifact.lang)
+                put("content", artifact.content)
+                put("title", artifact.title)
+                put("savedAt", artifact.savedAt)
+                put("taskId", artifact.taskId)
+                put("sessionId", artifact.sessionId)
+                put("sourceHint", artifact.sourceHint)
             })
         }
         prefs.edit().putString(KEY_LIST, arr.toString()).apply()

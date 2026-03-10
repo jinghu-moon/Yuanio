@@ -45,6 +45,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.yuanio.app.R
 import com.yuanio.app.YuanioApp
+import com.yuanio.app.data.ArtifactStore
 import com.yuanio.app.data.ChatHistory
 import com.yuanio.app.data.ConnectionMode
 import com.yuanio.app.data.KeyStore
@@ -79,7 +80,13 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val queueMode: String = "sequential",
         val latestTaskSummary: WorkflowTaskSummary? = null,
         val latestResultSummary: WorkflowTaskSummary? = null,
+        val latestTaskChatPreview: TaskChatActivityEntry? = null,
+        val latestResultChatPreview: TaskChatActivityEntry? = null,
+        val savedArtifactCount: Int = 0,
+        val latestArtifactTitle: String? = null,
+        val latestArtifactTypeLabel: String? = null,
         val firstPendingApproval: WorkflowApprovalSnapshot? = null,
+        val pendingApprovalTaskChatPreview: TaskChatActivityEntry? = null,
         val focusedTaskId: String? = null,
         val focusedTaskKind: TaskRefreshFocusKind = TaskRefreshFocusKind.NONE,
         val focusedApprovalId: String? = null,
@@ -117,6 +124,25 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     ): UiState {
         val snapshot = sessionGateway.snapshot()
         val sessions = history.sessionList()
+        val savedArtifacts = ArtifactStore.loadAll()
+        val latestArtifact = selectLatestResultArtifact(savedArtifacts)
+        val latestTaskSummary = snapshotData.recentTaskSummaries.firstOrNull()
+        val latestResultSummary = snapshotData.recentTaskSummaries.firstOrNull()
+        val firstPendingApproval = snapshotData.pendingApprovals.firstOrNull()
+        val previewSessionId = snapshotData.sessionId?.trim()?.ifBlank { null }
+            ?: keyStore.lastViewedSessionId?.trim()?.ifBlank { null }
+            ?: keyStore.sessionId?.trim()?.ifBlank { null }
+        val taskChatEntries = previewSessionId?.let(history::loadEntries).orEmpty()
+        val taskChatPreviewBinding = resolveHomeTaskChatPreviewBinding(
+            entries = taskChatEntries,
+            latestTaskId = latestTaskSummary?.taskId,
+            latestResultTaskId = latestResultSummary?.taskId,
+            pendingApprovalTaskId = firstPendingApproval?.taskId,
+        )
+        val latestArtifactTitle = latestArtifact?.let(::resolveResultArtifactTitle)
+        val latestArtifactTypeLabel = latestArtifact
+            ?.let(::resolveResultArtifactTypeLabel)
+            ?.takeUnless { it == latestArtifactTitle }
         return UiState(
             activeProfile = keyStore.activeProfile,
             serverUrl = keyStore.serverUrl ?: "-",
@@ -131,9 +157,15 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             todoCount = snapshotData.todos.size,
             pendingApprovalCount = snapshotData.pendingApprovalCount,
             queueMode = snapshotData.queueMode,
-            latestTaskSummary = snapshotData.recentTaskSummaries.firstOrNull(),
-            latestResultSummary = snapshotData.recentTaskSummaries.firstOrNull(),
-            firstPendingApproval = snapshotData.pendingApprovals.firstOrNull(),
+            latestTaskSummary = latestTaskSummary,
+            latestResultSummary = latestResultSummary,
+            latestTaskChatPreview = taskChatPreviewBinding.latestTaskPreview,
+            latestResultChatPreview = taskChatPreviewBinding.latestResultPreview,
+            savedArtifactCount = savedArtifacts.size,
+            latestArtifactTitle = latestArtifactTitle,
+            latestArtifactTypeLabel = latestArtifactTypeLabel,
+            firstPendingApproval = firstPendingApproval,
+            pendingApprovalTaskChatPreview = taskChatPreviewBinding.pendingApprovalTaskPreview,
             focusedTaskId = focusState.task.taskId,
             focusedTaskKind = focusState.task.kind,
             focusedApprovalId = focusState.approval.approvalId,
@@ -163,6 +195,7 @@ fun HomeScreen(
     onOpenApprovals: () -> Unit,
     onOpenTaskDetail: (String) -> Unit,
     onOpenResults: () -> Unit,
+    onOpenArtifactCenter: () -> Unit,
     onOpenResultDetail: (String) -> Unit,
     onOpenApprovalDetail: (String) -> Unit,
     vm: HomeViewModel = viewModel(),
@@ -367,6 +400,10 @@ fun HomeScreen(
                                 value = latestTaskSummary.totalTokens.toString(),
                             )
                         }
+                        state.latestTaskChatPreview?.let { preview ->
+                            Spacer(Modifier.height(4.dp))
+                            TaskChatPreviewSection(preview = preview)
+                        }
                     } else {
                         Text(
                             text = stringResource(R.string.home_empty_task_summary),
@@ -436,6 +473,10 @@ fun HomeScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        state.latestResultChatPreview?.let { preview ->
+                            Spacer(Modifier.height(4.dp))
+                            TaskChatPreviewSection(preview = preview)
+                        }
                         Spacer(Modifier.height(8.dp))
                         HomeActionRow(
                             leftLabel = stringResource(R.string.home_action_open_results),
@@ -462,6 +503,45 @@ fun HomeScreen(
                         ) {
                             Text(stringResource(R.string.home_action_open_results))
                         }
+                    }
+                }
+            }
+
+            item {
+                val latestArtifactTitle = state.latestArtifactTitle
+                val latestArtifactTypeLabel = state.latestArtifactTypeLabel
+                HomeSectionCard(
+                    title = stringResource(R.string.home_section_artifacts),
+                    modifier = Modifier.clickable(onClick = onOpenArtifactCenter),
+                ) {
+                    HomeInfoRow(
+                        label = stringResource(R.string.home_label_saved_artifacts),
+                        value = state.savedArtifactCount.toString(),
+                    )
+                    if (!latestArtifactTitle.isNullOrBlank()) {
+                        HomeInfoRow(
+                            label = stringResource(R.string.home_label_latest_artifact),
+                            value = latestArtifactTitle,
+                        )
+                        if (!latestArtifactTypeLabel.isNullOrBlank()) {
+                            HomeInfoRow(
+                                label = stringResource(R.string.home_label_latest_artifact_type),
+                                value = latestArtifactTypeLabel,
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = stringResource(R.string.home_empty_artifact_summary),
+                            color = MaterialTheme.colorScheme.outline,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = onOpenArtifactCenter,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.home_action_open_artifact_center))
                     }
                 }
             }
@@ -512,6 +592,10 @@ fun HomeScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                        }
+                        state.pendingApprovalTaskChatPreview?.let { preview ->
+                            Spacer(Modifier.height(4.dp))
+                            TaskChatPreviewSection(preview = preview)
                         }
                     } else {
                         Text(

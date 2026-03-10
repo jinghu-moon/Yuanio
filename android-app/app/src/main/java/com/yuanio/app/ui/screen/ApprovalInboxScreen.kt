@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yuanio.app.R
+import com.yuanio.app.data.ChatHistory
 import com.yuanio.app.data.InteractionDispatchResult
 import com.yuanio.app.data.WorkflowSnapshotStore
 import com.yuanio.app.data.sendOrQueueApprovalResponse
@@ -52,6 +53,7 @@ fun ApprovalInboxScreen(
 ) {
     val context = LocalContext.current
     val snapshot by WorkflowSnapshotStore.snapshot.collectAsStateWithLifecycle()
+    val chatHistory = remember(context) { ChatHistory(context) }
     val refreshState = rememberWorkflowRefreshUiState(command = "/approvals")
     val listState = rememberLazyListState()
     val requestedFocusId = requestedApprovalId?.trim().orEmpty()
@@ -71,6 +73,12 @@ fun ApprovalInboxScreen(
     var autoAdvanceToken by remember { mutableStateOf(0L) }
     var lastResultTaskId by remember { mutableStateOf<String?>(null) }
     var resultBannerToken by remember { mutableStateOf(0L) }
+    val taskChatEntries = remember(chatHistory, snapshot.sessionId) {
+        snapshot.sessionId?.trim()?.takeIf { it.isNotBlank() }?.let(chatHistory::loadEntries).orEmpty()
+    }
+    val lastResultTaskChatPreview = remember(taskChatEntries, lastResultTaskId) {
+        resolveApprovalTaskChatPreview(taskChatEntries, lastResultTaskId)
+    }
     val effectiveFocusedApprovalId = activeFocusedApprovalId.trim()
     val displayedApprovals = if (
         displayFocusKind == ApprovalRefreshFocusKind.FOCUSED_APPROVAL &&
@@ -343,6 +351,13 @@ fun ApprovalInboxScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 )
+                                lastResultTaskChatPreview?.let { preview ->
+                                    TaskChatPreviewSection(
+                                        preview = preview,
+                                        labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        summaryColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    )
+                                }
                                 OutlinedButton(
                                     onClick = { lastResultTaskId?.let(onOpenResultDetail) },
                                     modifier = Modifier.fillMaxWidth(),

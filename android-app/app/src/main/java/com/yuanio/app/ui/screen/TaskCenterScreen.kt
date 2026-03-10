@@ -1,14 +1,18 @@
 package com.yuanio.app.ui.screen
 
+import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,9 +20,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -38,7 +46,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yuanio.app.R
+import com.yuanio.app.data.ChatHistory
 import com.yuanio.app.data.WorkflowQueuedTask
+import com.yuanio.app.data.WorkflowSnapshot
 import com.yuanio.app.data.WorkflowSnapshotStore
 import com.yuanio.app.data.WorkflowTaskSummary
 import com.yuanio.app.ui.component.TodoCard
@@ -55,6 +65,7 @@ fun TaskCenterScreen(
     requestedTaskId: String? = null,
 ) {
     val context = LocalContext.current
+    val chatHistory = remember(context) { ChatHistory(context) }
     val snapshot by WorkflowSnapshotStore.snapshot.collectAsStateWithLifecycle()
     val refreshState = rememberWorkflowRefreshUiState(command = "/tasks")
     val listState = rememberLazyListState()
@@ -68,6 +79,42 @@ fun TaskCenterScreen(
         preferredTaskId = focusHighlightTaskId,
     )
     val focusHighlighted = rememberTransientHighlight(focusHighlightToken)
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var filterModeName by rememberSaveable { mutableStateOf(TaskCenterFilterMode.ALL.name) }
+    val filterMode = remember(filterModeName) { TaskCenterFilterMode.valueOf(filterModeName) }
+    val normalizedRequestedTaskId = requestedTaskId?.trim().orEmpty().ifBlank { null }
+    val taskChatHistoryEntries = remember(snapshot.sessionId, snapshot.updatedAt) {
+        val sessionId = snapshot.sessionId?.trim().orEmpty()
+        if (sessionId.isBlank()) {
+            emptyList()
+        } else {
+            chatHistory.loadEntries(sessionId)
+        }
+    }
+    val taskChatPreviewMap = remember(taskChatHistoryEntries) { buildTaskChatActivityMap(taskChatHistoryEntries) }
+    val filteredSnapshot = remember(snapshot, searchQuery, filterMode, taskChatPreviewMap) {
+        filterTaskCenterSnapshot(
+            snapshot = snapshot,
+            query = searchQuery,
+            mode = filterMode,
+            taskChatPreviewMap = taskChatPreviewMap,
+        )
+    }
+    val hasRawContent = remember(snapshot) { hasTaskCenterContent(snapshot) }
+    val hasFilteredContent = remember(filteredSnapshot) { hasTaskCenterContent(filteredSnapshot) }
+    val filterActive = searchQuery.isNotBlank() || filterMode != TaskCenterFilterMode.ALL
+    val requestedTaskChatTimeline = remember(taskChatHistoryEntries, normalizedRequestedTaskId) {
+        normalizedRequestedTaskId?.let { buildTaskChatTimeline(taskChatHistoryEntries, it) } ?: emptyList()
+    }
+    val pinnedSummaryIds = remember(normalizedRequestedTaskId, focusHighlightTarget.latestTaskId) {
+        listOfNotNull(normalizedRequestedTaskId, focusHighlightTarget.latestTaskId).distinct()
+    }
+    val summarySections = remember(filteredSnapshot.recentTaskSummaries, pinnedSummaryIds) {
+        splitTaskSummariesForDisplay(
+            summaries = filteredSnapshot.recentTaskSummaries,
+            pinnedTaskIds = pinnedSummaryIds,
+        )
+    }
 
     LaunchedEffect(requestedFocus, requestedTaskId, snapshot.updatedAt, consumedRequestedFocus) {
         if (consumedRequestedFocus) return@LaunchedEffect
@@ -173,61 +220,116 @@ fun TaskCenterScreen(
                     }
                 }
 
-                if (snapshot.todos.isNotEmpty()) {
+                item {
+                    TaskSearchAndFilterCard(
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it },
+                        filterMode = filterMode,
+                        onFilterModeChange = { filterModeName = it.name },
+                    )
+                }
+
+                if (filteredSnapshot.todos.isNotEmpty()) {
                     item {
-                        TodoCard(todos = snapshot.todos)
+                        TodoCard(todos = filteredSnapshot.todos)
                     }
                 }
 
-                if (snapshot.queuedTasks.isNotEmpty()) {
+                if (normalizedRequestedTaskId != null) {
+                    item {
+                        TaskInfoCard(title = stringResource(R.string.chat_timeline_title)) {
+                            if (requestedTaskChatTimeline.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.chat_timeline_empty),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            } else {
+                                requestedTaskChatTimeline.forEach { entry ->
+                                    TaskChatActivityCard(
+                                        entry = entry,
+                                        onClick = { onOpenTaskDetail(entry.taskId) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (filteredSnapshot.queuedTasks.isNotEmpty()) {
                     item {
                         Text(
                             text = stringResource(R.string.tasks_section_queue),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    items(snapshot.queuedTasks, key = { it.id }) { task ->
-                        QueueTaskCard(task = task, highlighted = focusHighlighted && focusHighlightTarget.queuedTaskId == task.id)
+                    items(filteredSnapshot.queuedTasks, key = { it.id }) { task ->
+                        QueueTaskCard(
+                            task = task,
+                            highlighted = focusHighlighted && focusHighlightTarget.queuedTaskId == task.id,
+                            activityPreview = taskChatPreviewMap[task.id],
+                        )
                     }
                 }
 
-                if (snapshot.runningTaskIds.isNotEmpty()) {
+                if (filteredSnapshot.runningTaskIds.isNotEmpty()) {
                     item {
                         Text(
                             text = stringResource(R.string.tasks_section_running),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    items(snapshot.runningTaskIds, key = { it }) { taskId ->
+                    items(filteredSnapshot.runningTaskIds, key = { it }) { taskId ->
                         TaskIdCard(
                             taskId = taskId,
                             subtitle = stringResource(R.string.tasks_running_hint),
+                            activityPreview = taskChatPreviewMap[taskId],
                             highlighted = focusHighlighted && focusHighlightTarget.runningTaskId == taskId,
                             onClick = { onOpenTaskDetail(taskId) },
                         )
                     }
                 }
 
-                if (snapshot.recentTaskSummaries.isNotEmpty()) {
+                if (summarySections.pinned.isNotEmpty()) {
                     item {
                         Text(
-                            text = stringResource(R.string.tasks_section_recent_summary),
+                            text = stringResource(R.string.tasks_section_pinned_summary),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    items(snapshot.recentTaskSummaries, key = { it.taskId }) { summary ->
+                    items(summarySections.pinned, key = { it.taskId }) { summary ->
                         TaskSummaryCard(
                             summary = summary,
+                            activityPreview = taskChatPreviewMap[summary.taskId],
                             highlighted = focusHighlighted && focusHighlightTarget.latestTaskId == summary.taskId,
                             onClick = { onOpenTaskResult(summary.taskId) },
                         )
                     }
                 }
 
-                if (snapshot.queuedTasks.isEmpty() && snapshot.recentTaskSummaries.isEmpty() && snapshot.todos.isEmpty()) {
+                if (summarySections.recent.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.tasks_section_recent_summary),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    items(summarySections.recent, key = { it.taskId }) { summary ->
+                        TaskSummaryCard(
+                            summary = summary,
+                            activityPreview = taskChatPreviewMap[summary.taskId],
+                            highlighted = focusHighlighted && focusHighlightTarget.latestTaskId == summary.taskId,
+                            onClick = { onOpenTaskResult(summary.taskId) },
+                        )
+                    }
+                }
+
+                if (!hasFilteredContent) {
                     item {
                         TaskEmptyStateCard(
-                            message = stringResource(R.string.tasks_empty),
+                            message = stringResource(
+                                if (filterActive && hasRawContent) R.string.tasks_filter_empty else R.string.tasks_empty,
+                            ),
                             onOpenHome = onOpenHome,
                             onOpenChat = onOpenChat,
                         )
@@ -303,8 +405,68 @@ private fun TaskInfoRow(label: String, value: String) {
 }
 
 @Composable
+private fun TaskSearchAndFilterCard(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    filterMode: TaskCenterFilterMode,
+    onFilterModeChange: (TaskCenterFilterMode) -> Unit,
+) {
+    TaskInfoCard(title = stringResource(R.string.chat_topbar_menu_search)) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.tasks_search_placeholder)) },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_tb_search),
+                    contentDescription = stringResource(R.string.chat_topbar_menu_search),
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            ),
+        )
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TaskCenterFilterMode.entries.forEach { mode ->
+                FilterChip(
+                    selected = mode == filterMode,
+                    onClick = { onFilterModeChange(mode) },
+                    label = { Text(text = taskCenterFilterLabel(mode)) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun taskCenterFilterLabel(mode: TaskCenterFilterMode): String {
+    return when (mode) {
+        TaskCenterFilterMode.ALL -> stringResource(R.string.tasks_filter_all)
+        TaskCenterFilterMode.RUNNING -> stringResource(R.string.tasks_filter_running)
+        TaskCenterFilterMode.QUEUED -> stringResource(R.string.tasks_filter_queued)
+        TaskCenterFilterMode.RECENT -> stringResource(R.string.tasks_filter_recent)
+    }
+}
+
+private fun hasTaskCenterContent(snapshot: WorkflowSnapshot): Boolean {
+    return snapshot.todos.isNotEmpty()
+        || snapshot.queuedTasks.isNotEmpty()
+        || snapshot.runningTaskIds.isNotEmpty()
+        || snapshot.recentTaskSummaries.isNotEmpty()
+}
+
+@Composable
 private fun QueueTaskCard(
     task: WorkflowQueuedTask,
+    activityPreview: TaskChatActivityEntry? = null,
     highlighted: Boolean = false,
 ) {
     TaskFocusCard(highlighted = highlighted) {
@@ -319,6 +481,7 @@ private fun QueueTaskCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )
+        TaskChatPreviewText(activityPreview)
     }
 }
 
@@ -326,6 +489,7 @@ private fun QueueTaskCard(
 private fun TaskIdCard(
     taskId: String,
     subtitle: String,
+    activityPreview: TaskChatActivityEntry? = null,
     highlighted: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -344,12 +508,14 @@ private fun TaskIdCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline,
         )
+        TaskChatPreviewText(activityPreview)
     }
 }
 
 @Composable
 private fun TaskSummaryCard(
     summary: WorkflowTaskSummary,
+    activityPreview: TaskChatActivityEntry? = null,
     highlighted: Boolean = false,
     onClick: () -> Unit,
 ) {
@@ -380,7 +546,48 @@ private fun TaskSummaryCard(
                 color = MaterialTheme.colorScheme.outline,
             )
         }
+        TaskChatPreviewText(activityPreview)
     }
+}
+
+@Composable
+private fun TaskChatActivityCard(
+    entry: TaskChatActivityEntry,
+    onClick: () -> Unit,
+) {
+    TaskFocusCard(highlighted = false, onClick = onClick) {
+        Text(
+            text = if (entry.ts > 0L) "${entry.role} · ${DateFormat.format("HH:mm", entry.ts)}" else entry.role,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+        )
+        if (!entry.agent.isNullOrBlank()) {
+            Text(
+                text = entry.agent,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Text(
+            text = entry.summary,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun TaskChatPreviewText(activityPreview: TaskChatActivityEntry?) {
+    val preview = activityPreview ?: return
+    Spacer(Modifier.height(2.dp))
+    Text(
+        text = preview.summary,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.outline,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable

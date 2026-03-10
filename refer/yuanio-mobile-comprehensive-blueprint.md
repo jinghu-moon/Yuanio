@@ -1,7 +1,7 @@
 # Yuanio Mobile Comprehensive Blueprint
 
 > **Version**: `2.1.1`
-> **Updated**: `2026-03-09`
+> **Updated**: `2026-03-10`
 > **Scope**: cross-stack `packages/shared/` + `packages/cli/` + `android-app/`
 > **Encoding Note**: `UTF-8 normalized on 2026-03-09`
 > **Companion Docs**:
@@ -32,20 +32,23 @@ The architectural direction in `v2.1.x` is:
 - `packages/cli/src/remote/dispatch.ts` defines event-to-message dispatch truth.
 - Android consumes the shared contract and must not invent protocol fields unilaterally.
 
-### 0.3 Keep-Out Boundary
+### 0.3 Keep-Out & Evidence-Gated Boundary
 
-The following items remain outside the current implementation scope unless their explicit decision gate is reopened with evidence:
+Keep-out items (no reopening in the current phase sequence):
 
 - `Hilt`
 - `GlobalSessionManager`
-- `StreamingMarkdown`
+
+Evidence-gated items (allowed only with approved gate evidence):
+
+- `StreamingMarkdown` (lightweight sanitizer approved; full renderer still gated)
 - `MessageRepository` paging / LRU layer
 
 ---
 
 ## 1. Current State Audit
 
-As of `2026-03-09`, the repository already closes most of the original large-scope blueprint intent.
+As of `2026-03-10`, the repository already closes most of the original large-scope blueprint intent.
 
 ### 1.1 Already Implemented
 
@@ -62,7 +65,7 @@ As of `2026-03-09`, the repository already closes most of the original large-sco
 
 ### 1.2 Still Deferred by Design
 
-- `StreamingMarkdown`
+- `StreamingMarkdown` full renderer (lightweight sanitizer approved via K03 evidence)
 - `MessageRepository` paging / LRU
 
 These are **not missing features by default**.
@@ -155,7 +158,7 @@ Scope:
 - `remember(content)` style caching where justified
 
 Constraint:
-- do not introduce `StreamingMarkdown` at this phase
+- do not introduce a heavyweight `StreamingMarkdown` renderer at this phase (sanitizer-only path requires evidence gate approval)
 
 ### 4.3 P2 - Input Layer
 
@@ -184,7 +187,8 @@ Scope:
 - evidence-only reopening of expensive optimizations
 
 Constraint:
-- `StreamingMarkdown` and `MessageRepository` stay deferred unless the re-entry gates are approved
+- `MessageRepository` stays deferred unless the re-entry gates are approved
+- `StreamingMarkdown` heavy renderer stays deferred; lightweight sanitizer is allowed only with evidence
 
 ### 4.6 P5 - Session Sharing Layer
 
@@ -255,7 +259,7 @@ This retires the need for `GlobalSessionManager` in the current phase plan.
 
 The following remain evidence-gated:
 
-- `StreamingMarkdown`
+- `StreamingMarkdown` heavy renderer (sanitizer-only path is approved)
 - `MessageRepository`
 
 Their reopening rules are maintained in:
@@ -278,6 +282,7 @@ Their reopening rules are maintained in:
 - `cd android-app && ./gradlew :app:compileDebugAndroidTestKotlin --console=plain`
 - `cd android-app && ./gradlew :app:testDebugUnitTest --tests "*BrandIconsTest" --tests "*ApprovalCardTest" --tests "*ChatMessageListBehaviorTest" --tests "*TerminalPerformanceTest" --console=plain`
 - `cd android-app && ./gradlew :app:testDebugUnitTest --tests "*SessionGateway*" --console=plain`
+- `cd android-app && ./gradlew :app:testDebugUnitTest --tests "*StreamingMarkdownSanitizerTest" --console=plain`
 
 ### 6.3 Asset Guard
 
@@ -329,7 +334,7 @@ Keep auto-reject default off; when enabled, use risk-tiered behavior.
 
 ### ADR-4
 
-Keep `StreamingMarkdown` and `MessageRepository` deferred until evidence reopens them.
+Keep the `StreamingMarkdown` heavy renderer and `MessageRepository` deferred until evidence reopens them (lightweight sanitizer is allowed with evidence).
 
 ### ADR-5
 

@@ -1015,6 +1015,8 @@ fun ChatScreen(
                             searchQuery = uiState.appliedSearchQuery,
                             scrollToIndex = jumpToIndex,
                             onScrollToIndexHandled = { jumpToIndex = null },
+                            artifactSessionId = viewSessionId,
+                            preferredArtifactTaskId = requestedTaskId,
                             modifier = Modifier.fillMaxSize()
                         )
                     },
@@ -1050,6 +1052,8 @@ fun ChatScreen(
                     searchQuery = uiState.appliedSearchQuery,
                     scrollToIndex = jumpToIndex,
                     onScrollToIndexHandled = { jumpToIndex = null },
+                    artifactSessionId = viewSessionId,
+                    preferredArtifactTaskId = requestedTaskId,
                     modifier = Modifier.weight(1f)
                 )
 

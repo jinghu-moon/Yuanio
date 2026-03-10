@@ -77,7 +77,9 @@ internal fun resolveRequestedTaskScrollTarget(
 ): TaskRefreshScrollTarget? {
     val normalizedFocus = requestedFocus?.trim()?.lowercase().orEmpty()
     val normalizedTaskId = requestedTaskId?.trim().orEmpty()
-    if (normalizedFocus.isBlank()) return null
+    if (normalizedFocus.isBlank()) {
+        return resolveRequestedTaskIdScrollTarget(normalizedTaskId, snapshot)
+    }
     if (
         snapshot.updatedAt <= 0L &&
         snapshot.recentTaskSummaries.isEmpty() &&
@@ -135,6 +137,43 @@ internal fun resolveRequestedTaskScrollTarget(
     }
 }
 
+private fun resolveRequestedTaskIdScrollTarget(
+    requestedTaskId: String,
+    snapshot: WorkflowSnapshot,
+): TaskRefreshScrollTarget? {
+    if (requestedTaskId.isBlank()) return null
+    val offsets = resolveTaskSectionOffsets(snapshot)
+
+    val recentIndex = snapshot.recentTaskSummaries.indexOfFirst { it.taskId == requestedTaskId }
+    if (recentIndex >= 0) {
+        return TaskRefreshScrollTarget(
+            index = (offsets.recentSummaryItemsStartIndex ?: 0) + recentIndex,
+            focusKind = TaskRefreshFocusKind.LATEST_SUMMARY,
+            taskId = requestedTaskId,
+        )
+    }
+
+    val runningIndex = snapshot.runningTaskIds.indexOfFirst { it == requestedTaskId }
+    if (runningIndex >= 0) {
+        return TaskRefreshScrollTarget(
+            index = (offsets.runningItemsStartIndex ?: 0) + runningIndex,
+            focusKind = TaskRefreshFocusKind.RUNNING_TASK,
+            taskId = requestedTaskId,
+        )
+    }
+
+    val queuedIndex = snapshot.queuedTasks.indexOfFirst { it.id == requestedTaskId }
+    if (queuedIndex >= 0) {
+        return TaskRefreshScrollTarget(
+            index = (offsets.queueItemsStartIndex ?: 0) + queuedIndex,
+            focusKind = TaskRefreshFocusKind.QUEUED_TASK,
+            taskId = requestedTaskId,
+        )
+    }
+
+    return null
+}
+
 internal fun resolveTaskRefreshScrollIndex(snapshot: WorkflowSnapshot): Int {
     return resolveTaskRefreshScrollTarget(snapshot).index
 }
@@ -175,7 +214,7 @@ internal fun resolveRequestedApprovalScrollTarget(
 }
 
 private fun resolveTaskSectionOffsets(snapshot: WorkflowSnapshot): TaskSectionOffsets {
-    var nextIndex = 1
+    var nextIndex = 2
     if (snapshot.todos.isNotEmpty()) {
         nextIndex += 1
     }

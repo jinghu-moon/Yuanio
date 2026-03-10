@@ -19,7 +19,7 @@ class WorkflowRefreshScrollTargetsTest {
         )
 
         assertEquals(TaskRefreshFocusKind.LATEST_SUMMARY, resolveTaskRefreshScrollTarget(snapshot).focusKind)
-        assertEquals(6, resolveTaskRefreshScrollIndex(snapshot))
+        assertEquals(7, resolveTaskRefreshScrollIndex(snapshot))
     }
 
     @Test
@@ -30,7 +30,7 @@ class WorkflowRefreshScrollTargetsTest {
         )
 
         assertEquals(TaskRefreshFocusKind.RUNNING_TASK, resolveTaskRefreshScrollTarget(snapshot).focusKind)
-        assertEquals(4, resolveTaskRefreshScrollIndex(snapshot))
+        assertEquals(5, resolveTaskRefreshScrollIndex(snapshot))
     }
 
     @Test
@@ -40,7 +40,7 @@ class WorkflowRefreshScrollTargetsTest {
         )
 
         assertEquals(TaskRefreshFocusKind.QUEUED_TASK, resolveTaskRefreshScrollTarget(snapshot).focusKind)
-        assertEquals(2, resolveTaskRefreshScrollIndex(snapshot))
+        assertEquals(3, resolveTaskRefreshScrollIndex(snapshot))
     }
 
     @Test
@@ -111,7 +111,7 @@ class WorkflowRefreshScrollTargetsTest {
         )
 
         assertEquals(TaskRefreshFocusKind.RUNNING_TASK, target?.focusKind)
-        assertEquals(3, target?.index)
+        assertEquals(4, target?.index)
     }
 
     @Test
@@ -130,7 +130,27 @@ class WorkflowRefreshScrollTargetsTest {
         )
 
         assertEquals(TaskRefreshFocusKind.QUEUED_TASK, target?.focusKind)
-        assertEquals(3, target?.index)
+        assertEquals(4, target?.index)
+    }
+
+    @Test
+    fun requestedTaskIdWithoutFocusFallsBackToExactRecentTask() {
+        val snapshot = WorkflowSnapshot(
+            recentTaskSummaries = listOf(
+                WorkflowTaskSummary(taskId = "task_old"),
+                WorkflowTaskSummary(taskId = "task_focus"),
+            ),
+        )
+
+        val target = resolveRequestedTaskScrollTarget(
+            requestedFocus = null,
+            requestedTaskId = "task_focus",
+            snapshot = snapshot,
+        )
+
+        assertEquals(TaskRefreshFocusKind.LATEST_SUMMARY, target?.focusKind)
+        assertEquals(4, target?.index)
+        assertEquals("task_focus", target?.taskId)
     }
 
 }

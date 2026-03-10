@@ -99,6 +99,8 @@ fun ChatMessageList(
     modifier: Modifier = Modifier,
     scrollToIndex: Int? = null,
     onScrollToIndexHandled: () -> Unit = {},
+    artifactSessionId: String? = null,
+    preferredArtifactTaskId: String? = null,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -207,7 +209,9 @@ fun ChatMessageList(
                                     isLastItem = group.index == items.lastIndex,
                                     searchActive = searchActive,
                                     searchQuery = searchQuery,
-                                    relativeTimeTick = relativeTimeTick
+                                    relativeTimeTick = relativeTimeTick,
+                                    artifactSessionId = artifactSessionId,
+                                    preferredArtifactTaskId = preferredArtifactTaskId,
                                 )
                             }
                         }
@@ -282,6 +286,8 @@ private fun ChatItemView(
     searchActive: Boolean,
     searchQuery: String,
     relativeTimeTick: Long,
+    artifactSessionId: String? = null,
+    preferredArtifactTaskId: String? = null,
 ) {
     var entered by rememberSaveable(item.stableKey) { mutableStateOf(false) }
 
@@ -313,6 +319,8 @@ private fun ChatItemView(
                     onSpeak = { callbacks.onSpeak(item.content, index) },
                     onStopSpeaking = callbacks.onStopSpeaking,
                     onTaskClick = callbacks.onTaskClick,
+                    artifactSessionId = artifactSessionId,
+                    preferredArtifactTaskId = preferredArtifactTaskId,
                     relativeTimeTick = relativeTimeTick
                 )
                 is ChatItem.ToolCall -> ToolCallCard(

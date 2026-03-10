@@ -81,6 +81,7 @@ sealed class ChatItem {
         val editedCount: Int = 0,
         val editedAt: Long? = null,
         val originalContent: String? = null,
+        val taskId: String? = null,
         override val agent: String? = null,
     ) : ChatItem()
 

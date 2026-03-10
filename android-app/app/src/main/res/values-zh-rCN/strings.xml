@@ -408,16 +408,25 @@
     <string name="home_action_open_current_result">æå¼å½åç»æ</string>
     <string name="home_empty_result_summary">ææ¶è¿æ²¡æç»ææè¦ã</string>
     <string name="results_title">ç»æä¸­å¿</string>
-    <string name="results_subtitle">æ¥çä»»å¡æè¦ãæä»¶å¥å£ä¸ Git åç»­å¨ä½ã</string>
+    <string name="results_subtitle">æ¥çä»»å¡æè¦ãæä»¶å
+¥å£ä¸ Git åç»­å¨ä½ã</string>
     <string name="results_section_current">å½åç»æ</string>
     <string name="results_section_recent">æè¿ç»æ</string>
-    <string name="results_empty">ææ¶è¿æ²¡æä»»å¡æè¦ï¼åè¿è¡ä¸ä¸ªä»»å¡ã</string>
+    <string name="results_empty">ææ¶è¿æ²¡æä»»å¡æè¦ï¼å
+è¿è¡ä¸ä¸ªä»»å¡ã</string>
     <string name="results_label_task_id">ä»»å¡</string>
     <string name="results_label_duration">èæ¶</string>
     <string name="results_label_files_changed">åæ´æä»¶</string>
     <string name="results_label_total_tokens">æ» Token</string>
     <string name="results_action_open_task">æå¼ä»»å¡ä¼è¯</string>
     <string name="results_action_open_files">æå¼æä»¶</string>
+    <string name="results_action_follow_up">ç»§ç»­è·è¿</string>
+    <string name="results_action_copy_summary">å¤å¶æè¦</string>
+    <string name="results_action_share_summary">åäº«æè¦</string>
+    <string name="results_section_saved_artifacts">å·²ä¿å­äº§ç©</string>
+    <string name="results_artifacts_empty">ææ¶è¿æ²¡æå·²ä¿å­äº§ç©ã</string>
+    <string name="results_follow_up_sent">å·²åé follow-up</string>
+    <string name="results_follow_up_failed">åé follow-up å¤±è´¥</string>
     <string name="results_action_open_git">æå¼ Git</string>
     <string name="results_summary_metrics">%1$s - %2$d ä¸ªæä»¶ - %3$d Token</string>
     <string name="home_queue_mode_sequential">串行</string>
@@ -427,6 +436,7 @@
     <string name="tasks_section_overview">总览</string>
     <string name="tasks_section_running">运行中任务</string>
     <string name="tasks_section_queue">排队中的 Prompt</string>
+    <string name="tasks_section_pinned_summary">置顶任务摘要</string>
     <string name="tasks_section_recent_summary">最近任务摘要</string>
     <string name="tasks_empty">暂无任务数据。</string>
     <string name="tasks_running_hint">点击后在聊天页打开任务详情。</string>
@@ -445,7 +455,8 @@
     <string name="approvals_action_batch_approved">已批准 %1$d 项</string>
     <string name="approvals_action_batch_rejected">已拒绝 %1$d 项</string>
     <string name="approvals_result_ready_title">å®¡æ¹å·²å¤ç</string>
-    <string name="approvals_result_ready_summary">å·²å³èæè¿ä»»å¡ï¼%1$s</string>
+    <string name="approvals_result_ready_summary">å·²å
+³èæè¿ä»»å¡ï¼%1$s</string>
     <string name="approvals_action_open_result">æå¼ç»æ</string>
     <string name="workflow_refresh_requested">已请求刷新，请等待 Agent 返回最新状态。</string>
     <string name="workflow_refresh_failed">刷新请求发送失败，请检查配对或连接状态。</string>
@@ -1155,4 +1166,38 @@
     <string name="file_utils_error_read_stream">读取文件流失败：%1$s</string>
     <string name="cd_share">分享</string>
     <string name="cd_todo">待办</string>
+    <string name="tasks_search_placeholder">&#x641C;&#x7D22;&#x4EFB;&#x52A1; ID&#x3001;&#x961F;&#x5217;&#x63D0;&#x793A;&#x8BCD;&#x3001;Git &#x6458;&#x8981;&#x3001;&#x6700;&#x8FD1;&#x804A;&#x5929;...</string>
+    <string name="task_chat_preview_title">&#x6700;&#x8FD1;&#x804A;&#x5929;</string>
+    <string name="tasks_filter_all">&#x5168;&#x90E8;</string>
+    <string name="tasks_filter_running">&#x8FD0;&#x884C;&#x4E2D;</string>
+    <string name="tasks_filter_queued">&#x6392;&#x961F;&#x4E2D;</string>
+    <string name="tasks_filter_recent">&#x6700;&#x8FD1;&#x7ED3;&#x679C;</string>
+    <string name="tasks_filter_empty">&#x5F53;&#x524D;&#x641C;&#x7D22;&#x6216;&#x7B5B;&#x9009;&#x6761;&#x4EF6;&#x4E0B;&#x6CA1;&#x6709;&#x5339;&#x914D;&#x7684;&#x4EFB;&#x52A1;&#x3002;</string>
+    <string name="file_manager_context_task">&#x5F53;&#x524D;&#x5165;&#x53E3;&#x6765;&#x81EA;&#x4EFB;&#x52A1; %1$s &#x7684;&#x7ED3;&#x679C;&#x4E0A;&#x4E0B;&#x6587;&#x3002;</string>
+    <string name="file_manager_action_open_git_status">&#x6253;&#x5F00; Git &#x72B6;&#x6001;</string>
+    <string name="git_context_task">&#x5F53;&#x524D;&#x6B63;&#x5728;&#x67E5;&#x770B;&#x4EFB;&#x52A1; %1$s &#x7684; Git &#x4E0A;&#x4E0B;&#x6587;&#x3002;</string>
+    <string name="results_mode_summary">&#x6458;&#x8981;</string>
+    <string name="results_mode_artifacts">&#x4EA7;&#x7269;</string>
+    <string name="results_section_artifact_center">&#x4EA7;&#x7269;&#x4E2D;&#x5FC3;</string>
+    <string name="results_artifacts_filter_empty">&#x5F53;&#x524D;&#x641C;&#x7D22;&#x6216;&#x7B5B;&#x9009;&#x6761;&#x4EF6;&#x4E0B;&#x6CA1;&#x6709;&#x5339;&#x914D;&#x7684;&#x5DF2;&#x4FDD;&#x5B58;&#x4EA7;&#x7269;&#x3002;</string>
+    <string name="results_artifact_search_placeholder">&#x641C;&#x7D22;&#x6807;&#x9898;&#x3001;&#x8BED;&#x8A00;&#x3001;&#x7C7B;&#x578B;&#x3001;&#x5185;&#x5BB9;...</string>
+    <string name="results_artifact_filter_all">&#x5168;&#x90E8;</string>
+    <string name="results_artifact_filter_code">&#x4EE3;&#x7801;</string>
+    <string name="results_artifact_filter_html">HTML</string>
+    <string name="results_artifact_filter_svg">SVG</string>
+    <string name="results_artifact_filter_mermaid">Mermaid</string>
+    <string name="results_artifact_total">&#x5DF2;&#x4FDD;&#x5B58;&#x4EA7;&#x7269;</string>
+    <string name="results_artifact_code">&#x4EE3;&#x7801;&#x4EA7;&#x7269;</string>
+    <string name="results_artifact_html">HTML &#x4EA7;&#x7269;</string>
+    <string name="results_artifact_svg">SVG &#x4EA7;&#x7269;</string>
+    <string name="results_artifact_mermaid">Mermaid &#x4EA7;&#x7269;</string>
+    <string name="results_artifact_visual">&#x89C6;&#x89C9;&#x4EA7;&#x7269;</string>
+    <string name="results_artifact_latest_saved">&#x6700;&#x65B0;&#x4EA7;&#x7269;</string>
+    <string name="results_artifact_origin_label">&#x6765;&#x6E90;</string>
+    <string name="home_section_artifacts">&#x4EA7;&#x7269;</string>
+    <string name="home_label_saved_artifacts">&#x5DF2;&#x4FDD;&#x5B58;&#x4EA7;&#x7269;</string>
+    <string name="home_label_latest_artifact">&#x6700;&#x65B0;&#x4EA7;&#x7269;</string>
+    <string name="home_label_latest_artifact_type">&#x4EA7;&#x7269;&#x7C7B;&#x578B;</string>
+    <string name="home_empty_artifact_summary">&#x8FD8;&#x6CA1;&#x6709;&#x5DF2;&#x4FDD;&#x5B58;&#x7684;&#x4EA7;&#x7269;&#x3002;</string>
+    <string name="home_action_open_artifact_center">&#x6253;&#x5F00;&#x4EA7;&#x7269;&#x4E2D;&#x5FC3;</string>
 </resources>

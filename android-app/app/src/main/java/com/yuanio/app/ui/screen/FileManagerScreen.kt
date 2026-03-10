@@ -75,7 +75,13 @@ private val GeistPinkSoft = Color(0xFFFFEDF4)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FileManagerScreen(onBack: () -> Unit, onNavigateGit: () -> Unit = {}, vm: FileManagerViewModel = viewModel()) {
+fun FileManagerScreen(
+    onBack: () -> Unit,
+    onNavigateGit: (String?, String?) -> Unit = { _, _ -> },
+    requestedQuery: String? = null,
+    requestedTaskId: String? = null,
+    vm: FileManagerViewModel = viewModel(),
+) {
     val path by vm.path.collectAsStateWithLifecycle()
     val entries by vm.entries.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
@@ -97,7 +103,10 @@ fun FileManagerScreen(onBack: () -> Unit, onNavigateGit: () -> Unit = {}, vm: Fi
     var uploadCommitResult by remember { mutableStateOf<UploadCommitResult?>(null) }
     var uploadedLocalUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var latestOcrText by remember { mutableStateOf<String?>(null) }
-    var search by rememberSaveable { mutableStateOf("") }
+    val normalizedRequestedTaskId = requestedTaskId?.trim().orEmpty().ifBlank { null }
+    var search by rememberSaveable(requestedQuery, requestedTaskId) {
+        mutableStateOf(requestedQuery?.trim().orEmpty())
+    }
     var filter by rememberSaveable { mutableStateOf(FileFilter.ALL) }
     val uploadLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -209,7 +218,7 @@ fun FileManagerScreen(onBack: () -> Unit, onNavigateGit: () -> Unit = {}, vm: Fi
                     statusColor = statusColor,
                     onBack = onBack,
                     onRefresh = { vm.ls(path) },
-                    onNavigateGit = onNavigateGit,
+                    onNavigateGit = { onNavigateGit(ResultGitTab.STATUS.routeValue, normalizedRequestedTaskId) },
                     onUpload = { uploadLauncher.launch(arrayOf("*/*")) },
                     onNavigateUp = if (path != ".") ({ vm.navigateUp() }) else null
                 )
@@ -226,6 +235,16 @@ fun FileManagerScreen(onBack: () -> Unit, onNavigateGit: () -> Unit = {}, vm: Fi
                         }
                     },
                 )
+            }
+            if (normalizedRequestedTaskId != null) {
+                item {
+                    FileResultContextCard(
+                        taskId = normalizedRequestedTaskId,
+                        onOpenGitStatus = {
+                            onNavigateGit(ResultGitTab.STATUS.routeValue, normalizedRequestedTaskId)
+                        },
+                    )
+                }
             }
             if (uploadState.active || uploadState.status.isNotBlank()) {
                 item {
@@ -588,6 +607,32 @@ private fun FileHeaderCard(
                         onClick = onNavigateUp
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FileResultContextCard(
+    taskId: String,
+    onOpenGitStatus: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.file_manager_context_task, taskId),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlinedButton(onClick = onOpenGitStatus) {
+                Text(stringResource(R.string.file_manager_action_open_git_status))
             }
         }
     }

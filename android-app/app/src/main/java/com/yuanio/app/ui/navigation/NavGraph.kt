@@ -105,7 +105,7 @@ fun YuanioNavGraph(
                     onOpenSessions = { navController.navigate(Screen.Sessions.route) { launchSingleTop = true } },
                     onOpenTerminal = { navController.navigate(Screen.Terminal.route) { launchSingleTop = true } },
                     onOpenEnvironment = { navController.navigate(Screen.Environment.route) { launchSingleTop = true } },
-                    onOpenFiles = { navController.navigate(Screen.Files.route) { launchSingleTop = true } },
+                    onOpenFiles = { navController.navigate(Screen.Files.routeWithContext()) { launchSingleTop = true } },
                     onOpenSkills = { navController.navigate(Screen.Skills.route) { launchSingleTop = true } },
                     onOpenTasks = { navController.navigate(Screen.Tasks.route) { launchSingleTop = true } },
                     onOpenTaskSummary = { focusKind, taskId ->
@@ -123,7 +123,12 @@ fun YuanioNavGraph(
                         navController.navigate(Screen.Chat.routeWithTask(taskId)) { launchSingleTop = true }
                     },
                     onOpenResults = {
-                        navController.navigate(Screen.Results.routeWithTask("")) { launchSingleTop = true }
+                        navController.navigate(Screen.Results.routeWithContext()) { launchSingleTop = true }
+                    },
+                    onOpenArtifactCenter = {
+                        navController.navigate(
+                            Screen.Results.routeWithContext(mode = com.yuanio.app.ui.screen.ResultCenterMode.ARTIFACTS.routeValue)
+                        ) { launchSingleTop = true }
                     },
                     onOpenResultDetail = { taskId ->
                         navController.navigate(Screen.Results.routeWithTask(taskId)) { launchSingleTop = true }
@@ -160,7 +165,7 @@ fun YuanioNavGraph(
             ) { entry ->
                 ChatScreen(
                     onNavigateSessions = { navController.navigate(Screen.Sessions.route) },
-                    onNavigateFiles = { navController.navigate(Screen.Files.route) },
+                    onNavigateFiles = { navController.navigate(Screen.Files.routeWithContext()) },
                     onNavigateTerminal = { navController.navigate(Screen.Terminal.route) },
                     onNewSession = {
                         navController.navigate(Screen.Chat.routeWithSession("__new__")) {
@@ -206,14 +211,60 @@ fun YuanioNavGraph(
                     requestedApprovalId = entry.arguments?.getString("approvalId"),
                 )
             }
-            composable(Screen.Files.route) {
-                FileManagerScreen(
+            composable(
+                Screen.Results.route,
+                arguments = listOf(
+                    navArgument("taskId") { nullable = true; defaultValue = null },
+                    navArgument("mode") { nullable = true; defaultValue = null },
+                )
+            ) { entry ->
+                ResultCenterScreen(
                     onBack = { navController.popBackStack() },
-                    onNavigateGit = { navController.navigate(Screen.Git.route) }
+                    onOpenTaskDetail = { taskId ->
+                        navController.navigate(Screen.Chat.routeWithTask(taskId)) { launchSingleTop = true }
+                    },
+                    onOpenFiles = { query, taskId ->
+                        navController.navigate(Screen.Files.routeWithContext(query = query, taskId = taskId)) { launchSingleTop = true }
+                    },
+                    onOpenGit = { tab, taskId ->
+                        navController.navigate(Screen.Git.routeWithContext(tab = tab, taskId = taskId)) { launchSingleTop = true }
+                    },
+                    onOpenArtifactOrigin = { sessionId, taskId ->
+                        navController.navigate(Screen.Chat.routeWithContext(sessionId = sessionId, taskId = taskId)) { launchSingleTop = true }
+                    },
+                    onOpenHome = { navController.navigate(Screen.Home.route) { launchSingleTop = true } },
+                    requestedTaskId = entry.arguments?.getString("taskId"),
+                    requestedMode = entry.arguments?.getString("mode"),
                 )
             }
-            composable(Screen.Git.route) {
-                GitScreen(onBack = { navController.popBackStack() })
+            composable(
+                Screen.Files.route,
+                arguments = listOf(
+                    navArgument("query") { nullable = true; defaultValue = null },
+                    navArgument("taskId") { nullable = true; defaultValue = null },
+                )
+            ) { entry ->
+                FileManagerScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateGit = { tab, taskId ->
+                        navController.navigate(Screen.Git.routeWithContext(tab = tab, taskId = taskId)) { launchSingleTop = true }
+                    },
+                    requestedQuery = entry.arguments?.getString("query"),
+                    requestedTaskId = entry.arguments?.getString("taskId"),
+                )
+            }
+            composable(
+                Screen.Git.route,
+                arguments = listOf(
+                    navArgument("tab") { nullable = true; defaultValue = null },
+                    navArgument("taskId") { nullable = true; defaultValue = null },
+                )
+            ) { entry ->
+                GitScreen(
+                    onBack = { navController.popBackStack() },
+                    requestedTab = entry.arguments?.getString("tab"),
+                    requestedTaskId = entry.arguments?.getString("taskId"),
+                )
             }
             composable(Screen.Skills.route) {
                 SkillsScreen(onBack = { navController.popBackStack() })

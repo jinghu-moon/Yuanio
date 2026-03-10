@@ -90,9 +90,9 @@
 ## Phase P4 - Performance Layer
 - status: `completed`
 - summary:
-  - Captured compose metrics baseline and kept `StreamingMarkdown` / `MessageRepository` deferred by evidence.
+  - Captured compose metrics baseline; approved lightweight `StreamingMarkdown` sanitizer via K03 evidence; `MessageRepository` remains deferred.
   - Improved chat auto-scroll and search debounce.
-  - Kept markdown/LRU work deferred because metrics baseline is already acceptable.
+  - Heavy renderer/LRU work remains deferred because metrics baseline is already acceptable.
 - key_targets:
   - `android-app/app/build.gradle.kts`
   - `android-app/app/src/main/java/com/yuanio/app/ui/chat/ChatMessageList.kt`
@@ -168,7 +168,7 @@
 
 ## Backfill Notes (2026-03-09)
 - `P3`: `ApprovalCard` now dismisses with local `fadeOut + scaleOut(0.97f)` before approval callbacks fire.
-- `P4`: `TerminalPerformanceTest --info` passed; `StreamingMarkdown` and `MessageRepository` stay deferred.
+- `P4`: `TerminalPerformanceTest --info` passed; `StreamingMarkdown` 仅启用轻量补全，`MessageRepository` 仍延后。
 - `P6`: targeted chat/terminal surfaces no longer use `ic_ms_*`; brand icons render with intrinsic colors; `ChatMessageList` adds `fadeIn + slideInVertically`.
 
 ## Verification Record

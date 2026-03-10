@@ -5,8 +5,18 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
@@ -25,51 +35,62 @@ fun ArtifactCard(
     code: String,
     lang: String,
     type: ArtifactType,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    artifactIdOverride: String? = null,
+    title: String = "",
+    shareText: String? = null,
+    taskId: String? = null,
+    sessionId: String? = null,
+    sourceHint: String? = null,
+    onSavedStateChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
     val copiedText = stringResource(R.string.common_copied)
-    val shareText = stringResource(R.string.common_share)
+    val shareChooserText = stringResource(R.string.common_share)
     val unsavedText = stringResource(R.string.artifact_toast_unsaved)
     val savedText = stringResource(R.string.artifact_toast_saved)
-    val artifactId = remember(code) {
-        code.hashCode().toUInt().toString(16)
+    val artifactId = remember(code, lang, type, title, artifactIdOverride) {
+        artifactIdOverride?.trim()?.takeIf { it.isNotBlank() } ?: buildStableArtifactId(
+            code = code,
+            lang = lang,
+            type = type,
+            title = title,
+        )
     }
-    var isSaved by remember { mutableStateOf(ArtifactStore.isSaved(artifactId)) }
-    var expanded by remember { mutableStateOf(true) }
+    var isSaved by remember(artifactId) { mutableStateOf(ArtifactStore.isSaved(artifactId)) }
+    var expanded by remember(code, type) { mutableStateOf(true) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
     ) {
-        // Header
         ArtifactHeader(
             lang = lang,
             type = type,
-            expanded = expanded,
             isSaved = isSaved,
             onToggle = { expanded = !expanded },
             onCopy = {
                 clipboard.nativeClipboard.setPrimaryClip(
-                    ClipData.newPlainText("artifact", code)
+                    ClipData.newPlainText("artifact", code),
                 )
                 Toast.makeText(context, copiedText, Toast.LENGTH_SHORT).show()
             },
             onShare = {
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     this.type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, code)
+                    putExtra(Intent.EXTRA_TEXT, shareText ?: code)
                 }
-                context.startActivity(Intent.createChooser(intent, shareText))
+                context.startActivity(Intent.createChooser(intent, shareChooserText))
             },
             onSave = {
                 if (isSaved) {
                     ArtifactStore.remove(artifactId)
                     isSaved = false
+                    onSavedStateChanged(false)
                     Toast.makeText(context, unsavedText, Toast.LENGTH_SHORT).show()
                 } else {
                     ArtifactStore.save(
@@ -78,32 +99,47 @@ fun ArtifactCard(
                             type = type,
                             lang = lang,
                             content = code,
-                            title = lang.ifBlank { type.name }
-                        )
+                            title = title.ifBlank { lang.ifBlank { type.name } },
+                            taskId = taskId?.trim()?.ifBlank { null },
+                            sessionId = sessionId?.trim()?.ifBlank { null },
+                            sourceHint = sourceHint?.trim()?.ifBlank { null },
+                        ),
                     )
                     isSaved = true
+                    onSavedStateChanged(true)
                     Toast.makeText(context, savedText, Toast.LENGTH_SHORT).show()
                 }
-            }
+            },
         )
 
-        // Content
         if (expanded) {
             ArtifactContent(code = code, type = type)
         }
     }
 }
 
+private fun buildStableArtifactId(
+    code: String,
+    lang: String,
+    type: ArtifactType,
+    title: String,
+): String {
+    return listOf(type.name, lang, title, code)
+        .joinToString(separator = "::yuanio::")
+        .hashCode()
+        .toUInt()
+        .toString(16)
+}
+
 @Composable
 private fun ArtifactHeader(
     lang: String,
     type: ArtifactType,
-    expanded: Boolean,
     isSaved: Boolean,
     onToggle: () -> Unit,
     onCopy: () -> Unit,
     onShare: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
 ) {
     val cdCopy = stringResource(R.string.cd_copy)
     val cdShare = stringResource(R.string.cd_share)
@@ -114,9 +150,8 @@ private fun ArtifactHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 类型标签
         SuggestionChip(
             onClick = onToggle,
             label = {
@@ -127,36 +162,33 @@ private fun ArtifactHeader(
                         ArtifactType.MERMAID -> "Mermaid"
                         ArtifactType.CODE -> lang.ifBlank { "Code" }
                     },
-                    fontSize = 11.sp
+                    fontSize = 11.sp,
                 )
-            }
+            },
         )
         Spacer(Modifier.weight(1f))
-        // 操作按钮
         IconButton(onClick = onCopy, modifier = Modifier.size(32.dp)) {
             Icon(
                 painter = painterResource(R.drawable.ic_tb_copy),
                 contentDescription = cdCopy,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp),
             )
         }
         IconButton(onClick = onShare, modifier = Modifier.size(32.dp)) {
             Icon(
                 painter = painterResource(R.drawable.ic_tb_share),
                 contentDescription = cdShare,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(16.dp),
             )
         }
         IconButton(onClick = onSave, modifier = Modifier.size(32.dp)) {
             Icon(
                 painter = painterResource(
-                    if (isSaved) R.drawable.ic_tb_bookmark_filled
-                    else R.drawable.ic_tb_bookmark
+                    if (isSaved) R.drawable.ic_tb_bookmark_filled else R.drawable.ic_tb_bookmark,
                 ),
                 contentDescription = if (isSaved) cdUnsave else cdSave,
                 modifier = Modifier.size(16.dp),
-                tint = if (isSaved) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.outline
+                tint = if (isSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
             )
         }
     }
@@ -169,11 +201,9 @@ private fun ArtifactContent(code: String, type: ArtifactType) {
             ArtifactWebView(
                 content = code,
                 type = type,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
-        ArtifactType.CODE -> {
-            // CODE 类型不在此渲染，由 MarkdownText 原有 CodeBlock 处理
-        }
+        ArtifactType.CODE -> Unit
     }
 }

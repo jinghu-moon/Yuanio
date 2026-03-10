@@ -6,6 +6,44 @@ import androidx.security.crypto.MasterKey
 import org.json.JSONArray
 import org.json.JSONObject
 
+internal data class ChatHistoryEntry(
+    val type: String,
+    val content: String,
+    val taskId: String? = null,
+    val agent: String? = null,
+    val ts: Long = 0L,
+)
+
+internal fun encodeChatHistoryEntries(items: List<ChatHistoryEntry>): String {
+    val arr = JSONArray()
+    items.forEach { item ->
+        val obj = JSONObject()
+            .put("t", item.type)
+            .put("c", item.content)
+        item.taskId?.trim()?.takeIf { it.isNotBlank() }?.let { obj.put("taskId", it) }
+        item.agent?.trim()?.takeIf { it.isNotBlank() }?.let { obj.put("agent", it) }
+        if (item.ts > 0L) obj.put("ts", item.ts)
+        arr.put(obj)
+    }
+    return arr.toString()
+}
+
+internal fun decodeChatHistoryEntries(json: String): List<ChatHistoryEntry> {
+    val arr = runCatching { JSONArray(json) }.getOrElse { return emptyList() }
+    return (0 until arr.length()).mapNotNull { index ->
+        val obj = arr.optJSONObject(index) ?: return@mapNotNull null
+        val type = obj.optString("t", "").trim()
+        if (type.isBlank()) return@mapNotNull null
+        ChatHistoryEntry(
+            type = type,
+            content = obj.optString("c", ""),
+            taskId = obj.optString("taskId", "").trim().ifBlank { null },
+            agent = obj.optString("agent", "").trim().ifBlank { null },
+            ts = obj.optLong("ts", 0L),
+        )
+    }
+}
+
 class ChatHistory(context: Context) {
     private val prefs = EncryptedSharedPreferences.create(
         context, "yuanio_history",
@@ -15,29 +53,36 @@ class ChatHistory(context: Context) {
     )
 
     fun save(sessionId: String, items: List<Pair<String, String>>) {
-        val arr = JSONArray()
-        for ((type, content) in items) {
-            arr.put(JSONObject().put("t", type).put("c", content))
-        }
+        saveEntries(
+            sessionId = sessionId,
+            items = items.map { (type, content) ->
+                ChatHistoryEntry(type = type, content = content, ts = System.currentTimeMillis())
+            },
+        )
+    }
+
+    internal fun saveEntries(sessionId: String, items: List<ChatHistoryEntry>) {
         val edit = prefs.edit()
-        edit.putString(sessionId, arr.toString())
-        // 保存元数据：最后更新时间、消息数、预览
-        val preview = items.lastOrNull()?.second?.take(80) ?: ""
-        edit.putString("_meta:$sessionId", JSONObject()
-            .put("updatedAt", System.currentTimeMillis())
-            .put("count", items.size)
-            .put("preview", preview)
-            .toString())
+        edit.putString(sessionId, encodeChatHistoryEntries(items))
+        val preview = items.lastOrNull()?.content?.take(80) ?: ""
+        edit.putString(
+            "_meta:$sessionId",
+            JSONObject()
+                .put("updatedAt", System.currentTimeMillis())
+                .put("count", items.size)
+                .put("preview", preview)
+                .toString(),
+        )
         edit.apply()
     }
 
     fun load(sessionId: String): List<Pair<String, String>> {
+        return loadEntries(sessionId).map { it.type to it.content }
+    }
+
+    internal fun loadEntries(sessionId: String): List<ChatHistoryEntry> {
         val json = prefs.getString(sessionId, null) ?: return emptyList()
-        val arr = JSONArray(json)
-        return (0 until arr.length()).map { i ->
-            val obj = arr.getJSONObject(i)
-            obj.getString("t") to obj.getString("c")
-        }
+        return decodeChatHistoryEntries(json)
     }
 
     fun sessions(): Set<String> = prefs.all.keys.filter { !it.startsWith("_meta:") }.toSet()
@@ -106,9 +151,9 @@ class ChatHistory(context: Context) {
         val q = query.lowercase()
         return sessionList().filter { meta ->
             meta.title.lowercase().contains(q)
-                    || meta.preview.lowercase().contains(q)
-                    || meta.id.lowercase().contains(q)
-                    || meta.tags.any { it.lowercase().contains(q) }
+                || meta.preview.lowercase().contains(q)
+                || meta.id.lowercase().contains(q)
+                || meta.tags.any { it.lowercase().contains(q) }
         }
     }
 }

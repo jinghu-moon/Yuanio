@@ -10,20 +10,35 @@ sealed class Screen(val route: String) {
     data object Sessions : Screen("sessions")
     data object Chat : Screen("chat?sessionId={sessionId}&taskId={taskId}") {
         fun routeWithSession(sessionId: String? = null): String {
-            return if (sessionId.isNullOrBlank()) "chat" else "chat?sessionId=${encodeQueryValue(sessionId)}"
+            return routeWithContext(sessionId = sessionId)
         }
 
         fun routeWithTask(taskId: String): String {
-            val normalized = taskId.trim()
-            return if (normalized.isBlank()) {
-                "chat"
-            } else {
-                "chat?taskId=${encodeQueryValue(normalized)}"
-            }
+            return routeWithContext(taskId = taskId)
+        }
+
+        fun routeWithContext(sessionId: String? = null, taskId: String? = null): String {
+            return buildOptionalQueryRoute(
+                base = "chat",
+                params = listOf(
+                    "sessionId" to sessionId,
+                    "taskId" to taskId,
+                ),
+            )
         }
     }
     data object Settings : Screen("settings")
-    data object Files : Screen("files")
+    data object Files : Screen("files?query={query}&taskId={taskId}") {
+        fun routeWithContext(query: String? = null, taskId: String? = null): String {
+            return buildOptionalQueryRoute(
+                base = "files",
+                params = listOf(
+                    "query" to query,
+                    "taskId" to taskId,
+                ),
+            )
+        }
+    }
     data object Skills : Screen("skills")
     data object Tasks : Screen("tasks?focus={focus}&taskId={taskId}") {
         fun routeWithFocusLatest(): String {
@@ -51,20 +66,54 @@ sealed class Screen(val route: String) {
             }
         }
     }
-    data object Results : Screen("results?taskId={taskId}") {
+    data object Results : Screen("results?taskId={taskId}&mode={mode}") {
         fun routeWithTask(taskId: String): String {
-            val normalized = taskId.trim()
-            return if (normalized.isBlank()) {
-                "results"
-            } else {
-                "results?taskId=${encodeQueryValue(normalized)}"
-            }
+            return routeWithContext(taskId = taskId)
+        }
+
+        fun routeWithContext(taskId: String? = null, mode: String? = null): String {
+            return buildOptionalQueryRoute(
+                base = "results",
+                params = listOf(
+                    "taskId" to taskId,
+                    "mode" to mode,
+                ),
+            )
         }
     }
     data object Terminal : Screen("terminal")
-    data object Git : Screen("git")
+    data object Git : Screen("git?tab={tab}&taskId={taskId}") {
+        fun routeWithContext(tab: String? = null, taskId: String? = null): String {
+            return buildOptionalQueryRoute(
+                base = "git",
+                params = listOf(
+                    "tab" to tab,
+                    "taskId" to taskId,
+                ),
+            )
+        }
+    }
 }
 
 private fun encodeQueryValue(value: String): String {
     return URLEncoder.encode(value, StandardCharsets.UTF_8.toString())
+}
+
+private fun buildOptionalQueryRoute(
+    base: String,
+    params: List<Pair<String, String?>>,
+): String {
+    val query = params.mapNotNull { (key, rawValue) ->
+        val value = rawValue?.trim().orEmpty()
+        if (value.isBlank()) {
+            null
+        } else {
+            "$key=${encodeQueryValue(value)}"
+        }
+    }
+    return if (query.isEmpty()) {
+        base
+    } else {
+        "$base?${query.joinToString("&")}"
+    }
 }

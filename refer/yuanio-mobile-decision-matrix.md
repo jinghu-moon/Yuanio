@@ -28,7 +28,7 @@
 |---|---|---|---|---|---|
 | K01 | 现阶段不引入 `Hilt` | `ADR-1`, `P5` | `keep-out` | 继续禁止在 `android-app` 引入 `@HiltAndroidApp` / `@AndroidEntryPoint` | 目前没有必须用 Hilt 才能解决的结构问题 |
 | K02 | 不重建 `GlobalSessionManager` | `§3.3`, `P5` | `keep-out` | 继续沿用 `SessionGateway` 路线 | 当前替代方案已满足跨 Screen 会话共享 |
-| K03 | `StreamingMarkdown` 保持条件延后 | `ADR-4`, `P4` | `deferred` | 仅在性能门失败后重开 | 当前 `TerminalPerformanceTest` 证据不足以支持引入复杂度 |
+| K03 | `StreamingMarkdown` 按证据重开（轻量补全） | `ADR-4`, `P4` | `implemented` | 以轻量补全处理未闭合标签，复杂渲染需新证据 | 用户反馈流式 Markdown 闪烁，准入证据见 `.ai/analysis/k03-streaming-markdown-reentry.json` |
 | K04 | `MessageRepository` LRU / 分页保持条件延后 | `ADR-4`, `P4` | `deferred` | 仅在 OOM / 长时间线退化出现后重开 | 当前没有内存与长列表异常证据 |
 
 ## C. 现在值得继续做的固化项
@@ -45,7 +45,7 @@
 
 ## 使用原则
 
-- 没有新证据，不重开 `Hilt` / `GlobalSessionManager` / `StreamingMarkdown` / `MessageRepository`。
+- 没有新证据，不重开 `Hilt` / `GlobalSessionManager` / `MessageRepository`；`StreamingMarkdown` 已按证据启用轻量补全，进一步扩展仍需新证据。
 - 新的 Android 行为改动，先补验证，再宣称“完成”。
 - 每次触及 Android 架构边界后，运行 `bun run check:android-guards`。
 - 每次尝试引入 `StreamingMarkdown` / `MessageRepository` 前，先运行 `bun run check:android-deferred-gates` 并补齐证据文件。

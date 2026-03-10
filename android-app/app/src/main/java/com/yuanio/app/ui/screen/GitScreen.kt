@@ -29,7 +29,12 @@ private enum class GitTab {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GitScreen(onBack: () -> Unit, vm: GitViewModel = viewModel()) {
+fun GitScreen(
+    onBack: () -> Unit,
+    requestedTab: String? = null,
+    requestedTaskId: String? = null,
+    vm: GitViewModel = viewModel(),
+) {
     val status by vm.status.collectAsStateWithLifecycle()
     val log by vm.log.collectAsStateWithLifecycle()
     val branchInfo by vm.branchInfo.collectAsStateWithLifecycle()
@@ -38,9 +43,17 @@ fun GitScreen(onBack: () -> Unit, vm: GitViewModel = viewModel()) {
     val error by vm.error.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    var selectedTab by remember { mutableStateOf(GitTab.STATUS) }
+    val normalizedRequestedTaskId = requestedTaskId?.trim().orEmpty().ifBlank { null }
+    var selectedTab by remember(requestedTab) { mutableStateOf(resolveRequestedGitTab(requestedTab)) }
 
     LaunchedEffect(Unit) { vm.connect() }
+    LaunchedEffect(requestedTab) {
+        when (resolveRequestedGitTab(requestedTab)) {
+            GitTab.STATUS -> Unit
+            GitTab.LOG -> vm.fetchLog()
+            GitTab.BRANCH -> vm.fetchBranches()
+        }
+    }
     LaunchedEffect(error) {
         error?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); vm.clearError() }
     }
@@ -118,6 +131,9 @@ fun GitScreen(onBack: () -> Unit, vm: GitViewModel = viewModel()) {
                     )
                 }
             }
+            if (normalizedRequestedTaskId != null) {
+                GitTaskContextCard(taskId = normalizedRequestedTaskId)
+            }
 
             Box(Modifier.fillMaxSize()) {
                 when (selectedTab) {
@@ -130,6 +146,29 @@ fun GitScreen(onBack: () -> Unit, vm: GitViewModel = viewModel()) {
                 }
             }
         }
+    }
+}
+
+private fun resolveRequestedGitTab(requestedTab: String?): GitTab {
+    return when (requestedTab?.trim()?.lowercase()) {
+        "log" -> GitTab.LOG
+        "branch" -> GitTab.BRANCH
+        else -> GitTab.STATUS
+    }
+}
+
+@Composable
+private fun GitTaskContextCard(taskId: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.git_context_task, taskId),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 

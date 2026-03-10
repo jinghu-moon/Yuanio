@@ -1,4 +1,4 @@
-﻿package com.yuanio.app.ui.component
+package com.yuanio.app.ui.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -8,12 +8,22 @@ import com.mikepenz.markdown.m3.Markdown
 import com.yuanio.app.data.ArtifactType
 
 /**
- * 原生 Markdown 渲染（Compose 节点，不使用 WebView）。
- * 仅在检测到 HTML/SVG/Mermaid 等 artifact 代码块时分流到 ArtifactCard。
+ * ?? Markdown ???Compose ?????? WebView??
+ * ????? HTML/SVG/Mermaid ? artifact ??????? ArtifactCard?
  */
 @Composable
-fun MarkdownText(text: String, modifier: Modifier = Modifier) {
-    val blocks = remember(text) { splitCodeBlocks(text) }
+fun MarkdownText(
+    text: String,
+    modifier: Modifier = Modifier,
+    artifactSessionId: String? = null,
+    artifactTaskId: String? = null,
+    artifactSourceHint: String? = null,
+    isStreaming: Boolean = false,
+) {
+    val renderText = remember(text, isStreaming) {
+        if (isStreaming) sanitizeStreamingMarkdown(text) else text
+    }
+    val blocks = remember(renderText) { splitCodeBlocks(renderText) }
     Column(modifier) {
         blocks.forEach { block ->
             if (!block.isCode) {
@@ -24,7 +34,10 @@ fun MarkdownText(text: String, modifier: Modifier = Modifier) {
                     ArtifactCard(
                         code = block.content,
                         lang = block.lang,
-                        type = artifactType
+                        type = artifactType,
+                        taskId = artifactTaskId,
+                        sessionId = artifactSessionId,
+                        sourceHint = artifactSourceHint,
                     )
                 } else {
                     val fenced = buildString {

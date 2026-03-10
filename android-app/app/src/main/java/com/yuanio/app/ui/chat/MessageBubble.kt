@@ -67,6 +67,8 @@ fun MessageBubble(
     onSpeak: () -> Unit = {},
     onStopSpeaking: () -> Unit = {},
     onTaskClick: (String) -> Unit = {},
+    artifactSessionId: String? = null,
+    preferredArtifactTaskId: String? = null,
     relativeTimeTick: Long = System.currentTimeMillis(),
 ) {
     val isUser = msg.role == "user"
@@ -83,7 +85,19 @@ fun MessageBubble(
     val cdRead = stringResource(R.string.tts_read_aloud)
     var showMenu by remember { mutableStateOf(false) }
     val relativeTime = formatRelativeTime(msg.ts, relativeTimeTick)
-    val taskIds = remember(msg.content) { extractTaskIds(msg.content) }
+    val taskIds = remember(msg.taskId, msg.content) {
+        resolveMessageTaskIds(
+            messageTaskId = msg.taskId,
+            content = msg.content,
+        )
+    }
+    val artifactTaskId = remember(msg.taskId, preferredArtifactTaskId, msg.content) {
+        resolveArtifactTaskId(
+            messageTaskId = msg.taskId,
+            preferredArtifactTaskId = preferredArtifactTaskId,
+            content = msg.content,
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -124,14 +138,20 @@ fun MessageBubble(
                 }
                 if (searchQuery.isNotBlank()) {
                     HighlightedText(text = msg.content, query = searchQuery)
-                } else if (isUser || isStreaming) {
+                } else if (isUser) {
                     Text(
                         msg.content,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 } else {
-                    MarkdownText(msg.content)
+                    MarkdownText(
+                        text = msg.content,
+                        artifactSessionId = artifactSessionId,
+                        artifactTaskId = artifactTaskId,
+                        artifactSourceHint = msg.agent ?: msg.role,
+                        isStreaming = isStreaming,
+                    )
                 }
                 if (!isUser && taskIds.isNotEmpty()) {
                     Row(
@@ -218,9 +238,33 @@ fun MessageBubble(
     }
 }
 
+internal fun resolveArtifactTaskId(
+    messageTaskId: String?,
+    preferredArtifactTaskId: String?,
+    content: String,
+): String? {
+    return normalizeMessageTaskId(messageTaskId)
+        ?: normalizeMessageTaskId(preferredArtifactTaskId)
+        ?: extractTaskIds(content).firstOrNull()
+}
+
+internal fun resolveMessageTaskIds(
+    messageTaskId: String?,
+    content: String,
+): List<String> {
+    val ids = linkedSetOf<String>()
+    normalizeMessageTaskId(messageTaskId)?.let(ids::add)
+    extractTaskIds(content).forEach(ids::add)
+    return ids.toList()
+}
+
+private fun normalizeMessageTaskId(taskId: String?): String? {
+    return taskId?.trim()?.ifBlank { null }
+}
+
 private fun extractTaskIds(content: String): List<String> {
     val ids = linkedSetOf<String>()
-    Regex("""(?m)^\s*-\s*([a-zA-Z0-9._:-]{6,})\s+·""")
+    Regex("""(?m)^\s*-\s*([a-zA-Z0-9._:-]{6,})\b""")
         .findAll(content)
         .forEach { ids.add(it.groupValues[1]) }
     Regex("""/task\s+([a-zA-Z0-9._:-]{6,})""")

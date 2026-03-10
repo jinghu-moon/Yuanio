@@ -179,17 +179,22 @@
   - `.ai/analysis/20260309-p4-performance-gate.md`
 
 ### P4-N6
-- status: `conditional`
+- status: `done`
 - target:
-  - `android-app/app/src/main/java/com/yuanio/app/ui/component/StreamingMarkdown.kt`
-- action: keep `StreamingMarkdown` deferred because `P4-N5` passed and no renderer insufficiency was observed in the current baseline
-- why: the blueprint marks this as a conditional optimization, not a default build-out
+  - `android-app/app/src/main/java/com/yuanio/app/ui/component/StreamingMarkdownSanitizer.kt`
+  - `android-app/app/src/main/java/com/yuanio/app/ui/component/MarkdownText.kt`
+  - `android-app/app/src/main/java/com/yuanio/app/ui/chat/MessageBubble.kt`
+  - `.ai/analysis/k03-streaming-markdown-reentry.json`
+- action: implement a lightweight streaming sanitizer for unclosed markdown tokens while keeping the heavy renderer deferred
+- why: the blueprint keeps streaming renderer conditional, but user evidence shows real streaming flicker; a minimal sanitizer is approved by K03 evidence
 - depends_on: `[P4-N5]`
 - verify:
-  - cmd: `cd android-app && ./gradlew :app:testDebugUnitTest --tests "*TerminalPerformanceTest" --console=plain --info`
+  - cmd: `cd android-app && ./gradlew :app:testDebugUnitTest --tests "*StreamingMarkdownSanitizerTest" --console=plain`
   - pass_signal: `BUILD SUCCESSFUL`
+  - gate_cmd: `python tools/check_android_deferred_reentry.py`
+  - gate_pass_signal: `Deferred re-entry gate passed`
 - risk_level: `medium`
-- tdd_required: `false`
+- tdd_required: `true`
 
 ### P4-N7
 - status: `conditional`
