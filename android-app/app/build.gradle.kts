@@ -1,4 +1,4 @@
-﻿import java.io.FileInputStream
+import java.io.FileInputStream
 import java.util.Properties
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
@@ -6,34 +6,68 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.yuanio.app"
+    namespace = "sy.yuanio.app"
     compileSdk = 36
 
     val keystoreProperties = Properties()
-    val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
-    if (keystorePropertiesFile.exists()) {
+    val localPropertiesFile = rootProject.file("local.properties")
+    val legacyKeystorePropertiesFile = rootProject.file("keystore/keystore.properties")
+    val keystorePropertiesFile = sequenceOf(localPropertiesFile, legacyKeystorePropertiesFile)
+        .firstOrNull { it.exists() }
+    if (keystorePropertiesFile != null) {
         keystoreProperties.load(FileInputStream(keystorePropertiesFile))
     }
 
+    fun signingValue(vararg keys: String): String? {
+        return keys.firstNotNullOfOrNull { key ->
+            keystoreProperties.getProperty(key)?.takeIf { it.isNotBlank() }
+        }
+    }
+
     defaultConfig {
-        applicationId = "com.yuanio.app"
+        applicationId = "sy.yuanio.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
     }
 
+    flavorDimensions += "mlkit"
+    productFlavors {
+        create("full") {
+            dimension = "mlkit"
+            buildConfigField("boolean", "FEATURE_TRANSLATION", "true")
+            buildConfigField("boolean", "FEATURE_OCR", "true")
+        }
+        create("lite") {
+            dimension = "mlkit"
+            buildConfigField("boolean", "FEATURE_TRANSLATION", "false")
+            buildConfigField("boolean", "FEATURE_OCR", "false")
+            applicationIdSuffix = ".lite"
+            versionNameSuffix = "-lite"
+        }
+    }
+
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        val storeFileValue = signingValue("releaseStoreFile", "storeFile")
+        val storePasswordValue = signingValue("releaseStorePassword", "storePassword")
+        val keyAliasValue = signingValue("releaseKeyAlias", "keyAlias")
+        val keyPasswordValue = signingValue("releaseKeyPassword", "keyPassword")
+        if (
+            keystorePropertiesFile != null &&
+            storeFileValue != null &&
+            storePasswordValue != null &&
+            keyAliasValue != null &&
+            keyPasswordValue != null
+        ) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(storeFileValue)
+                storePassword = storePasswordValue
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
             }
         }
     }
@@ -46,9 +80,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (keystorePropertiesFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 
@@ -58,14 +90,13 @@ android {
     }
 
     val isBundleBuild = gradle.startParameter.taskNames.any { it.contains("bundle", ignoreCase = true) }
-    val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
     splits {
         abi {
-            // 快速开发期不追求 release ABI split，避免 assembleRelease 在 shrink/minify 链路上发生冲突
-            isEnable = !isBundleBuild && !isReleaseTask
-            if (!isBundleBuild && !isReleaseTask) {
+            // 非 bundle 构建启用 ABI 拆分，产出更小的 release APK
+            isEnable = !isBundleBuild
+            if (!isBundleBuild) {
                 reset()
-                include("arm64-v8a")
+                include("arm64-v8a", "armeabi-v7a", "x86_64")
                 isUniversalApk = false
             }
         }
@@ -140,10 +171,9 @@ dependencies {
     // Biometric
     implementation("androidx.biometric:biometric:1.1.0")
 
-    // ML Kit Barcode（QR 扫码）
-    implementation("com.google.mlkit:barcode-scanning:17.2.0")
-    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
-    implementation("com.google.mlkit:translate:17.0.3")
+    add("fullImplementation", "com.google.mlkit:text-recognition-chinese:16.0.0")
+    add("fullImplementation", "com.google.mlkit:translate:17.0.3")
+    implementation("com.google.zxing:core:3.5.3")
 
     // CameraX（二维码扫描相机）
     implementation("androidx.camera:camera-camera2:1.3.1")
@@ -166,10 +196,6 @@ dependencies {
     // SSH（mwiede/jsch fork：轻量、纯 Java、支持 Ed25519/ECDSA）
     implementation("com.github.mwiede:jsch:0.2.21")
 
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-messaging")
-
     testImplementation("junit:junit:4.13.2")
 
     androidTestImplementation(composeBom)
@@ -178,5 +204,6 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
 
 

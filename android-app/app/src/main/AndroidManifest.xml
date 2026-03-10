@@ -58,7 +58,7 @@
             android:name=".data.ApprovalResponseReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.yuanio.app.ACTION_APPROVAL_RESPONSE" />
+                <action android:name="sy.yuanio.app.ACTION_APPROVAL_RESPONSE" />
             </intent-filter>
         </receiver>
 
@@ -66,17 +66,9 @@
             android:name=".data.InteractionActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.yuanio.app.ACTION_INTERACTION_ACTION" />
+                <action android:name="sy.yuanio.app.ACTION_INTERACTION_ACTION" />
             </intent-filter>
         </receiver>
-
-        <service
-            android:name=".data.FCMService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
 
         <service
             android:name=".service.TerminalForegroundService"
@@ -96,3 +88,4 @@
     </application>
 
 </manifest>
+

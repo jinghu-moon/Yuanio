@@ -245,14 +245,6 @@
     <string name="diff_action_modified">Modified</string>
     <string name="diff_action_rollback">Rollback</string>
     <string name="diff_panel_title">Code changes (%1$d)</string>
-    <string name="fcm_body_agent_offline">Agent offline</string>
-    <string name="fcm_body_approval_requested">Approval required - Tap to view</string>
-    <string name="fcm_body_default">New remote event</string>
-    <string name="fcm_body_run_failed">Agent error</string>
-    <string name="fcm_body_task_completed">Task completed</string>
-    <string name="fcm_title_approval">Yuanio · Approval</string>
-    <string name="fcm_title_default">Yuanio</string>
-    <string name="fcm_title_run_failed">Yuanio · Error</string>
     <string name="file_manager_action_download_and_share">Download and share</string>
     <string name="file_manager_action_download_phone">Download to phone</string>
     <string name="file_manager_cd_git">Git</string>
@@ -851,9 +843,6 @@
     <string name="chat_vm_recovery_agent_offline_action">Recovery Agent Offline Action</string>
     <string name="chat_vm_recovery_agent_offline_summary">Recovery Agent Offline Summary</string>
     <string name="chat_vm_recovery_agent_offline_title">Recovery Agent Offline Title</string>
-    <string name="chat_vm_recovery_push_disabled_action">Recovery Push Disabled Action</string>
-    <string name="chat_vm_recovery_push_disabled_summary">Recovery Push Disabled Summary</string>
-    <string name="chat_vm_recovery_push_disabled_title">Recovery Push Disabled Title</string>
     <string name="chat_vm_recovery_token_invalid_action">Recovery Token Invalid Action</string>
     <string name="chat_vm_recovery_token_invalid_summary">Recovery Token Invalid Summary</string>
     <string name="chat_vm_recovery_token_invalid_title">Recovery Token Invalid Title</string>
@@ -919,7 +908,6 @@
     <string name="chat_vm_toast_draft_queued_offline">Toast Draft Queued Offline</string>
     <string name="chat_vm_toast_draft_send_offline">Toast Draft Send Offline</string>
     <string name="chat_vm_toast_draft_sent_count">Toast Draft Sent Count: %1$s</string>
-    <string name="chat_vm_toast_fetch_push_token_failed">Toast Fetch Push Token Failed</string>
     <string name="chat_vm_toast_forked_from_here">Toast Forked From Here</string>
     <string name="chat_vm_toast_handoff_confirmed">Toast Handoff Confirmed: %1$s</string>
     <string name="chat_vm_toast_handoff_rejected">Toast Handoff Rejected: %1$s</string>
@@ -941,7 +929,6 @@
     <string name="chat_vm_toast_memory_toggle_failed_with_error">Toast Memory Toggle Failed With Error: %1$s</string>
     <string name="chat_vm_toast_memory_toggle_send_failed_disconnected">Toast Memory Toggle Send Failed Disconnected</string>
     <string name="chat_vm_toast_missing_key_material">Toast Missing Key Material</string>
-    <string name="chat_vm_toast_missing_session_fix_push">Toast Missing Session Fix Push</string>
     <string name="chat_vm_toast_missing_session_refresh_token">Toast Missing Session Refresh Token</string>
     <string name="chat_vm_toast_mode_switch_failed_disconnected">Toast Mode Switch Failed Disconnected</string>
     <string name="chat_vm_toast_mode_switch_failed_with_error">Toast Mode Switch Failed With Error: %1$s</string>
@@ -952,9 +939,6 @@
     <string name="chat_vm_toast_permissions_query_failed_with_error">Toast Permissions Query Failed With Error: %1$s</string>
     <string name="chat_vm_toast_probe_offline">Toast Probe Offline</string>
     <string name="chat_vm_toast_probe_send_failed">Toast Probe Send Failed</string>
-    <string name="chat_vm_toast_push_channel_restored">Toast Push Channel Restored</string>
-    <string name="chat_vm_toast_push_register_failed">Toast Push Register Failed</string>
-    <string name="chat_vm_toast_push_token_empty">Toast Push Token Empty</string>
     <string name="chat_vm_toast_queued_approve_approvals">Toast Queued Approve Approvals: %1$s</string>
     <string name="chat_vm_toast_queued_low_risk_approvals">Toast Queued Low Risk Approvals: %1$s</string>
     <string name="chat_vm_toast_queued_reject_approvals">Toast Queued Reject Approvals: %1$s</string>

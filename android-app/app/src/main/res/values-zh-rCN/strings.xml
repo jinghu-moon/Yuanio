@@ -243,14 +243,6 @@
     <string name="diff_action_modified">修改</string>
     <string name="diff_action_rollback">回滚</string>
     <string name="diff_panel_title">代码变更 (%1$d)</string>
-    <string name="fcm_body_agent_offline">Agent 离线</string>
-    <string name="fcm_body_approval_requested">需要审批 - 点击查看</string>
-    <string name="fcm_body_default">有新的远程事件</string>
-    <string name="fcm_body_run_failed">Agent 出错</string>
-    <string name="fcm_body_task_completed">任务完成</string>
-    <string name="fcm_title_approval">Yuanio · 审批</string>
-    <string name="fcm_title_default">Yuanio</string>
-    <string name="fcm_title_run_failed">Yuanio · 错误</string>
     <string name="file_manager_action_download_and_share">下载并分享</string>
     <string name="file_manager_action_download_phone">下载到手机</string>
     <string name="file_manager_cd_git">Git</string>
@@ -982,9 +974,6 @@
     <string name="chat_vm_recovery_agent_offline_action">恢复Agent离线操作</string>
     <string name="chat_vm_recovery_agent_offline_summary">恢复Agent离线摘要</string>
     <string name="chat_vm_recovery_agent_offline_title">恢复Agent离线标题</string>
-    <string name="chat_vm_recovery_push_disabled_action">恢复推送已禁用操作</string>
-    <string name="chat_vm_recovery_push_disabled_summary">恢复推送已禁用摘要</string>
-    <string name="chat_vm_recovery_push_disabled_title">恢复推送已禁用标题</string>
     <string name="chat_vm_recovery_token_invalid_action">恢复令牌无效操作</string>
     <string name="chat_vm_recovery_token_invalid_summary">恢复令牌无效摘要</string>
     <string name="chat_vm_recovery_token_invalid_title">恢复令牌无效标题</string>
@@ -1050,7 +1039,6 @@
     <string name="chat_vm_toast_draft_queued_offline">提示草稿已排队离线</string>
     <string name="chat_vm_toast_draft_send_offline">提示草稿发送离线</string>
     <string name="chat_vm_toast_draft_sent_count">提示草稿已发送数量：%1$s</string>
-    <string name="chat_vm_toast_fetch_push_token_failed">提示获取推送令牌失败</string>
     <string name="chat_vm_toast_forked_from_here">提示已分叉来自此处</string>
     <string name="chat_vm_toast_handoff_confirmed">提示交接已确认：%1$s</string>
     <string name="chat_vm_toast_handoff_rejected">提示交接已拒绝：%1$s</string>
@@ -1072,7 +1060,6 @@
     <string name="chat_vm_toast_memory_toggle_failed_with_error">提示记忆切换失败含错误：%1$s</string>
     <string name="chat_vm_toast_memory_toggle_send_failed_disconnected">提示记忆切换发送失败已断开</string>
     <string name="chat_vm_toast_missing_key_material">提示缺失密钥材料</string>
-    <string name="chat_vm_toast_missing_session_fix_push">提示缺失会话修复推送</string>
     <string name="chat_vm_toast_missing_session_refresh_token">提示缺失会话刷新令牌</string>
     <string name="chat_vm_toast_mode_switch_failed_disconnected">提示模式切换失败已断开</string>
     <string name="chat_vm_toast_mode_switch_failed_with_error">提示模式切换失败含错误：%1$s</string>
@@ -1083,9 +1070,6 @@
     <string name="chat_vm_toast_permissions_query_failed_with_error">提示权限查询失败含错误：%1$s</string>
     <string name="chat_vm_toast_probe_offline">离线状态无法探活</string>
     <string name="chat_vm_toast_probe_send_failed">提示探活发送失败</string>
-    <string name="chat_vm_toast_push_channel_restored">提示推送通道已恢复</string>
-    <string name="chat_vm_toast_push_register_failed">提示推送注册失败</string>
-    <string name="chat_vm_toast_push_token_empty">提示推送令牌为空</string>
     <string name="chat_vm_toast_queued_approve_approvals">提示已排队批准审批：%1$s</string>
     <string name="chat_vm_toast_queued_low_risk_approvals">提示已排队低风险审批：%1$s</string>
     <string name="chat_vm_toast_queued_reject_approvals">提示已排队拒绝审批：%1$s</string>
