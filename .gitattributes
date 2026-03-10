@@ -1,0 +1,15 @@
+# 默认行为：由 Git 自动探测并处理（通常设为 text=auto）
+* text=auto
+
+# 强制所有代码文本文件在 Git 仓库和工作区中都使用 LF 换行符（现代开发推荐）
+*.java text eol=lf
+*.kt text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+
+# 明确指定哪些是二进制文件，Git 不会去转换它们的换行符
+*.png binary
+*.jpg binary
+*.jar binary
