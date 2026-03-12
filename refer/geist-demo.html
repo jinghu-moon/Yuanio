@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geist Design System — Component Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   GEIST DESIGN TOKENS
+   ===================================================================== */
+:root {
+  /* Fonts */
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius:    6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Animation */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --duration-fast: 80ms;
+  --duration-normal: 150ms;
+  --duration-slow: 300ms;
+
+  /* Form */
+  --form-height-sm: 28px;
+  --form-height:    36px;
+  --form-height-lg: 44px;
+  --form-font:      0.875rem;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-100: #ffffff;
+  --bg-200: #fafafa;
+  --gray-100: #ffffff;
+  --gray-200: #fafafa;
+  --gray-300: #f5f5f5;
+  --gray-400: #ebebeb;
+  --gray-500: #e1e1e1;
+  --gray-600: #c8c8c8;
+  --gray-700: #a8a8a8;
+  --gray-800: #888888;
+  --gray-900: #6f6f6f;
+  --gray-1000: #171717;
+  --fg:  #171717;
+  --fg-2: #6f6f6f;
+  --fg-3: #a8a8a8;
+  --border: rgba(0,0,0,0.09);
+  --border-strong: rgba(0,0,0,0.18);
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.07);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.07);
+
+  --blue-700: #0072f5;
+  --blue-300: #d8edfe;
+  --blue-200: #edf6ff;
+  --blue-900: #0060cb;
+  --red-700: #e2483d;
+  --red-300: #ffdcdc;
+  --red-200: #fff0f0;
+  --green-700: #16a34a;
+  --green-300: #bbf7d0;
+  --green-200: #dcfce7;
+  --amber-700: #f59e0b;
+  --amber-300: #ffe2a8;
+  --amber-200: #fff3d3;
+  --purple-700: #9333ea;
+  --purple-300: #e9d5ff;
+  --purple-200: #f3e8ff;
+  --pink-700: #c9184a;
+  --teal-700: #0d9488;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg-100: #0a0a0a;
+  --bg-200: #111111;
+  --gray-100: #1a1a1a;
+  --gray-200: #1f1f1f;
+  --gray-300: #292929;
+  --gray-400: #2e2e2e;
+  --gray-500: #454545;
+  --gray-600: #878787;
+  --gray-700: #8f8f8f;
+  --gray-800: #7d7d7d;
+  --gray-900: #a0a0a0;
+  --gray-1000: #ededed;
+  --fg:  #ededed;
+  --fg-2: #a0a0a0;
+  --fg-3: #8f8f8f;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.16);
+  --shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 24px rgba(0,0,0,.4);
+
+  --blue-700: #419bf9;
+  --blue-300: #0d2a4a;
+  --blue-200: #081a2e;
+  --blue-900: #84befc;
+  --red-700: #f84f4f;
+  --red-300: #3c1515;
+  --red-200: #2a0f0f;
+  --green-700: #22c55e;
+  --green-300: #0e2a1a;
+  --green-200: #081a10;
+  --amber-700: #ffad1a;
+  --amber-300: #3a2200;
+  --amber-200: #251600;
+  --purple-700: #a855f7;
+  --purple-300: #2a1047;
+  --purple-200: #1a0830;
+  --pink-700: #f72585;
+  --teal-700: #14b8a6;
+}
+
+/* =====================================================================
+   RESET & BASE
+   ===================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-100);
+  color: var(--fg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* =====================================================================
+   PAGE SHELL
+   ===================================================================== */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 56px;
+  background: var(--bg-100);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+  backdrop-filter: blur(8px);
+}
+.page-header .logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  text-decoration: none;
+}
+.page-header .logo svg { width: 20px; height: 20px; }
+.page-header .divider { color: var(--gray-500); font-size: 0.8rem; }
+.page-header .tag {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--fg-3);
+  padding: 2px 6px;
+  background: var(--gray-300);
+  border-radius: var(--radius-sm);
+}
+.page-header .spacer { flex: 1; }
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--fg-2);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  transition: background var(--duration-fast);
+}
+.theme-toggle:hover { background: var(--gray-300); }
+
+.sidebar {
+  position: fixed;
+  left: 0; top: 56px; bottom: 0;
+  width: 220px;
+  padding: var(--space-4) 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-100);
+  z-index: 50;
+}
+.sidebar-section {
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px var(--space-4);
+  font-size: 0.8rem;
+  color: var(--fg-2);
+  text-decoration: none;
+  border-radius: 0;
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+.sidebar a:hover { color: var(--fg); background: var(--gray-300); }
+.sidebar a.active { color: var(--fg); background: var(--gray-300); }
+
+.main {
+  margin-left: 220px;
+  padding: var(--space-10) var(--space-8);
+  max-width: 900px;
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--space-16);
+  scroll-margin-top: 80px;
+}
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-1);
+  color: var(--fg);
+}
+.section-desc {
+  font-size: 0.8rem;
+  color: var(--fg-2);
+  margin-bottom: var(--space-6);
+  line-height: 1.6;
+}
+.demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--bg-200);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.demo-grid {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--bg-200);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* =====================================================================
+   BUTTON
+   ===================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--form-height);
+  padding: 0 var(--space-4);
+  font-size: var(--form-font);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--duration-fast), color var(--duration-fast),
+              box-shadow var(--duration-fast), border-color var(--duration-fast),
+              opacity var(--duration-fast);
+  text-decoration: none;
+  position: relative;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.btn:focus-visible { box-shadow: 0 0 0 2px var(--bg-100), 0 0 0 4px var(--blue-700); }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+
+/* Primary */
+.btn-primary {
+  background: var(--fg);
+  color: var(--bg-100);
+  border-color: var(--fg);
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:active { opacity: 0.76; }
+
+/* Secondary */
+.btn-secondary {
+  background: var(--gray-300);
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover { background: var(--gray-400); }
+
+/* Error */
+.btn-error {
+  background: var(--red-700);
+  color: #fff;
+  border-color: var(--red-700);
+}
+.btn-error:hover { opacity: 0.88; }
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+.btn-ghost:hover { background: var(--gray-300); }
+
+/* Sizes */
+.btn-sm { height: var(--form-height-sm); padding: 0 var(--space-3); font-size: 0.78rem; border-radius: var(--radius-sm); }
+.btn-lg { height: var(--form-height-lg); padding: 0 var(--space-6); font-size: 0.95rem; }
+
+/* Icon button */
+.btn-icon { width: var(--form-height); padding: 0; }
+.btn-icon.btn-sm { width: var(--form-height-sm); }
+
+/* Loading state */
+.btn-loading { pointer-events: none; color: transparent !important; }
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  color: var(--bg-100);
+}
+[data-theme="light"] .btn-loading::after { color: var(--bg-100); }
+
+/* =====================================================================
+   BADGE
+   ===================================================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.badge-gray   { background: var(--gray-300); color: var(--fg); border: 1px solid var(--border); }
+.badge-blue   { background: var(--blue-200);   color: var(--blue-700); }
+.badge-green  { background: var(--green-200);  color: var(--green-700); }
+.badge-red    { background: var(--red-200);    color: var(--red-700); }
+.badge-amber  { background: var(--amber-200);  color: var(--amber-700); }
+.badge-purple { background: var(--purple-200); color: var(--purple-700); }
+.badge-teal   { background: var(--green-200);  color: var(--teal-700); }
+
+.badge-dot::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+.input-wrap { display: flex; flex-direction: column; gap: var(--space-1); }
+.input-label { font-size: 0.78rem; font-weight: 500; color: var(--fg-2); }
+.input {
+  height: var(--form-height);
+  padding: 0 var(--space-3);
+  font-size: var(--form-font);
+  font-family: var(--font-sans);
+  background: var(--bg-100);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  width: 100%;
+}
+.input::placeholder { color: var(--fg-3); }
+.input:hover { border-color: var(--gray-600); }
+.input:focus { border-color: var(--blue-700); box-shadow: 0 0 0 3px rgba(0,114,245,0.12); }
+.input:disabled { opacity: 0.4; cursor: not-allowed; }
+.input-error { border-color: var(--red-700) !important; }
+.input-error:focus { box-shadow: 0 0 0 3px rgba(226,72,61,0.12) !important; }
+.input-hint { font-size: 0.72rem; color: var(--fg-3); }
+.input-hint.error { color: var(--red-700); }
+
+.input-prefix-wrap {
+  position: relative;
+}
+.input-prefix-wrap .input { padding-left: 32px; }
+.input-prefix {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-3);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+textarea.input {
+  height: auto;
+  min-height: 80px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
+
+/* =====================================================================
+   SELECT
+   ===================================================================== */
+.select {
+  appearance: none;
+  height: var(--form-height);
+  padding: 0 var(--space-8) 0 var(--space-3);
+  font-size: var(--form-font);
+  font-family: var(--font-sans);
+  background: var(--bg-100);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--duration-fast);
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 8L1 3h10z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.select:focus { border-color: var(--blue-700); box-shadow: 0 0 0 3px rgba(0,114,245,0.12); }
+
+/* =====================================================================
+   CHECKBOX & RADIO
+   ===================================================================== */
+.checkbox-row, .radio-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--fg);
+}
+.checkbox-row input[type="checkbox"],
+.radio-row input[type="radio"] {
+  width: 16px; height: 16px;
+  accent-color: var(--fg);
+  cursor: pointer;
+}
+
+/* Custom toggle / switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--gray-500);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-normal) var(--ease-out);
+}
+.switch input:checked ~ .switch-track { background: var(--fg); }
+.switch-thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--duration-normal) var(--ease-out);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.switch input:checked ~ .switch-track .switch-thumb { transform: translateX(16px); }
+.switch-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+/* =====================================================================
+   CARD
+   ===================================================================== */
+.card {
+  background: var(--bg-200);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.card-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+.card-title { font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em; }
+.card-subtitle { font-size: 0.75rem; color: var(--fg-2); margin-top: 2px; }
+.card-body { padding: var(--space-5); }
+.card-footer {
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  background: var(--bg-100);
+}
+
+/* =====================================================================
+   NOTE / CALLOUT
+   ===================================================================== */
+.note {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  border: 1px solid transparent;
+}
+.note-icon { flex-shrink: 0; margin-top: 1px; }
+.note-default { background: var(--gray-300); border-color: var(--border); color: var(--fg-2); }
+.note-info    { background: var(--blue-200);   border-color: var(--blue-300);   color: var(--blue-900); }
+.note-success { background: var(--green-200);  border-color: var(--green-300);  color: var(--green-700); }
+.note-error   { background: var(--red-200);    border-color: var(--red-300);    color: var(--red-700); }
+.note-warning { background: var(--amber-200);  border-color: var(--amber-300);  color: var(--amber-700); }
+
+/* =====================================================================
+   TABS
+   ===================================================================== */
+.tabs { display: flex; flex-direction: column; }
+.tab-list {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  gap: 0;
+}
+.tab-btn {
+  position: relative;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--fg-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--fg); }
+.tab-btn.active { color: var(--fg); border-bottom-color: var(--fg); }
+.tab-content { padding: var(--space-4) 0; font-size: 0.8rem; color: var(--fg-2); }
+
+/* =====================================================================
+   CODE BLOCK
+   ===================================================================== */
+.code-block {
+  background: var(--gray-100);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.code-lang {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--fg-3);
+  letter-spacing: 0.05em;
+}
+.code-copy {
+  font-size: 0.7rem;
+  color: var(--fg-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+.code-copy:hover { color: var(--fg); background: var(--gray-400); }
+pre {
+  padding: var(--space-4);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--fg);
+  margin: 0;
+}
+code { font-family: var(--font-mono); }
+.token-keyword  { color: #f97583; }
+.token-string   { color: #9ecbff; }
+.token-comment  { color: var(--fg-3); font-style: italic; }
+.token-fn       { color: #b392f0; }
+.token-number   { color: #79b8ff; }
+.token-var      { color: #e1e4e8; }
+
+/* inline code */
+.inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  padding: 1px 5px;
+  background: var(--gray-300);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--fg);
+}
+
+/* =====================================================================
+   AVATAR
+   ===================================================================== */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--gray-400);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+.avatar-xs { width: 20px; height: 20px; font-size: 0.55rem; }
+.avatar-sm { width: 28px; height: 28px; font-size: 0.65rem; }
+.avatar-md { width: 36px; height: 36px; font-size: 0.78rem; }
+.avatar-lg { width: 48px; height: 48px; font-size: 0.9rem; }
+.avatar-xl { width: 64px; height: 64px; font-size: 1.1rem; }
+.avatar-group { display: flex; }
+.avatar-group .avatar { margin-left: -8px; border: 2px solid var(--bg-200); }
+.avatar-group .avatar:first-child { margin-left: 0; }
+
+/* =====================================================================
+   STATUS DOT
+   ===================================================================== */
+.status-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.online   { background: var(--green-700); box-shadow: 0 0 0 2px rgba(22,163,74,.2); }
+.status-dot.offline  { background: var(--gray-600); }
+.status-dot.busy     { background: var(--red-700); }
+.status-dot.warning  { background: var(--amber-700); }
+.status-dot.pulse {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--fg-2);
+}
+
+/* =====================================================================
+   SPINNER
+   ===================================================================== */
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--fg);
+  animation: spin 0.6s linear infinite;
+}
+.spinner-xs { width: 12px; height: 12px; }
+.spinner-sm { width: 16px; height: 16px; }
+.spinner-md { width: 24px; height: 24px; }
+.spinner-lg { width: 36px; height: 36px; border-width: 3px; }
+
+/* Loading dots */
+.loading-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+.loading-dots span {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  animation: bounce-dot 1.2s ease-in-out infinite;
+}
+.loading-dots span:nth-child(2) { animation-delay: .2s; }
+.loading-dots span:nth-child(3) { animation-delay: .4s; }
+
+/* =====================================================================
+   SKELETON
+   ===================================================================== */
+.skeleton {
+  background: var(--gray-300);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--gray-400), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* =====================================================================
+   TOOLTIP
+   ===================================================================== */
+[data-tooltip] {
+  position: relative;
+  cursor: default;
+}
+[data-tooltip]::before, [data-tooltip]::after {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-normal), transform var(--duration-normal);
+  transform: translateX(-50%) translateY(4px);
+}
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  background: var(--fg);
+  color: var(--bg-100);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  z-index: 200;
+}
+[data-tooltip]::after {
+  content: '';
+  border: 5px solid transparent;
+  border-top-color: var(--fg);
+  bottom: calc(100% + 3px);
+  z-index: 201;
+}
+[data-tooltip]:hover::before, [data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* =====================================================================
+   PROGRESS
+   ===================================================================== */
+.progress-track {
+  height: 6px;
+  background: var(--gray-400);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--fg);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+.progress-bar.blue   { background: var(--blue-700); }
+.progress-bar.green  { background: var(--green-700); }
+.progress-bar.red    { background: var(--red-700); }
+.progress-bar.amber  { background: var(--amber-700); }
+
+/* =====================================================================
+   TABLE
+   ===================================================================== */
+.table-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+thead { background: var(--bg-100); }
+th {
+  text-align: left;
+  padding: var(--space-2) var(--space-4);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: var(--space-3) var(--space-4);
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--border);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--gray-200); color: var(--fg); }
+.td-name { color: var(--fg); font-weight: 500; font-size: 0.8rem; }
+
+/* =====================================================================
+   COLOR SWATCHES
+   ===================================================================== */
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+.swatch {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: transform var(--duration-fast);
+  position: relative;
+}
+.swatch:hover { transform: scale(1.08); z-index: 1; }
+.scale-row { margin-bottom: var(--space-4); }
+.scale-name {
+  font-size: 0.7rem;
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  margin-bottom: var(--space-1);
+}
+
+/* =====================================================================
+   TYPOGRAPHY
+   ===================================================================== */
+.type-scale table { font-family: var(--font-sans); }
+.type-scale td:first-child { font-family: var(--font-mono); font-size: 0.72rem; color: var(--fg-3); width: 80px; }
+.type-sample-1  { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+.type-sample-2  { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.type-sample-3  { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.025em; }
+.type-sample-4  { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em; }
+.type-sample-5  { font-size: 0.95rem; font-weight: 500; }
+.type-sample-6  { font-size: 0.875rem; }
+.type-sample-7  { font-size: 0.8rem; color: var(--fg-2); }
+.type-sample-8  { font-size: 0.72rem; color: var(--fg-3); font-family: var(--font-mono); }
+
+/* =====================================================================
+   MISC UTILS
+   ===================================================================== */
+.divider { height: 1px; background: var(--border); margin: var(--space-3) 0; }
+.text-sm { font-size: 0.8rem; }
+.text-xs { font-size: 0.72rem; }
+.text-muted { color: var(--fg-2); }
+.text-mono { font-family: var(--font-mono); }
+.flex   { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.w-full { width: 100%; }
+
+/* =====================================================================
+   ANIMATIONS
+   ===================================================================== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); }
+  50%  { box-shadow: 0 0 0 4px rgba(22,163,74,.0); }
+}
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section { animation: fade-in var(--duration-slow) var(--ease-out) both; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ HEADER -->
+<header class="page-header">
+  <a href="#" class="logo">
+    <svg viewBox="0 0 76 65" fill="var(--fg)"><path d="M37.5274 0L75.0548 65H0L37.5274 0Z"/></svg>
+    Geist
+  </a>
+  <span class="divider">/</span>
+  <span class="tag">Design System</span>
+  <div class="spacer"></div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+    切换主题
+  </button>
+</header>
+
+<!-- =========================================================== SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-section">Foundations</div>
+  <a href="#colors" onclick="setActive(this)">颜色</a>
+  <a href="#typography" onclick="setActive(this)">排版</a>
+  <div class="sidebar-section" style="margin-top:8px">Components</div>
+  <a href="#buttons" onclick="setActive(this)" class="active">按钮</a>
+  <a href="#badges" onclick="setActive(this)">徽标</a>
+  <a href="#inputs" onclick="setActive(this)">输入框</a>
+  <a href="#select" onclick="setActive(this)">选择器</a>
+  <a href="#toggle" onclick="setActive(this)">开关</a>
+  <a href="#cards" onclick="setActive(this)">卡片</a>
+  <a href="#notes" onclick="setActive(this)">提示框</a>
+  <a href="#tabs" onclick="setActive(this)">标签页</a>
+  <a href="#code" onclick="setActive(this)">代码块</a>
+  <a href="#avatar" onclick="setActive(this)">头像</a>
+  <a href="#status" onclick="setActive(this)">状态</a>
+  <a href="#progress" onclick="setActive(this)">进度条</a>
+  <a href="#table" onclick="setActive(this)">表格</a>
+  <a href="#spinners" onclick="setActive(this)">加载</a>
+  <a href="#skeleton" onclick="setActive(this)">骨架屏</a>
+</nav>
+
+<!-- ============================================================== MAIN -->
+<main class="main">
+
+  <!-- ── COLORS ── -->
+  <section class="section" id="colors">
+    <h2 class="section-title">颜色系统</h2>
+    <p class="section-desc">10 个颜色色阶，每阶 10 步 (100–1000)，支持亮色与暗色模式。</p>
+    <div class="demo-grid">
+      <div class="scale-row">
+        <div class="scale-name">gray</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#ffffff" data-tooltip="gray-100"></div>
+          <div class="swatch" style="background:#fafafa" data-tooltip="gray-200"></div>
+          <div class="swatch" style="background:#f5f5f5" data-tooltip="gray-300"></div>
+          <div class="swatch" style="background:#ebebeb" data-tooltip="gray-400"></div>
+          <div class="swatch" style="background:#e1e1e1" data-tooltip="gray-500"></div>
+          <div class="swatch" style="background:#c8c8c8" data-tooltip="gray-600"></div>
+          <div class="swatch" style="background:#a8a8a8" data-tooltip="gray-700"></div>
+          <div class="swatch" style="background:#888888" data-tooltip="gray-800"></div>
+          <div class="swatch" style="background:#6f6f6f" data-tooltip="gray-900"></div>
+          <div class="swatch" style="background:#171717" data-tooltip="gray-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-name">blue</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#f0f7ff" data-tooltip="blue-100"></div>
+          <div class="swatch" style="background:#edf6ff" data-tooltip="blue-200"></div>
+          <div class="swatch" style="background:#d8edfe" data-tooltip="blue-300"></div>
+          <div class="swatch" style="background:#b8dbfd" data-tooltip="blue-400"></div>
+          <div class="swatch" style="background:#84befc" data-tooltip="blue-500"></div>
+          <div class="swatch" style="background:#419bf9" data-tooltip="blue-600"></div>
+          <div class="swatch" style="background:#0072f5" data-tooltip="blue-700"></div>
+          <div class="swatch" style="background:#006adc" data-tooltip="blue-800"></div>
+          <div class="swatch" style="background:#0060cb" data-tooltip="blue-900"></div>
+          <div class="swatch" style="background:#00254d" data-tooltip="blue-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-name">red</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#fff8f8" data-tooltip="red-100"></div>
+          <div class="swatch" style="background:#fff0f0" data-tooltip="red-200"></div>
+          <div class="swatch" style="background:#ffdcdc" data-tooltip="red-300"></div>
+          <div class="swatch" style="background:#ffbcbc" data-tooltip="red-400"></div>
+          <div class="swatch" style="background:#ff8080" data-tooltip="red-500"></div>
+          <div class="swatch" style="background:#f84f4f" data-tooltip="red-600"></div>
+          <div class="swatch" style="background:#e2483d" data-tooltip="red-700"></div>
+          <div class="swatch" style="background:#d53030" data-tooltip="red-800"></div>
+          <div class="swatch" style="background:#c02b2b" data-tooltip="red-900"></div>
+          <div class="swatch" style="background:#3c0f0f" data-tooltip="red-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-name">amber</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#fff9ed" data-tooltip="amber-100"></div>
+          <div class="swatch" style="background:#fff3d3" data-tooltip="amber-200"></div>
+          <div class="swatch" style="background:#ffe2a8" data-tooltip="amber-300"></div>
+          <div class="swatch" style="background:#ffca6a" data-tooltip="amber-400"></div>
+          <div class="swatch" style="background:#ffb237" data-tooltip="amber-500"></div>
+          <div class="swatch" style="background:#ffad1a" data-tooltip="amber-600"></div>
+          <div class="swatch" style="background:#f59e0b" data-tooltip="amber-700"></div>
+          <div class="swatch" style="background:#dd8c00" data-tooltip="amber-800"></div>
+          <div class="swatch" style="background:#c07a00" data-tooltip="amber-900"></div>
+          <div class="swatch" style="background:#3d2500" data-tooltip="amber-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-name">green</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#f0fdf4" data-tooltip="green-100"></div>
+          <div class="swatch" style="background:#dcfce7" data-tooltip="green-200"></div>
+          <div class="swatch" style="background:#bbf7d0" data-tooltip="green-300"></div>
+          <div class="swatch" style="background:#86efac" data-tooltip="green-400"></div>
+          <div class="swatch" style="background:#4ade80" data-tooltip="green-500"></div>
+          <div class="swatch" style="background:#22c55e" data-tooltip="green-600"></div>
+          <div class="swatch" style="background:#16a34a" data-tooltip="green-700"></div>
+          <div class="swatch" style="background:#15803d" data-tooltip="green-800"></div>
+          <div class="swatch" style="background:#166534" data-tooltip="green-900"></div>
+          <div class="swatch" style="background:#052e16" data-tooltip="green-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-name">teal</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#f0fdfa" data-tooltip="teal-100"></div>
+          <div class="swatch" style="background:#ccfbf1" data-tooltip="teal-200"></div>
+          <div class="swatch" style="background:#99f6e4" data-tooltip="teal-300"></div>
+          <div class="swatch" style="background:#5eead4" data-tooltip="teal-400"></div>
+          <div class="swatch" style="background:#2dd4bf" data-tooltip="teal-500"></div>
+          <div class="swatch" style="background:#14b8a6" data-tooltip="teal-600"></div>
+          <div class="swatch" style="background:#0d9488" data-tooltip="teal-700"></div>
+          <div class="swatch" style="background:#0f766e" data-tooltip="teal-800"></div>
+          <div class="swatch" style="background:#115e59" data-tooltip="teal-900"></div>
+          <div class="swatch" style="background:#042f2e" data-tooltip="teal-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row">
+        <div class="scale-name">purple</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#faf5ff" data-tooltip="purple-100"></div>
+          <div class="swatch" style="background:#f3e8ff" data-tooltip="purple-200"></div>
+          <div class="swatch" style="background:#e9d5ff" data-tooltip="purple-300"></div>
+          <div class="swatch" style="background:#d8b4fe" data-tooltip="purple-400"></div>
+          <div class="swatch" style="background:#c084fc" data-tooltip="purple-500"></div>
+          <div class="swatch" style="background:#a855f7" data-tooltip="purple-600"></div>
+          <div class="swatch" style="background:#9333ea" data-tooltip="purple-700"></div>
+          <div class="swatch" style="background:#7e22ce" data-tooltip="purple-800"></div>
+          <div class="swatch" style="background:#6b21a8" data-tooltip="purple-900"></div>
+          <div class="swatch" style="background:#3b0764" data-tooltip="purple-1000"></div>
+        </div>
+      </div>
+      <div class="scale-row" style="margin-bottom:0">
+        <div class="scale-name">pink</div>
+        <div class="swatch-grid">
+          <div class="swatch" style="background:#fff0f3" data-tooltip="pink-100"></div>
+          <div class="swatch" style="background:#ffe4ec" data-tooltip="pink-200"></div>
+          <div class="swatch" style="background:#ffb3c6" data-tooltip="pink-300"></div>
+          <div class="swatch" style="background:#ff8fab" data-tooltip="pink-400"></div>
+          <div class="swatch" style="background:#ff4d6d" data-tooltip="pink-500"></div>
+          <div class="swatch" style="background:#f72585" data-tooltip="pink-600"></div>
+          <div class="swatch" style="background:#c9184a" data-tooltip="pink-700"></div>
+          <div class="swatch" style="background:#a4133c" data-tooltip="pink-800"></div>
+          <div class="swatch" style="background:#800f2f" data-tooltip="pink-900"></div>
+          <div class="swatch" style="background:#370617" data-tooltip="pink-1000"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TYPOGRAPHY ── -->
+  <section class="section type-scale" id="typography">
+    <h2 class="section-title">排版</h2>
+    <p class="section-desc">使用 Geist Sans 与 Geist Mono，字号从 xs 到 display 完整覆盖。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Token</th><th>Sample</th><th>Size / Weight</th></tr></thead>
+        <tbody>
+          <tr><td>display</td><td><span class="type-sample-1">The Frontend Cloud</span></td><td class="text-xs text-mono text-muted">2.5rem / 700</td></tr>
+          <tr><td>h1</td><td><span class="type-sample-2">Build for the web</span></td><td class="text-xs text-mono text-muted">1.8rem / 700</td></tr>
+          <tr><td>h2</td><td><span class="type-sample-3">Instant deployments</span></td><td class="text-xs text-mono text-muted">1.4rem / 600</td></tr>
+          <tr><td>h3</td><td><span class="type-sample-4">Framework agnostic</span></td><td class="text-xs text-mono text-muted">1.1rem / 600</td></tr>
+          <tr><td>body-lg</td><td><span class="type-sample-5">Ship code with confidence.</span></td><td class="text-xs text-mono text-muted">0.95rem / 500</td></tr>
+          <tr><td>body</td><td><span class="type-sample-6">Edge network, global by default.</span></td><td class="text-xs text-mono text-muted">0.875rem / 400</td></tr>
+          <tr><td>small</td><td><span class="type-sample-7">Zero config, no maintenance.</span></td><td class="text-xs text-mono text-muted">0.8rem / 400</td></tr>
+          <tr><td>mono</td><td><span class="type-sample-8">const deploy = await vercel.deploy()</span></td><td class="text-xs text-mono text-muted">0.72rem mono</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── BUTTONS ── -->
+  <section class="section" id="buttons">
+    <h2 class="section-title">按钮</h2>
+    <p class="section-desc">提供 Primary、Secondary、Ghost、Error 四种变体，以及三个尺寸和加载状态。</p>
+    <div class="demo-row" style="flex-direction:column; align-items:flex-start;">
+      <div class="flex items-center gap-3" style="flex-wrap:wrap;">
+        <button class="btn btn-primary">Primary</button>
+        <button class="btn btn-secondary">Secondary</button>
+        <button class="btn btn-ghost">Ghost</button>
+        <button class="btn btn-error">Error</button>
+        <button class="btn btn-primary" disabled>Disabled</button>
+      </div>
+      <div class="divider w-full"></div>
+      <div class="flex items-center gap-3" style="flex-wrap:wrap; align-items:center;">
+        <button class="btn btn-primary btn-sm">Small</button>
+        <button class="btn btn-primary">Default</button>
+        <button class="btn btn-primary btn-lg">Large</button>
+      </div>
+      <div class="divider w-full"></div>
+      <div class="flex items-center gap-3" style="flex-wrap:wrap;">
+        <button class="btn btn-primary" style="gap:6px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Deploy
+        </button>
+        <button class="btn btn-secondary" style="gap:6px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Learn more
+        </button>
+        <button class="btn btn-primary btn-loading">Loading</button>
+        <button class="btn btn-icon btn-ghost" data-tooltip="复制">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BADGES ── -->
+  <section class="section" id="badges">
+    <h2 class="section-title">徽标 / Badge</h2>
+    <p class="section-desc">用于标记状态、类型或属性的小型标签。</p>
+    <div class="demo-row" style="flex-wrap:wrap;">
+      <span class="badge badge-gray">Default</span>
+      <span class="badge badge-blue">Beta</span>
+      <span class="badge badge-green">Stable</span>
+      <span class="badge badge-red">Deprecated</span>
+      <span class="badge badge-amber">Warning</span>
+      <span class="badge badge-purple">Pro</span>
+      <span class="badge badge-teal">New</span>
+      <span class="badge badge-blue badge-dot">Running</span>
+      <span class="badge badge-green badge-dot">Online</span>
+      <span class="badge badge-red badge-dot">Error</span>
+    </div>
+  </section>
+
+  <!-- ── INPUTS ── -->
+  <section class="section" id="inputs">
+    <h2 class="section-title">输入框</h2>
+    <p class="section-desc">文本输入、前缀图标、错误状态与多行文本框。</p>
+    <div class="demo-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div class="input-wrap">
+        <label class="input-label">项目名称</label>
+        <input class="input" type="text" placeholder="my-awesome-project">
+        <span class="input-hint">仅允许小写字母、数字和连字符</span>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label">域名</label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          </span>
+          <input class="input" type="text" placeholder="example.com">
+        </div>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label">密码（错误状态）</label>
+        <input class="input input-error" type="password" value="123456">
+        <span class="input-hint error">密码长度至少 8 位</span>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label">禁用状态</label>
+        <input class="input" type="text" placeholder="不可编辑" disabled>
+      </div>
+      <div class="input-wrap" style="grid-column:1/-1;">
+        <label class="input-label">描述</label>
+        <textarea class="input" placeholder="输入项目描述…" rows="3"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SELECT ── -->
+  <section class="section" id="select">
+    <h2 class="section-title">选择器 / Select</h2>
+    <p class="section-desc">原生下拉选择框，配合 Geist 样式。</p>
+    <div class="demo-row">
+      <div class="input-wrap" style="min-width:200px">
+        <label class="input-label">框架</label>
+        <select class="select">
+          <option>Next.js</option>
+          <option>SvelteKit</option>
+          <option>Astro</option>
+          <option>Nuxt</option>
+          <option>Remix</option>
+        </select>
+      </div>
+      <div class="input-wrap" style="min-width:200px">
+        <label class="input-label">区域</label>
+        <select class="select">
+          <option>Washington, D.C.</option>
+          <option>Singapore</option>
+          <option>Frankfurt</option>
+          <option>Sydney</option>
+          <option>Tokyo</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TOGGLE ── -->
+  <section class="section" id="toggle">
+    <h2 class="section-title">开关 / Switch & Checkbox</h2>
+    <div class="demo-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="flex-col gap-3">
+        <label class="switch-label">
+          <label class="switch">
+            <input type="checkbox" checked>
+            <div class="switch-track"><div class="switch-thumb"></div></div>
+          </label>
+          自动部署
+        </label>
+        <label class="switch-label">
+          <label class="switch">
+            <input type="checkbox">
+            <div class="switch-track"><div class="switch-thumb"></div></div>
+          </label>
+          Preview 评论
+        </label>
+        <label class="switch-label">
+          <label class="switch">
+            <input type="checkbox" checked>
+            <div class="switch-track"><div class="switch-thumb"></div></div>
+          </label>
+          Speed Insights
+        </label>
+      </div>
+      <div class="flex-col gap-3">
+        <label class="checkbox-row"><input type="checkbox" checked> Next.js</label>
+        <label class="checkbox-row"><input type="checkbox"> SvelteKit</label>
+        <label class="radio-row"><input type="radio" name="r" checked> Hobby</label>
+        <label class="radio-row"><input type="radio" name="r"> Pro</label>
+        <label class="radio-row"><input type="radio" name="r"> Enterprise</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CARDS ── -->
+  <section class="section" id="cards">
+    <h2 class="section-title">卡片 / Card</h2>
+    <div class="demo-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">my-portfolio</div>
+          <div class="card-subtitle">vercel.app · 上次部署 2 分钟前</div>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center gap-2" style="margin-bottom:var(--space-3)">
+            <span class="status-dot online pulse"></span>
+            <span class="text-sm">Production — 运行中</span>
+          </div>
+          <div class="text-xs text-muted">Next.js 15 · Node.js 20.x · Edge Network</div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-ghost btn-sm">查看</button>
+          <button class="btn btn-primary btn-sm">重新部署</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">api-server</div>
+          <div class="card-subtitle">api.acme.dev · 上次部署 1 小时前</div>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center gap-2" style="margin-bottom:var(--space-3)">
+            <span class="status-dot warning"></span>
+            <span class="text-sm">Degraded — 性能下降</span>
+          </div>
+          <div class="text-xs text-muted">SvelteKit 2 · Edge Runtime · IAD1</div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-ghost btn-sm">日志</button>
+          <button class="btn btn-error btn-sm">回滚</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── NOTES ── -->
+  <section class="section" id="notes">
+    <h2 class="section-title">提示框 / Note</h2>
+    <div class="demo-grid">
+      <div class="note note-default">
+        <svg class="note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>配置更改将在下次部署后生效。</div>
+      </div>
+      <div class="note note-info">
+        <svg class="note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>新版 Geist 字体已可用，访问 <code class="inline-code">npm install geist</code> 安装。</div>
+      </div>
+      <div class="note note-success">
+        <svg class="note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>部署成功！所有检查均已通过，你的站点已上线。</div>
+      </div>
+      <div class="note note-warning">
+        <svg class="note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div>构建时间超过阈值，建议优化打包体积。</div>
+      </div>
+      <div class="note note-error">
+        <svg class="note-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div>构建失败：<code class="inline-code">Error: Cannot find module './lib/utils'</code>，请检查依赖。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TABS ── -->
+  <section class="section" id="tabs">
+    <h2 class="section-title">标签页 / Tabs</h2>
+    <div class="demo-grid" style="padding:0; overflow:hidden;">
+      <div class="tabs" style="padding:var(--space-5)">
+        <div class="tab-list">
+          <button class="tab-btn active" onclick="switchTab(this,'overview')">概览</button>
+          <button class="tab-btn" onclick="switchTab(this,'deployments')">部署</button>
+          <button class="tab-btn" onclick="switchTab(this,'analytics')">分析</button>
+          <button class="tab-btn" onclick="switchTab(this,'settings')">设置</button>
+        </div>
+        <div id="tab-overview" class="tab-content">
+          项目运行正常。本月共完成 <strong>42</strong> 次部署，平均构建时长 <strong>48s</strong>。
+        </div>
+        <div id="tab-deployments" class="tab-content" style="display:none">
+          最近 3 次部署：<code class="inline-code">abc1234</code> · <code class="inline-code">def5678</code> · <code class="inline-code">ghi9012</code>
+        </div>
+        <div id="tab-analytics" class="tab-content" style="display:none">
+          过去 7 天访问量 <strong>18,294</strong>，平均首字节时间 <strong>120ms</strong>。
+        </div>
+        <div id="tab-settings" class="tab-content" style="display:none">
+          环境变量 · 域名绑定 · 团队成员 · 危险操作区
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CODE BLOCK ── -->
+  <section class="section" id="code">
+    <h2 class="section-title">代码块 / Code Block</h2>
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="code-lang">TYPESCRIPT</span>
+        <button class="code-copy" onclick="copyCode(this)">复制</button>
+      </div>
+      <pre><code><span class="token-keyword">import</span> { <span class="token-var">GeistSans</span> } <span class="token-keyword">from</span> <span class="token-string">'geist/font/sans'</span>
+<span class="token-keyword">import</span> { <span class="token-var">GeistMono</span> } <span class="token-keyword">from</span> <span class="token-string">'geist/font/mono'</span>
+
+<span class="token-keyword">export default</span> <span class="token-keyword">function</span> <span class="token-fn">RootLayout</span>({ children }: { children: React.ReactNode }) {
+  <span class="token-keyword">return</span> (
+    &lt;html lang=<span class="token-string">"en"</span> className={GeistSans.variable}&gt;
+      &lt;body className={GeistMono.variable}&gt;
+        {children}
+      &lt;/body&gt;
+    &lt;/html&gt;
+  )
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ── AVATAR ── -->
+  <section class="section" id="avatar">
+    <h2 class="section-title">头像 / Avatar</h2>
+    <div class="demo-row" style="flex-direction:column; align-items:flex-start; gap:var(--space-5)">
+      <div class="flex items-center gap-3">
+        <div class="avatar avatar-xs">XS</div>
+        <div class="avatar avatar-sm">SM</div>
+        <div class="avatar avatar-md" style="background:var(--blue-700);color:#fff;border:none">A</div>
+        <div class="avatar avatar-lg" style="background:var(--purple-700);color:#fff;border:none">B</div>
+        <div class="avatar avatar-xl" style="background:var(--fg);color:var(--bg-100);border:none">VR</div>
+      </div>
+      <div>
+        <div class="text-xs text-muted" style="margin-bottom:var(--space-2)">Avatar Group</div>
+        <div class="avatar-group">
+          <div class="avatar avatar-md" style="background:var(--blue-700);color:#fff;border:none">A</div>
+          <div class="avatar avatar-md" style="background:var(--purple-700);color:#fff;border:none">B</div>
+          <div class="avatar avatar-md" style="background:var(--green-700);color:#fff;border:none">C</div>
+          <div class="avatar avatar-md" style="background:var(--red-700);color:#fff;border:none">D</div>
+          <div class="avatar avatar-md" style="background:var(--gray-500);color:var(--fg)">+3</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STATUS ── -->
+  <section class="section" id="status">
+    <h2 class="section-title">状态指示 / Status</h2>
+    <div class="demo-row" style="flex-direction:column; align-items:flex-start; gap:var(--space-3)">
+      <div class="status-row"><span class="status-dot online pulse"></span> 生产环境运行中</div>
+      <div class="status-row"><span class="status-dot online"></span> Preview 正常</div>
+      <div class="status-row"><span class="status-dot warning"></span> 性能降级</div>
+      <div class="status-row"><span class="status-dot busy"></span> 构建错误</div>
+      <div class="status-row"><span class="status-dot offline"></span> 已暂停</div>
+    </div>
+  </section>
+
+  <!-- ── PROGRESS ── -->
+  <section class="section" id="progress">
+    <h2 class="section-title">进度条 / Progress</h2>
+    <div class="demo-grid" style="gap:var(--space-4)">
+      <div>
+        <div class="flex items-center" style="justify-content:space-between; margin-bottom:var(--space-2)">
+          <span class="text-xs text-muted">构建进度</span>
+          <span class="text-xs text-mono text-muted">72%</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" style="width:72%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center" style="justify-content:space-between; margin-bottom:var(--space-2)">
+          <span class="text-xs text-muted">存储使用</span>
+          <span class="text-xs text-mono text-muted">38%</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar blue" style="width:38%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center" style="justify-content:space-between; margin-bottom:var(--space-2)">
+          <span class="text-xs text-muted">带宽消耗</span>
+          <span class="text-xs text-mono text-muted">91%</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar red" style="width:91%"></div></div>
+      </div>
+      <div>
+        <div class="flex items-center" style="justify-content:space-between; margin-bottom:var(--space-2)">
+          <span class="text-xs text-muted">Uptime</span>
+          <span class="text-xs text-mono text-muted">99.8%</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar green" style="width:99.8%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TABLE ── -->
+  <section class="section" id="table">
+    <h2 class="section-title">表格 / Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>项目</th>
+            <th>状态</th>
+            <th>框架</th>
+            <th>部署时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="td-name">my-portfolio</span></td>
+            <td><span class="badge badge-green badge-dot">Ready</span></td>
+            <td><span class="text-xs text-mono text-muted">Next.js 15</span></td>
+            <td class="text-muted">2 分钟前</td>
+            <td><button class="btn btn-ghost btn-sm">查看</button></td>
+          </tr>
+          <tr>
+            <td><span class="td-name">api-gateway</span></td>
+            <td><span class="badge badge-red badge-dot">Error</span></td>
+            <td><span class="text-xs text-mono text-muted">Node.js 20</span></td>
+            <td class="text-muted">15 分钟前</td>
+            <td><button class="btn btn-ghost btn-sm">查看</button></td>
+          </tr>
+          <tr>
+            <td><span class="td-name">marketing-site</span></td>
+            <td><span class="badge badge-blue badge-dot">Building</span></td>
+            <td><span class="text-xs text-mono text-muted">Astro 4</span></td>
+            <td class="text-muted">刚刚</td>
+            <td><button class="btn btn-ghost btn-sm">取消</button></td>
+          </tr>
+          <tr>
+            <td><span class="td-name">docs</span></td>
+            <td><span class="badge badge-green badge-dot">Ready</span></td>
+            <td><span class="text-xs text-mono text-muted">Nextra 3</span></td>
+            <td class="text-muted">1 小时前</td>
+            <td><button class="btn btn-ghost btn-sm">查看</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── SPINNERS ── -->
+  <section class="section" id="spinners">
+    <h2 class="section-title">加载状态 / Loading</h2>
+    <div class="demo-row" style="gap:var(--space-6); flex-direction:column; align-items:flex-start;">
+      <div class="flex items-center gap-4">
+        <span class="text-xs text-muted w-16">Spinner</span>
+        <div class="spinner spinner-xs"></div>
+        <div class="spinner spinner-sm"></div>
+        <div class="spinner spinner-md"></div>
+        <div class="spinner spinner-lg"></div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-xs text-muted" style="min-width:60px;">Dots</span>
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+        <span class="text-sm text-muted">正在部署中，请稍候</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SKELETON ── -->
+  <section class="section" id="skeleton">
+    <h2 class="section-title">骨架屏 / Skeleton</h2>
+    <div class="demo-grid">
+      <div class="card">
+        <div class="card-body" style="display:flex; flex-direction:column; gap:12px;">
+          <div class="flex items-center gap-3">
+            <div class="skeleton" style="width:40px; height:40px; border-radius:50%;"></div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+              <div class="skeleton" style="height:12px; width:60%;"></div>
+              <div class="skeleton" style="height:10px; width:40%;"></div>
+            </div>
+          </div>
+          <div class="skeleton" style="height:10px; width:100%;"></div>
+          <div class="skeleton" style="height:10px; width:88%;"></div>
+          <div class="skeleton" style="height:10px; width:72%;"></div>
+          <div class="flex gap-2" style="margin-top:4px;">
+            <div class="skeleton" style="height:28px; width:80px; border-radius:var(--radius);"></div>
+            <div class="skeleton" style="height:28px; width:80px; border-radius:var(--radius);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    html.setAttribute('data-theme', html.dataset.theme === 'dark' ? 'light' : 'dark');
+  }
+
+  function setActive(el) {
+    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function switchTab(btn, id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['overview','deployments','analytics','settings'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === id ? 'block' : 'none';
+    });
+  }
+
+  function copyCode(btn) {
+    const code = btn.closest('.code-block').querySelector('pre').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = '已复制！';
+      setTimeout(() => btn.textContent = '复制', 2000);
+    });
+  }
+</script>
+
+</body>
+</html>

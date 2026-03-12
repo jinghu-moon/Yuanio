@@ -1,10 +1,19 @@
 // 测试 ACK 机制：app 发送 prompt → agent 回 ACK → app 收到确认
-import { io } from "socket.io-client";
 import {
   generateKeyPair, deriveSharedKey,
   createEnvelope, MessageType, SeqCounter,
 } from "@yuanio/shared";
 import type { AckMessage } from "@yuanio/shared";
+import {
+  connectRelayWs,
+  decodeWsData,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  sendWsFrame,
+  toWsAckFrame,
+  toWsMessageFrame,
+  waitForWsOpen,
+} from "./relay-options";
 
 const serverUrl = process.argv[2] || "http://localhost:3000";
 
@@ -30,24 +39,29 @@ console.log(" 配对完成");
 const sharedKey = deriveSharedKey(appKp.secretKey, agentKp.publicKey);
 const agentSharedKey = deriveSharedKey(agentKp.secretKey, appKp.publicKey);
 
-const agentSocket = io(`${serverUrl}/relay`, { auth: { token: agentToken } });
-const appSocket = io(`${serverUrl}/relay`, { auth: { token: appData.sessionToken } });
+const agentSocket = connectRelayWs(serverUrl, agentToken);
+const appSocket = connectRelayWs(serverUrl, appData.sessionToken);
 
 await Promise.all([
-  new Promise<void>((r) => agentSocket.on("connect", r)),
-  new Promise<void>((r) => appSocket.on("connect", r)),
+  waitForWsOpen(agentSocket, 8000),
+  waitForWsOpen(appSocket, 8000),
 ]);
 console.log(" 双方已连接");
 
 // 3. Agent 监听消息并回 ACK
-agentSocket.on("message", (envelope: any) => {
+agentSocket.on("message", (data) => {
+  const parsed = parseWsFrame(decodeWsData(data));
+  if (!parsed.ok) return;
+  const frame = parsed.frame as { type: string; data?: any };
+  if (frame.type !== "message") return;
+  const envelope = normalizeEnvelopePayload(frame.data);
   if (envelope.type === "prompt") {
     console.log("[agent] 收到 prompt, 回 ACK:", envelope.id);
-    agentSocket.emit("ack", {
+    sendWsFrame(agentSocket, toWsAckFrame({
       messageId: envelope.id,
       source: agentDeviceId,
       sessionId,
-    } as AckMessage);
+    } as AckMessage));
   }
 });
 
@@ -60,22 +74,26 @@ const envelope = createEnvelope(
 
 const ackReceived = new Promise<void>((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error("ACK 超时")), 10000);
-  appSocket.on("ack", (ack: AckMessage) => {
-    if (ack.messageId === envelope.id) {
-      clearTimeout(timer);
-      console.log(" App 收到 ACK:", ack.messageId);
-      resolve();
-    }
+  appSocket.on("message", (data) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: any };
+    if (frame.type !== "ack") return;
+    const ack = frame.data as AckMessage;
+    if (ack.messageId !== envelope.id) return;
+    clearTimeout(timer);
+    console.log(" App 收到 ACK:", ack.messageId);
+    resolve();
   });
 });
 
-appSocket.emit("message", envelope);
+sendWsFrame(appSocket, toWsMessageFrame(envelope));
 console.log("[app] 已发送 prompt:", envelope.id);
 
 await ackReceived;
 
 // 5. 清理
-agentSocket.disconnect();
-appSocket.disconnect();
+agentSocket.close();
+appSocket.close();
 console.log("\n ACK 机制测试通过");
 process.exit(0);

@@ -1,0 +1,35 @@
+[
+  {
+    "type": "hello",
+    "data": {
+      "token": "token_gemini",
+      "protocolVersion": "1.0.0",
+      "namespace": "default",
+      "deviceId": "agent_gemini",
+      "role": "agent"
+    }
+  },
+  {
+    "type": "message",
+    "data": {
+      "id": "msg_gemini_1",
+      "seq": 1,
+      "source": "agent",
+      "target": "app",
+      "sessionId": "sess_gemini",
+      "type": "stream_chunk",
+      "ts": 1700000002000,
+      "payload": "{\"delta\":\"hello from gemini\"}"
+    }
+  },
+  {
+    "type": "ack",
+    "data": {
+      "messageId": "msg_gemini_1",
+      "source": "app",
+      "sessionId": "sess_gemini",
+      "state": "ok",
+      "at": 1700000002300
+    }
+  }
+]

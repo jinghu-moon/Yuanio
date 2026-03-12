@@ -1,4 +1,3 @@
-import { io, type Socket } from "socket.io-client";
 import {
   MessageType,
   SeqCounter,
@@ -8,6 +7,7 @@ import {
   generateWebKeyPair,
   openBinaryEnvelopeWeb,
   openEnvelopeWeb,
+  type AckMessage,
   type BinaryEnvelope,
   type Envelope,
   type WebKeyPair,
@@ -15,7 +15,17 @@ import {
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRelaySocketOptions } from "./relay-options";
+import { WebSocket } from "ws";
+import {
+  connectRelayWs,
+  decodeWsData,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  sendWsFrame,
+  toWsAckFrame,
+  toWsMessageFrame,
+  waitForWsOpen,
+} from "./relay-options";
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -180,7 +190,7 @@ interface BinaryIterationState {
 }
 
 interface ConnectedSocket {
-  socket: Socket;
+  socket: WebSocket;
   connectMs: number;
 }
 
@@ -442,27 +452,43 @@ async function joinPair(server: string, code: string, publicKey: string): Promis
 
 async function connectSocket(name: string, url: string, token: string): Promise<ConnectedSocket> {
   const startedAt = perfNowMs();
-  const socket = io(`${url}/relay`, createRelaySocketOptions(token));
-  await new Promise<void>((resolveFn, rejectFn) => {
-    const timeout = setTimeout(() => {
-      socket.removeAllListeners("connect");
-      socket.removeAllListeners("connect_error");
-      socket.disconnect();
-      rejectFn(new Error(`${name} 连接超时`));
-    }, 10_000);
-    socket.once("connect", () => {
-      clearTimeout(timeout);
-      resolveFn();
-    });
-    socket.once("connect_error", (error) => {
-      clearTimeout(timeout);
-      rejectFn(new Error(`${name} 连接失败: ${String((error as Error).message || error)}`));
-    });
-  });
+  const socket = connectRelayWs(url, token);
+  await waitForWsOpen(socket, 10_000);
   return {
     socket,
     connectMs: perfNowMs() - startedAt,
   };
+}
+
+function onWsEnvelope(
+  socket: WebSocket,
+  handler: (env: Envelope | BinaryEnvelope) => void,
+): () => void {
+  const onMessage = (data: any) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: unknown };
+    if (frame.type !== "message") return;
+    const env = normalizeEnvelopePayload(frame.data as Envelope | BinaryEnvelope);
+    handler(env);
+  };
+  socket.on("message", onMessage);
+  return () => socket.off("message", onMessage);
+}
+
+function onWsAck(
+  socket: WebSocket,
+  handler: (ack: AckMessage) => void,
+): () => void {
+  const onMessage = (data: any) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: unknown };
+    if (frame.type !== "ack") return;
+    handler(frame.data as AckMessage);
+  };
+  socket.on("message", onMessage);
+  return () => socket.off("message", onMessage);
 }
 
 function ensureMetric(value: number | undefined, label: string): number {
@@ -472,8 +498,8 @@ function ensureMetric(value: number | undefined, label: string): number {
 
 async function runTextScenario(params: {
   name: string;
-  appSocket: Socket;
-  agentSocket: Socket;
+  appSocket: WebSocket;
+  agentSocket: WebSocket;
   appKey: CryptoKey;
   agentKey: CryptoKey;
   appDeviceId: string;
@@ -515,12 +541,10 @@ async function runTextScenario(params: {
     state = null;
   };
 
-  const onAppAck = (raw: unknown) => {
+  const onAppAck = (ack: AckMessage) => {
     const current = state;
     if (!current) return;
-    if (!raw || typeof raw !== "object") return;
-    const obj = raw as Record<string, unknown>;
-    if (obj.messageId !== current.promptId) return;
+    if (ack.messageId !== current.promptId) return;
     current.sendToAckMs = perfNowMs() - current.sentAtPerfMs;
   };
 
@@ -577,11 +601,11 @@ async function runTextScenario(params: {
     if (state?.promptId !== current.promptId) return;
     current.agentDecryptMs = decryptedPrompt.ms;
 
-    agentSocket.emit("ack", {
+    sendWsFrame(agentSocket, toWsAckFrame({
       messageId: env.id,
       source: agentDeviceId,
       sessionId,
-    });
+    }));
 
     const encodedChunk = await timed(() => createEnvelopeWeb(
       agentDeviceId,
@@ -594,7 +618,7 @@ async function runTextScenario(params: {
     ));
     if (state?.promptId !== current.promptId) return;
     current.agentEncodeChunkMs = encodedChunk.ms;
-    agentSocket.emit("message", encodedChunk.value);
+    sendWsFrame(agentSocket, toWsMessageFrame(encodedChunk.value));
 
     const endEnvelope = await createEnvelopeWeb(
       agentDeviceId,
@@ -605,12 +629,12 @@ async function runTextScenario(params: {
       agentKey,
       agentSeq.next(),
     );
-    agentSocket.emit("message", endEnvelope);
+    sendWsFrame(agentSocket, toWsMessageFrame(endEnvelope));
   };
 
-  appSocket.on("ack", onAppAck);
-  appSocket.on("message", onAppMessage);
-  agentSocket.on("message", onAgentMessage);
+  const removeAppAck = onWsAck(appSocket, onAppAck);
+  const removeAppMessage = onWsEnvelope(appSocket, onAppMessage);
+  const removeAgentMessage = onWsEnvelope(agentSocket, onAgentMessage);
 
   try {
     const total = warmup + iterations;
@@ -642,7 +666,7 @@ async function runTextScenario(params: {
         state.timer = setTimeout(() => {
           rejectFn(new Error(`${name} 超时: ${encodedPrompt.value.id}`));
         }, timeoutMs);
-        appSocket.emit("message", encodedPrompt.value);
+        sendWsFrame(appSocket, toWsMessageFrame(encodedPrompt.value));
       });
 
       const current = state as TextIterationState | null;
@@ -666,9 +690,9 @@ async function runTextScenario(params: {
     }
   } finally {
     cleanupState();
-    appSocket.off("ack", onAppAck);
-    appSocket.off("message", onAppMessage);
-    agentSocket.off("message", onAgentMessage);
+    removeAppAck();
+    removeAppMessage();
+    removeAgentMessage();
   }
 
   return {
@@ -697,8 +721,8 @@ async function runTextScenario(params: {
 
 async function runBinaryScenario(params: {
   name: string;
-  appSocket: Socket;
-  agentSocket: Socket;
+  appSocket: WebSocket;
+  agentSocket: WebSocket;
   appKey: CryptoKey;
   agentKey: CryptoKey;
   appDeviceId: string;
@@ -786,11 +810,11 @@ async function runBinaryScenario(params: {
     ));
     if (state?.requestId !== current.requestId) return;
     current.agentEncodeMs = encodedOutput.ms;
-    agentSocket.emit("message", encodedOutput.value);
+    sendWsFrame(agentSocket, toWsMessageFrame(encodedOutput.value));
   };
 
-  appSocket.on("message", onAppMessage);
-  agentSocket.on("message", onAgentMessage);
+  const removeAppMessage = onWsEnvelope(appSocket, onAppMessage);
+  const removeAgentMessage = onWsEnvelope(agentSocket, onAgentMessage);
 
   try {
     const total = warmup + iterations;
@@ -822,7 +846,7 @@ async function runBinaryScenario(params: {
         state.timer = setTimeout(() => {
           rejectFn(new Error(`${name} 超时: ${encodedInput.value.id}`));
         }, timeoutMs);
-        appSocket.emit("message", encodedInput.value);
+        sendWsFrame(appSocket, toWsMessageFrame(encodedInput.value));
       });
 
       const current = state as BinaryIterationState | null;
@@ -842,8 +866,8 @@ async function runBinaryScenario(params: {
     }
   } finally {
     cleanupState();
-    appSocket.off("message", onAppMessage);
-    agentSocket.off("message", onAgentMessage);
+    removeAppMessage();
+    removeAgentMessage();
   }
 
   return {
@@ -944,8 +968,8 @@ function scenarioToJsonObject(result: ScenarioResult): JsonObject {
 
 async function main(): Promise<void> {
   let relayProcess: Bun.Subprocess | null = null;
-  let agentSocket: Socket | null = null;
-  let appSocket: Socket | null = null;
+  let agentSocket: WebSocket | null = null;
+  let appSocket: WebSocket | null = null;
 
   try {
     let relayHealthStart = await fetchRelayHealth(serverUrl);
@@ -1125,11 +1149,11 @@ async function main(): Promise<void> {
   } finally {
     if (appSocket) {
       appSocket.removeAllListeners();
-      appSocket.disconnect();
+      appSocket.close();
     }
     if (agentSocket) {
       agentSocket.removeAllListeners();
-      agentSocket.disconnect();
+      agentSocket.close();
     }
     if (relayProcess) {
       relayProcess.kill("SIGTERM");

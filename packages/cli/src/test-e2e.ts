@@ -1,4 +1,3 @@
-import { io } from "socket.io-client";
 import {
   DEFAULT_E2EE_INFO,
   MessageType,
@@ -11,7 +10,15 @@ import {
   type AckMessage,
   type Envelope,
 } from "@yuanio/shared";
-import { createRelaySocketOptions } from "./relay-options";
+import {
+  connectRelayWs,
+  decodeWsData,
+  isTextEnvelope,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  sendWsFrame,
+  toWsMessageFrame,
+} from "./relay-options";
 
 interface PairJoinResponse {
   agentPublicKey: string;
@@ -69,7 +76,7 @@ async function main() {
     info: DEFAULT_E2EE_INFO,
   });
 
-  const socket = io(`${serverUrl}/relay`, createRelaySocketOptions(sessionToken));
+  const socket = connectRelayWs(serverUrl, sessionToken);
 
   const seq = new SeqCounter();
   let sent = false;
@@ -89,37 +96,46 @@ async function main() {
     );
     promptMessageId = envelope.id;
     console.log("[e2e] 发送 prompt:", prompt);
-    socket.emit("message", envelope);
+    sendWsFrame(socket, toWsMessageFrame(envelope));
   };
 
-  socket.on("connect", () => {
+  socket.on("open", () => {
     console.log("[e2e] 已连接 relay, 等待 agent 上线...");
     setTimeout(() => {
       void sendPrompt();
     }, 3000);
   });
 
-  socket.on("device:online", (info: { role?: string }) => {
-    if (info?.role === "agent") {
-      console.log("[e2e] agent 已上线");
-      void sendPrompt();
+  socket.on("message", (data) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: any };
+    if (frame.type === "presence") {
+      const devices = Array.isArray(frame.data?.devices) ? frame.data.devices : [];
+      const hasAgent = devices.some((item: any) => item?.role === "agent");
+      if (hasAgent) {
+        console.log("[e2e] agent 已上线");
+        void sendPrompt();
+      }
+      return;
     }
-  });
-
-  socket.on("ack", (ack: AckMessage & { reason?: string }) => {
-    if (!promptMessageId || ack.messageId !== promptMessageId) return;
-    if (ack.state === "terminal") {
-      console.error("[e2e] agent 终止:", ack.reason || "unknown");
-      socket.disconnect();
-      process.exit(1);
+    if (frame.type === "ack") {
+      const ack = frame.data as AckMessage & { reason?: string };
+      if (!promptMessageId || ack.messageId !== promptMessageId) return;
+      if (ack.state === "terminal") {
+        console.error("[e2e] agent 终止:", ack.reason || "unknown");
+        socket.close();
+        process.exit(1);
+      }
+      return;
     }
-  });
-
-  socket.on("message", (envelope: Envelope) => {
+    if (frame.type !== "message") return;
+    const envelope = normalizeEnvelopePayload(frame.data as Envelope);
+    if (!isTextEnvelope(envelope)) return;
     void (async () => {
       if (envelope.type === MessageType.STREAM_END) {
         console.log("\n[e2e] 完成");
-        socket.disconnect();
+        socket.close();
         process.exit(0);
       }
 
@@ -130,13 +146,14 @@ async function main() {
     })().catch((err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
       console.error("[e2e] 解密失败:", message);
-      socket.disconnect();
+      socket.close();
       process.exit(1);
     });
   });
 
-  socket.on("connect_error", (err) => {
-    console.error("[e2e] 连接错误:", err.message);
+  socket.on("error", (err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[e2e] 连接错误:", message);
     process.exit(1);
   });
 

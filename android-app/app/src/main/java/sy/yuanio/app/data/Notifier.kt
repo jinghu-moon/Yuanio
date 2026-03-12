@@ -1,10 +1,14 @@
 package sy.yuanio.app.data
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import sy.yuanio.app.R
 import sy.yuanio.app.YuanioApp
 
@@ -34,6 +38,7 @@ object Notifier {
 
     fun approval(ctx: Context, desc: String, approvalId: String? = null) {
         if (!NotificationPrefs.isChannelEnabled(YuanioApp.CH_APPROVAL)) return
+        if (!canPostNotifications(ctx)) return
 
         val notifId = approvalId?.hashCode() ?: nextId++
 
@@ -109,6 +114,7 @@ object Notifier {
 
     private fun send(ctx: Context, channel: String, title: String, body: String) {
         if (!NotificationPrefs.isChannelEnabled(channel)) return
+        if (!canPostNotifications(ctx)) return
 
         val n = NotificationCompat.Builder(ctx, channel)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -119,5 +125,12 @@ object Notifier {
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(nextId++, n)
     }
-}
 
+    private fun canPostNotifications(ctx: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        return ContextCompat.checkSelfPermission(
+            ctx,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+}

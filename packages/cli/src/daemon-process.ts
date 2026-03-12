@@ -2,7 +2,6 @@ import { serve } from "bun";
 import { Database } from "bun:sqlite";
 import { writeState, removeState } from "./daemon";
 import { loadKeys, saveKeys, type StoredKeys } from "./keystore";
-import { io, type Socket } from "socket.io-client";
 import {
   createEnvelopeWeb,
   openEnvelopeWeb,
@@ -27,7 +26,7 @@ import type {
   SessionStopPayload,
   SessionStatusPayload,
 } from "@yuanio/shared";
-import { createRelaySocketOptions, ensurePollingFallback } from "./relay-options";
+import { RelayClient } from "./relay-client";
 import { startWarmLoop } from "./prewarm";
 import type { AgentType } from "./spawn";
 import { startLocalServer, type LocalServer } from "./local-server";
@@ -719,7 +718,7 @@ const warmAgent = (warmAgentArg || (warmFlag ? defaultAgent : "")) as AgentType;
 const warmEnabled = ["claude", "codex", "gemini"].includes(warmAgent);
 
 // --- Relay 长连接 ---
-let relaySocket: Socket | null = null;
+let relayClient: RelayClient | null = null;
 let relayConnected = false;
 const seq = new SeqCounter();
 let pendingSwitchAck: { sessionId: string } | null = null;
@@ -731,58 +730,41 @@ const DAEMON_LOCAL_PORT = Number.isFinite(daemonLocalPortRaw) && daemonLocalPort
   ? Math.floor(daemonLocalPortRaw)
   : 19394;
 
-/** 设置 relay socket 事件监听 */
-function setupRelayListeners(socket: Socket, options: ReturnType<typeof createRelaySocketOptions>) {
-  let fallbackApplied = false;
-
-  socket.on("connect", () => {
-    if (socket !== relaySocket) return;
-    relayConnected = true;
-    console.log("[daemon] relay 已连接");
-    if (pendingSwitchAck) {
-      void sendSessionSwitchAck(pendingSwitchAck.sessionId);
-      pendingSwitchAck = null;
+/** 设置 relay 事件监听 */
+function setupRelayListeners(relay: RelayClient) {
+  relay.onConnectionChange((connected) => {
+    if (relay !== relayClient) return;
+    relayConnected = connected;
+    if (connected) {
+      console.log("[daemon] relay 已连接");
+      if (pendingSwitchAck) {
+        void sendSessionSwitchAck(pendingSwitchAck.sessionId);
+        pendingSwitchAck = null;
+      }
+      return;
     }
-  });
-
-  socket.on("disconnect", () => {
-    if (socket !== relaySocket) return;
-    relayConnected = false;
     console.log("[daemon] relay 已断开");
   });
 
-  socket.on("connect_error", (err) => {
-    if (!fallbackApplied) {
-      fallbackApplied = ensurePollingFallback(options, (msg) =>
-        console.warn(`[daemon] ${msg}`),
-      );
-      if (fallbackApplied) {
-        socket.io.opts.transports = options.transports || socket.io.opts.transports;
-        socket.disconnect();
-        socket.connect();
-        return;
-      }
-    }
-    if (socket === relaySocket) {
-      console.error("[daemon] relay 连接错误:", err.message);
-      return;
-    }
-    console.warn("[daemon] relay 候选连接错误:", err.message);
+  relay.onError((message) => {
+    if (relay !== relayClient) return;
+    console.error("[daemon] relay 连接错误:", message);
   });
 
-  socket.on("message", (envelope: Envelope) => {
-    if (socket !== relaySocket) return;
+  relay.onMessage((rawEnvelope) => {
+    if (relay !== relayClient) return;
+    if (typeof (rawEnvelope as any)?.payload !== "string") return;
+    const envelope = rawEnvelope as Envelope;
     // daemon 作为接收端也要回 ACK，避免手机端 reliable send 重试超时
     if (ACK_REQUIRED_TYPES.includes(envelope.type) && envelope.id) {
       const currentKeys = loadKeys();
       if (currentKeys?.deviceId) {
-        socket.emit("ack", {
-          messageId: envelope.id,
-          source: currentKeys.deviceId,
-          sessionId: envelope.sessionId,
-          state: "working",
-          at: Date.now(),
-        });
+        relay.sendAck(
+          envelope.id,
+          currentKeys.deviceId,
+          envelope.sessionId,
+          "working",
+        );
       }
     }
 
@@ -830,59 +812,44 @@ function setupRelayListeners(socket: Socket, options: ReturnType<typeof createRe
   });
 }
 
-function createRelaySocket(token: string): Socket {
-  const options = createRelaySocketOptions(token);
-  const socket = io(`${serverUrl}/relay`, options);
-  setupRelayListeners(socket, options);
-  socket.connect();
-  return socket;
+function createRelayClient(token: string): RelayClient {
+  const relay = new RelayClient(serverUrl, token);
+  setupRelayListeners(relay);
+  return relay;
 }
 
-async function waitForSocketConnected(socket: Socket, timeoutMs: number): Promise<boolean> {
-  if (socket.connected) return true;
-  return await new Promise<boolean>((resolve) => {
-    let settled = false;
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      socket.off("connect", onConnect);
-      resolve(false);
-    }, Math.max(500, timeoutMs));
-
-    const onConnect = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      socket.off("connect", onConnect);
-      resolve(true);
-    };
-
-    socket.on("connect", onConnect);
-  });
+async function waitForRelayConnected(relay: RelayClient, timeoutMs: number): Promise<boolean> {
+  if (relay.connected) return true;
+  const deadline = Date.now() + Math.max(500, timeoutMs);
+  while (Date.now() < deadline) {
+    if (relay.connected) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return false;
 }
 
 async function reconnectRelay(newToken: string): Promise<boolean> {
-  if (!relaySocket) {
-    relaySocket = createRelaySocket(newToken);
+  if (!relayClient) {
+    relayClient = createRelayClient(newToken);
     relayConnected = false;
     return true;
   }
 
   if (relaySwitchPromise) return await relaySwitchPromise;
 
-  const currentSocket = relaySocket;
+  const currentRelay = relayClient;
   const switchTask = (async () => {
-    const candidate = createRelaySocket(newToken);
-    const connected = await waitForSocketConnected(candidate, 10000);
+    const candidate = createRelayClient(newToken);
+    const connected = await waitForRelayConnected(candidate, 10000);
     if (!connected) {
       candidate.disconnect();
       console.warn("[daemon] relay 热切换失败，保留旧连接");
       return false;
     }
 
-    relaySocket = candidate;
+    relayClient = candidate;
     relayConnected = candidate.connected;
-    currentSocket.disconnect();
+    currentRelay.disconnect();
     console.log("[daemon] relay 已热切换到新连接");
     if (pendingSwitchAck) {
       void sendSessionSwitchAck(pendingSwitchAck.sessionId);
@@ -937,7 +904,7 @@ function ensureLocalServerWithKeys(keys: StoredKeys): void {
 
 const keys = loadKeys();
 if (keys) {
-  relaySocket = createRelaySocket(keys.sessionToken);
+  relayClient = createRelayClient(keys.sessionToken);
   ensureLocalServerWithKeys(keys);
 } else {
   console.log("[daemon] 未找到密钥，跳过 relay 连接");
@@ -1421,8 +1388,8 @@ async function rebindRuntimeFromKeystore(trigger: string): Promise<RebindResult>
   const switched = await reconnectRelay(latest.sessionToken);
   if (!switched && !relayConnected) {
     // 热切换失败且当前无可用连接时，执行兜底硬重连
-    relaySocket?.disconnect();
-    relaySocket = createRelaySocket(latest.sessionToken);
+    relayClient?.disconnect();
+    relayClient = createRelayClient(latest.sessionToken);
     relayConnected = false;
     console.warn("[daemon] relay 热切换失败，已触发兜底硬重连");
   }
@@ -1485,7 +1452,7 @@ function cleanup() {
   pushService.stop();
   sseManager.stop();
   localServer?.stop();
-  relaySocket?.disconnect();
+  relayClient?.disconnect();
   removeState();
   try { closeSync(daemonLockFd); } catch {}
   try { unlinkSync(LOCK_FILE); } catch {}
@@ -1553,7 +1520,7 @@ async function handleSessionSwitch(envelope: Envelope): Promise<boolean> {
 async function sendSessionSwitchAck(sessionId: string): Promise<void> {
   const currentKeys = loadKeys();
   if (!currentKeys?.secretKey || !currentKeys.peerPublicKey || !currentKeys.deviceId) return;
-  if (!relaySocket || !relayConnected) return;
+  if (!relayClient || !relayConnected) return;
 
   const sharedKey = await deriveSharedKeyForSession(currentKeys, sessionId);
   const payload: SessionSwitchAckPayload = {
@@ -1570,7 +1537,7 @@ async function sendSessionSwitchAck(sessionId: string): Promise<void> {
     sharedKey,
     seq.next(),
   );
-  relaySocket.emit("message", env);
+  relayClient.send(env);
 }
 
 function listTrackedSessions() {
@@ -1592,7 +1559,7 @@ async function sendEncryptedRelayPayload(
 ): Promise<void> {
   const currentKeys = loadKeys();
   if (!currentKeys?.secretKey || !currentKeys.peerPublicKey || !currentKeys.deviceId) return;
-  if (!relaySocket || !relayConnected) return;
+  if (!relayClient || !relayConnected) return;
   const sharedKey = await deriveSharedKeyForSession(currentKeys, sessionId);
   const env = await createEnvelopeWeb(
     currentKeys.deviceId,
@@ -1603,7 +1570,7 @@ async function sendEncryptedRelayPayload(
     sharedKey,
     seq.next(),
   );
-  relaySocket.emit("message", env);
+  relayClient.send(env);
 }
 
 async function sendSessionStatus(
@@ -1816,7 +1783,7 @@ function matchCronField(field: string, value: number): boolean {
 async function triggerSchedule(entry: ScheduleEntry): Promise<void> {
   const currentKeys = loadKeys();
   if (!currentKeys?.secretKey || !currentKeys.peerPublicKey || !currentKeys.deviceId) return;
-  if (!relaySocket || !relayConnected) return;
+  if (!relayClient || !relayConnected) return;
 
   const sharedKey = await deriveSharedKeyForSession(currentKeys, currentKeys.sessionId);
   const payload = JSON.stringify({
@@ -1834,7 +1801,7 @@ async function triggerSchedule(entry: ScheduleEntry): Promise<void> {
     sharedKey,
     seq.next(),
   );
-  relaySocket.emit("message", env);
+  relayClient.send(env);
   console.log(`[scheduler] 触发: ${entry.id} → "${entry.prompt.slice(0, 50)}"`);
 }
 

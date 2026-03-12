@@ -58,20 +58,20 @@ jobs:
 
       - name: Assemble debug
         working-directory: android-app
-        run: ./gradlew assembleDebug --console=plain
+        run: ./gradlew :app:assembleFullDebug --console=plain
 
       - name: Lint debug
         working-directory: android-app
-        run: ./gradlew lintDebug --console=plain
+        run: ./gradlew :app:lintFullDebug --console=plain
 
       - name: Compile androidTest sources
         working-directory: android-app
-        run: ./gradlew :app:compileDebugAndroidTestKotlin --console=plain
+        run: ./gradlew :app:compileFullDebugAndroidTestKotlin --console=plain
 
       - name: Run focused Android unit tests
         working-directory: android-app
         run: |
-          ./gradlew :app:testDebugUnitTest \
+          ./gradlew :app:testFullDebugUnitTest \
             --tests "*BrandIconsTest" \
             --tests "*ApprovalCardTest" \
             --tests "*ChatMessageListBehaviorTest" \

@@ -1,4 +1,3 @@
-import { io, type Socket } from "socket.io-client";
 import {
   MessageType,
   SeqCounter,
@@ -13,7 +12,17 @@ import {
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRelaySocketOptions } from "./relay-options";
+import { WebSocket } from "ws";
+import {
+  connectRelayWs,
+  decodeWsData,
+  isTextEnvelope,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  sendWsFrame,
+  toWsMessageFrame,
+  waitForWsOpen,
+} from "./relay-options";
 import type { AgentType } from "./spawn";
 import { RelayClient } from "./relay-client";
 import { setupRemoteMode } from "./remote";
@@ -150,7 +159,7 @@ interface IterationState {
 }
 
 interface ConnectedSocket {
-  socket: Socket;
+  socket: WebSocket;
   connectMs: number;
 }
 
@@ -422,36 +431,10 @@ async function joinPair(server: string, code: string, publicKey: string): Promis
 }
 
 async function connectSocket(server: string, sessionToken: string): Promise<ConnectedSocket> {
-  return await new Promise<ConnectedSocket>((resolveFn, rejectFn) => {
-    const start = perfNowMs();
-    const socket = io(`${server}/relay`, createRelaySocketOptions(sessionToken));
-    let settled = false;
-    const finish = (fn: () => void) => {
-      if (settled) return;
-      settled = true;
-      fn();
-    };
-    const timer = setTimeout(() => {
-      finish(() => {
-        socket.removeAllListeners();
-        socket.disconnect();
-        rejectFn(new Error("socket 连接超时"));
-      });
-    }, 20_000);
-    socket.once("connect", () => {
-      finish(() => {
-        clearTimeout(timer);
-        resolveFn({ socket, connectMs: perfNowMs() - start });
-      });
-    });
-    socket.once("connect_error", (err: Error) => {
-      finish(() => {
-        clearTimeout(timer);
-        socket.disconnect();
-        rejectFn(new Error(`socket 连接失败: ${err.message}`));
-      });
-    });
-  });
+  const start = perfNowMs();
+  const socket = connectRelayWs(server, sessionToken);
+  await waitForWsOpen(socket, 20_000);
+  return { socket, connectMs: perfNowMs() - start };
 }
 
 async function waitRelayClientConnected(relay: RelayClient, timeoutMsValue: number): Promise<void> {
@@ -463,8 +446,40 @@ async function waitRelayClientConnected(relay: RelayClient, timeoutMsValue: numb
   throw new Error("agent relay client 连接超时");
 }
 
+function onWsEnvelope(
+  socket: WebSocket,
+  handler: (env: Envelope) => void,
+): () => void {
+  const onMessage = (data: any) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: unknown };
+    if (frame.type !== "message") return;
+    const env = normalizeEnvelopePayload(frame.data as Envelope);
+    if (!isTextEnvelope(env)) return;
+    handler(env);
+  };
+  socket.on("message", onMessage);
+  return () => socket.off("message", onMessage);
+}
+
+function onWsAck(
+  socket: WebSocket,
+  handler: (ack: { messageId?: string; state?: string }) => void,
+): () => void {
+  const onMessage = (data: any) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: unknown };
+    if (frame.type !== "ack") return;
+    handler(frame.data as { messageId?: string; state?: string });
+  };
+  socket.on("message", onMessage);
+  return () => socket.off("message", onMessage);
+}
+
 async function runAgentScenario(params: {
-  appSocket: Socket;
+  appSocket: WebSocket;
   appKey: CryptoKey;
   appDeviceId: string;
   sessionId: string;
@@ -507,11 +522,9 @@ async function runAgentScenario(params: {
     }
   };
 
-  const onAppAck = (raw: unknown) => {
+  const onAppAck = (obj: { messageId?: string; state?: string; reason?: string }) => {
     const current = state;
     if (!current) return;
-    if (!raw || typeof raw !== "object") return;
-    const obj = raw as Record<string, unknown>;
     if (obj.messageId !== current.promptId) return;
     const now = perfNowMs();
     const ackState = typeof obj.state === "string" ? obj.state : "ok";
@@ -569,8 +582,8 @@ async function runAgentScenario(params: {
     }
   };
 
-  appSocket.on("ack", onAppAck);
-  appSocket.on("message", onAppMessage);
+  const removeAppAck = onWsAck(appSocket, onAppAck);
+  const removeAppMessage = onWsEnvelope(appSocket, onAppMessage);
 
   try {
     const total = warmupCount + iterationsCount;
@@ -606,7 +619,7 @@ async function runAgentScenario(params: {
           rejectFn(new Error(`agent-e2e 超时: ${current.promptId}`));
         }, timeoutMsValue);
         state = current;
-        appSocket.emit("message", encodedPrompt.value);
+        sendWsFrame(appSocket, toWsMessageFrame(encodedPrompt.value));
       });
       cleanupState();
       if (isWarmup) continue;
@@ -636,8 +649,8 @@ async function runAgentScenario(params: {
     }
   } finally {
     cleanupState();
-    appSocket.off("ack", onAppAck);
-    appSocket.off("message", onAppMessage);
+    removeAppAck();
+    removeAppMessage();
   }
 
   const promptBytes = Buffer.byteLength(`${promptBaseText}\n[bench-xx]`);
@@ -749,7 +762,7 @@ function scenarioToJsonObject(result: ScenarioResult): JsonObject {
 
 async function main(): Promise<void> {
   let relayProcess: Bun.Subprocess | null = null;
-  let appSocket: Socket | null = null;
+  let appSocket: WebSocket | null = null;
   let relayClient: RelayClient | null = null;
 
   try {
@@ -819,7 +832,7 @@ async function main(): Promise<void> {
       deriveApp.value,
       appSeq.next(),
     );
-    appSocket.emit("message", switchEnvelope);
+    sendWsFrame(appSocket, toWsMessageFrame(switchEnvelope));
     await sleep(400);
 
     const permissionPayload = JSON.stringify({ mode: permissionMode });
@@ -832,7 +845,7 @@ async function main(): Promise<void> {
       deriveApp.value,
       appSeq.next(),
     );
-    appSocket.emit("message", permissionEnvelope);
+    sendWsFrame(appSocket, toWsMessageFrame(permissionEnvelope));
     await sleep(200);
 
     console.log(`[agent-e2e] 运行场景: agent-e2e (agent=${agent})`);
@@ -932,7 +945,7 @@ async function main(): Promise<void> {
   } finally {
     if (appSocket) {
       appSocket.removeAllListeners();
-      appSocket.disconnect();
+      appSocket.close();
     }
     if (relayClient) {
       relayClient.disconnect();

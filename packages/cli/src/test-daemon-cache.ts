@@ -2,7 +2,7 @@
 import { generateKeyPair, deriveSharedKey, createEnvelope, MessageType, SeqCounter } from "@yuanio/shared";
 import { saveKeys } from "./keystore";
 import { daemonStart, daemonStop, readState } from "./daemon";
-import { io } from "socket.io-client";
+import { connectRelayWs, sendWsFrame, toWsMessageFrame, waitForWsOpen } from "./relay-options";
 
 const serverUrl = process.argv[2] || "http://localhost:3000";
 
@@ -39,23 +39,17 @@ await new Promise((r) => setTimeout(r, 2000)); // 等待 relay 连接
 
 // 3. App 连接并发送消息
 const sharedKey = deriveSharedKey(appKp.secretKey, agentKp.publicKey);
-const appSocket = io(`${serverUrl}/relay`, { auth: { token: appData.sessionToken } });
-
-await new Promise<void>((resolve, reject) => {
-  appSocket.on("connect", () => {
-    console.log(" App 已连接 relay");
-    // 发送 2 条测试消息
-    const seq = new SeqCounter();
-    const env1 = createEnvelope(appData.deviceId, "broadcast", sessionId, MessageType.PROMPT, "测试消息1", sharedKey, seq.next());
-    const env2 = createEnvelope(appData.deviceId, "broadcast", sessionId, MessageType.PROMPT, "测试消息2", sharedKey, seq.next());
-    appSocket.emit("message", env1);
-    appSocket.emit("message", env2);
-    console.log(" 已发送 2 条消息");
-    setTimeout(resolve, 1000); // 等待 daemon 接收
-  });
-  appSocket.on("connect_error", (err) => reject(err));
-  setTimeout(() => reject(new Error("连接超时")), 10000);
-});
+const appSocket = connectRelayWs(serverUrl, appData.sessionToken);
+await waitForWsOpen(appSocket, 10000);
+console.log(" App 已连接 relay");
+// 发送 2 条测试消息
+const seq = new SeqCounter();
+const env1 = createEnvelope(appData.deviceId, "broadcast", sessionId, MessageType.PROMPT, "测试消息1", sharedKey, seq.next());
+const env2 = createEnvelope(appData.deviceId, "broadcast", sessionId, MessageType.PROMPT, "测试消息2", sharedKey, seq.next());
+sendWsFrame(appSocket, toWsMessageFrame(env1));
+sendWsFrame(appSocket, toWsMessageFrame(env2));
+console.log(" 已发送 2 条消息");
+await new Promise((r) => setTimeout(r, 1000)); // 等待 daemon 接收
 
 // 4. 验证 daemon 缓存
 const state = readState();
@@ -89,7 +83,7 @@ if (clearData.cleared === 2) {
 }
 
 // 6. 清理
-appSocket.disconnect();
+appSocket.close();
 daemonStop();
 console.log("\n 全部测试通过");
 process.exit(0);

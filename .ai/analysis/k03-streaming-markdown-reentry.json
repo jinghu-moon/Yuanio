@@ -1,0 +1,12 @@
+{
+  "decision": "approved",
+  "reason": "用户反馈流式 Markdown 未闭合标签导致渲染闪烁，为避免引入大型新库，采用轻量补全策略并保持原始文本不变。",
+  "composeMetricsFresh": true,
+  "streamingJankObserved": true,
+  "terminalPerfRetained": true,
+  "verificationCommands": [
+    "cd android-app && ./gradlew.bat assembleDebug --console=plain",
+    "cd android-app && ./gradlew.bat --no-daemon \"-Dkotlin.compiler.execution.strategy=in-process\" \"-Dkotlin.incremental=false\" :app:testDebugUnitTest --tests \"*StreamingMarkdownSanitizerTest\" --console=plain",
+    "python tools/check_android_deferred_reentry.py"
+  ]
+}

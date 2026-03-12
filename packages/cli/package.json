@@ -3,9 +3,16 @@
   "version": "0.1.0",
   "description": "Desktop-side CLI launcher and control bridge for Yuanio remote coding workflows",
   "bin": {
-    "yuanio": "src/index.ts"
+    "yuanio": "dist/index.js"
   },
+  "main": "dist/index.js",
+  "exports": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "bun build src/index.ts --target node --format esm --outdir dist --external node-pty --banner \"#!/usr/bin/env node\"",
+    "prepack": "bun run build",
     "test:stream-visible": "bun run src/test-stream-visible.ts",
     "test:latency-baseline": "bun run src/test-latency-baseline.ts",
     "test:latency-agent-e2e": "bun run src/test-latency-agent-e2e.ts",
@@ -15,9 +22,11 @@
     "test:stream-gate": "bun test src/remote/__tests__/dispatch.test.ts src/remote/__tests__/stream-replay.test.ts"
   },
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@yuanio/shared": "workspace:*",
     "bonjour-service": "^1.3.0",
     "ink": "^6.0.0",
     "ink-big-text": "^2.0.0",
@@ -27,11 +36,14 @@
     "node-pty": "^1.0.0",
     "qrcode-terminal": "^0.12.0",
     "react": "^19.0.0",
-    "socket.io-client": "^4",
+    "react-devtools-core": "^7.0.1",
     "tweetnacl": "^1.0.3",
-    "tweetnacl-util": "^0.15.1"
+    "tweetnacl-util": "^0.15.1",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0"
+    "@types/react": "^19.0.0",
+    "@types/ws": "^8.5.10",
+    "@yuanio/shared": "workspace:*"
   }
 }

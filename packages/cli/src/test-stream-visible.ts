@@ -1,4 +1,3 @@
-import { io } from "socket.io-client";
 import {
   generateKeyPair,
   deriveSharedKey,
@@ -8,7 +7,15 @@ import {
   SeqCounter,
 } from "@yuanio/shared";
 import type { Envelope } from "@yuanio/shared";
-import { createRelaySocketOptions } from "./relay-options";
+import {
+  connectRelayWs,
+  decodeWsData,
+  isTextEnvelope,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  sendWsFrame,
+  toWsMessageFrame,
+} from "./relay-options";
 
 function getArg(flag: string, fallback: string): string {
   const idx = process.argv.indexOf(flag);
@@ -69,13 +76,19 @@ let sharedKey: Uint8Array | null = null;
 let pendingPrompt: Envelope | null = null;
 const seq = new SeqCounter();
 
-const socket = io(`${serverUrl}/relay`, createRelaySocketOptions(sessionToken));
+const socket = connectRelayWs(serverUrl, sessionToken);
 
-socket.on("connect", () => {
+socket.on("open", () => {
   console.log("[stream-visible] mock agent connected");
 });
 
-socket.on("message", (env: Envelope) => {
+socket.on("message", (data) => {
+  const parsed = parseWsFrame(decodeWsData(data));
+  if (!parsed.ok) return;
+  const frame = parsed.frame as { type: string; data?: unknown };
+  if (frame.type !== "message") return;
+  const env = normalizeEnvelopePayload(frame.data as Envelope);
+  if (!isTextEnvelope(env)) return;
   if (env.type !== MessageType.PROMPT) return;
   if (!sharedKey) {
     pendingPrompt = env;
@@ -112,7 +125,7 @@ async function handlePrompt(env: Envelope) {
       sharedKey,
       seq.next(),
     );
-    socket.emit("message", chunk);
+    sendWsFrame(socket, toWsMessageFrame(chunk));
     await sleep(Math.max(10, delayMs));
   }
 
@@ -125,7 +138,7 @@ async function handlePrompt(env: Envelope) {
     sharedKey,
     seq.next(),
   );
-  socket.emit("message", end);
+  sendWsFrame(socket, toWsMessageFrame(end));
 }
 
 const appKeyPromise = waitForAppKey(pairingCode).then((appPublicKey) => {
@@ -160,5 +173,5 @@ const [out, err, code] = await Promise.all([
 if (out) process.stdout.write(out);
 if (err) process.stderr.write(err);
 
-socket.disconnect();
+socket.close();
 process.exit(code ?? 1);

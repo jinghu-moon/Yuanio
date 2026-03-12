@@ -1,6 +1,6 @@
 // 测试连接元数据日志
-import { io } from "socket.io-client";
-import { generateKeyPair, PROTOCOL_VERSION } from "@yuanio/shared";
+import { generateKeyPair } from "@yuanio/shared";
+import { connectRelayWs, waitForWsOpen } from "./relay-options";
 
 const serverUrl = process.argv[2] || "http://localhost:3000";
 
@@ -15,11 +15,11 @@ const { sessionToken, sessionId } = await res.json();
 console.log(" 配对完成");
 
 // 2. 连接 → 断开
-const socket = io(`${serverUrl}/relay`, { auth: { token: sessionToken, protocolVersion: PROTOCOL_VERSION } });
-await new Promise<void>((r) => socket.on("connect", r));
+const socket = connectRelayWs(serverUrl, sessionToken);
+await waitForWsOpen(socket, 8000);
 console.log(" 已连接");
 
-socket.disconnect();
+socket.close();
 await new Promise((r) => setTimeout(r, 500));
 console.log(" 已断开");
 

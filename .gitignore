@@ -47,6 +47,11 @@ nul
 
 # Local AI / agent state
 .ai/
+!.ai/
+.ai/*
+!.ai/analysis/
+.ai/analysis/*
+!.ai/analysis/k03-streaming-markdown-reentry.json
 .serena/
 
 # IDE

@@ -1,4 +1,3 @@
-import { io, type Socket } from "socket.io-client";
 import {
   MessageType,
   PROTOCOL_VERSION,
@@ -10,7 +9,18 @@ import {
   type AckMessage,
   type Envelope,
 } from "@yuanio/shared";
-import { createRelaySocketOptions } from "./relay-options";
+import { WebSocket } from "ws";
+import {
+  connectRelayWs,
+  decodeWsData,
+  isTextEnvelope,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  sendWsFrame,
+  toWsAckFrame,
+  toWsMessageFrame,
+  waitForWsOpen,
+} from "./relay-options";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -189,68 +199,57 @@ async function waitRelayHealthy(url: string, waitMs: number): Promise<void> {
   throw new Error(`[relay] 健康检查超时: ${url}/health`);
 }
 
-async function connectSocket(name: string, url: string, token: string): Promise<Socket> {
-  const socket = io(`${url}/relay`, createRelaySocketOptions(token));
+async function connectSocket(name: string, url: string, token: string): Promise<WebSocket> {
+  const socket = connectRelayWs(url, token);
   await withTimeout(
     `socket connect: ${name}`,
     timeoutMs,
-    new Promise<void>((resolve, reject) => {
-      const onConnect = () => {
-        cleanup();
-        resolve();
-      };
-      const onConnectError = (err: Error) => {
-        cleanup();
-        reject(new Error(`[${name}] connect_error: ${err.message}`));
-      };
-      const cleanup = () => {
-        socket.off("connect", onConnect);
-        socket.off("connect_error", onConnectError);
-      };
-      socket.on("connect", onConnect);
-      socket.on("connect_error", onConnectError);
-    }),
+    waitForWsOpen(socket, timeoutMs),
   );
   return socket;
 }
 
-async function waitSocketConnected(name: string, socket: Socket): Promise<void> {
-  if (socket.connected) return;
+async function waitSocketConnected(name: string, socket: WebSocket): Promise<void> {
+  if (socket.readyState === WebSocket.OPEN) return;
   await withTimeout(
     `socket reconnect: ${name}`,
     timeoutMs,
-    new Promise<void>((resolve, reject) => {
-      const onConnect = () => {
-        cleanup();
-        resolve();
-      };
-      const onConnectError = (err: Error) => {
-        cleanup();
-        reject(new Error(`[${name}] reconnect_error: ${err.message}`));
-      };
-      const cleanup = () => {
-        socket.off("connect", onConnect);
-        socket.off("connect_error", onConnectError);
-      };
-      socket.on("connect", onConnect);
-      socket.on("connect_error", onConnectError);
-    }),
+    waitForWsOpen(socket, timeoutMs),
   );
 }
 
-async function waitForAck(socket: Socket, messageId: string): Promise<AckMessage> {
+async function waitForAck(socket: WebSocket, messageId: string): Promise<AckMessage> {
   return await withTimeout(
     `wait ack: ${messageId}`,
     timeoutMs,
     new Promise<AckMessage>((resolve) => {
-      const onAck = (ack: AckMessage) => {
+      const onMessage = (data: any) => {
+        const parsed = parseWsFrame(decodeWsData(data));
+        if (!parsed.ok) return;
+        const frame = parsed.frame as { type: string; data?: any };
+        if (frame.type !== "ack") return;
+        const ack = frame.data as AckMessage;
         if (ack.messageId !== messageId) return;
-        socket.off("ack", onAck);
+        socket.off("message", onMessage);
         resolve(ack);
       };
-      socket.on("ack", onAck);
+      socket.on("message", onMessage);
     }),
   );
+}
+
+function onWsEnvelope(socket: WebSocket, handler: (env: Envelope) => void): () => void {
+  const onMessage = (data: any) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string; data?: unknown };
+    if (frame.type !== "message") return;
+    const env = normalizeEnvelopePayload(frame.data as Envelope);
+    if (!isTextEnvelope(env)) return;
+    handler(env);
+  };
+  socket.on("message", onMessage);
+  return () => socket.off("message", onMessage);
 }
 
 async function waitForCondition<T>(
@@ -322,8 +321,8 @@ async function main() {
   };
 
   let relayProcess: any = null;
-  let agentSocket: Socket | null = null;
-  let appSocket: Socket | null = null;
+  let agentSocket: WebSocket | null = null;
+  let appSocket: WebSocket | null = null;
 
   try {
     await runStep("relay-health-or-start", async () => {
@@ -420,13 +419,13 @@ async function main() {
           state: "ok",
           at: Date.now(),
         };
-        agentSocket?.emit("ack", ack);
+        agentSocket && sendWsFrame(agentSocket, toWsAckFrame(ack));
       };
-      agentSocket.on("message", onAgentMessage);
+      const removeListener = onWsEnvelope(agentSocket, onAgentMessage);
       const startedAt = nowMs();
-      appSocket.emit("message", probe);
+      sendWsFrame(appSocket, toWsMessageFrame(probe));
       const ack = await waitForAck(appSocket, probe.id);
-      agentSocket.off("message", onAgentMessage);
+      removeListener();
       if (ack.source !== agentDeviceId) {
         throw new Error(`[ack] source 异常: expected=${agentDeviceId} actual=${ack.source}`);
       }
@@ -462,7 +461,7 @@ async function main() {
 
       const ackClearDurations: number[] = [];
       for (const tc of cases) {
-        agentSocket.disconnect();
+        agentSocket.close();
         const envelope = createEnvelope(
           appDeviceId,
           agentDeviceId,
@@ -472,7 +471,7 @@ async function main() {
           appSharedKey,
           appSeq.next(),
         );
-        appSocket.emit("message", envelope);
+        sendWsFrame(appSocket, toWsMessageFrame(envelope));
 
         await waitForCondition(
           `ack-matrix pending appears (${tc.type})`,
@@ -484,8 +483,7 @@ async function main() {
           },
         );
 
-        agentSocket.connect();
-        await waitSocketConnected("agent", agentSocket);
+        agentSocket = await connectSocket("agent", serverUrl, pairCreate.sessionToken);
 
         const ackStartedAt = nowMs();
         const ack: AckMessage = {
@@ -495,7 +493,7 @@ async function main() {
           state: "ok",
           at: Date.now(),
         };
-        agentSocket.emit("ack", ack);
+        sendWsFrame(agentSocket, toWsAckFrame(ack));
 
         await waitForCondition(
           `ack-matrix pending cleared (${tc.type})`,
@@ -551,14 +549,15 @@ async function main() {
           state: "ok",
           at: Date.now(),
         };
-        agentSocket?.emit("ack", ack);
+        agentSocket && sendWsFrame(agentSocket, toWsAckFrame(ack));
       };
-      agentSocket.on("message", onAgentMessage);
+      const removeListener = onWsEnvelope(agentSocket, onAgentMessage);
 
-      appSocket.emit("message", replayA);
+      sendWsFrame(appSocket, toWsMessageFrame(replayA));
       await waitForAck(appSocket, replayA.id);
-      appSocket.emit("message", replayB);
+      sendWsFrame(appSocket, toWsMessageFrame(replayB));
       await waitForAck(appSocket, replayB.id);
+      removeListener();
       agentSocket.off("message", onAgentMessage);
 
       const fetchMessages = async (params: URLSearchParams): Promise<MessagesResponse> => {
@@ -616,7 +615,7 @@ async function main() {
 
     await runStep("recovery-pending-ack-clear", async () => {
       if (!agentSocket || !appSocket) throw new Error("[recovery] socket 未就绪");
-      appSocket.disconnect();
+      appSocket.close();
       const recoveryPrompt = `baseline-recovery-${Date.now()}`;
       const envelope = createEnvelope(
         agentDeviceId,
@@ -629,7 +628,7 @@ async function main() {
       );
 
       const sentAt = nowMs();
-      agentSocket.emit("message", envelope);
+      sendWsFrame(agentSocket, toWsMessageFrame(envelope));
 
       const fetchPending = async (): Promise<QueuePendingResponse> => {
         return await fetchJson<QueuePendingResponse>(
@@ -660,8 +659,7 @@ async function main() {
         );
       }
 
-      appSocket.connect();
-      await waitSocketConnected("app", appSocket);
+      appSocket = await connectSocket("app", serverUrl, pairJoin.sessionToken);
 
       const ackStartedAt = nowMs();
       const ack: AckMessage = {
@@ -671,7 +669,7 @@ async function main() {
         state: "ok",
         at: Date.now(),
       };
-      appSocket.emit("ack", ack);
+      sendWsFrame(appSocket, toWsAckFrame(ack));
 
       await waitForCondition(
         "pending cleared",
@@ -693,8 +691,8 @@ async function main() {
     console.error(`[protocol-e2e] 失败: ${result.error}`);
   } finally {
     try {
-      appSocket?.disconnect();
-      agentSocket?.disconnect();
+      appSocket?.close();
+      agentSocket?.close();
     } catch {
       // ignore cleanup errors
     }

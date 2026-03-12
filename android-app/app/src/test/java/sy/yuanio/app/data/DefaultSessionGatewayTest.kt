@@ -124,6 +124,28 @@ class DefaultSessionGatewayTest {
         assertTrue(relayB.connectCalled)
         assertEquals("session-b", gateway.snapshot().sessionId)
     }
+
+    @Test
+    fun relay模式默认使用WebSocket客户端() {
+        val gateway = DefaultSessionGateway()
+
+        gateway.bind(SessionGatewayCallbacks())
+        gateway.connect(
+            SessionGatewayConfig(
+                serverUrl = "https://example.com",
+                sessionToken = "token",
+                sessionId = "session-a",
+                preferredConnectionMode = ConnectionMode.RELAY,
+            )
+        )
+
+        val transport = gateway.transport
+        assertTrue(transport is RelayGatewayTransport)
+        val field = RelayGatewayTransport::class.java.getDeclaredField("client")
+        field.isAccessible = true
+        val client = field.get(transport)
+        assertTrue(client is RelayWebSocketClient)
+    }
 }
 
 private class FakeGatewayTransport : GatewayTransport {
@@ -176,4 +198,3 @@ private class FakeGatewayTransport : GatewayTransport {
         onStateChange?.invoke(state)
     }
 }
-
