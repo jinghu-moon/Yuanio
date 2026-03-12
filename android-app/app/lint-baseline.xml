@@ -1,0 +1,2127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.0.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.0.0)" variant="all" version="9.0.0">
+
+    <issue
+        id="DefaultLocale"
+        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
+        errorLine1="        String.format(&quot;%.1fs&quot;, durationMs / 1000f)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/HomeScreen.kt"
+            line="813"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="DefaultLocale"
+        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
+        errorLine1="        String.format(&quot;%.1fs&quot;, durationMs / 1000f)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ResultCenterEnhancements.kt"
+            line="84"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="DefaultLocale"
+        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
+        errorLine1="        String.format(&quot;%.1fs&quot;, durationMs / 1000f)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ResultCenterScreen.kt"
+            line="805"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="DefaultLocale"
+        message="Implicitly using the default locale is a common source of bugs: Use `String.format(Locale, ...)` instead"
+        errorLine1="        String.format(&quot;%.1fs&quot;, durationMs / 1000f)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/TaskCenterScreen.kt"
+            line="644"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NotificationPermission"
+        message="When targeting Android 13 or higher, posting a permission requires holding the `POST_NOTIFICATIONS` permission"
+        errorLine1="        nm.notify(notifId, builder.build())"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/data/Notifier.kt"
+            line="79"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NotificationPermission"
+        message="When targeting Android 13 or higher, posting a permission requires holding the `POST_NOTIFICATIONS` permission"
+        errorLine1="        nm.notify(nextId++, n)"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/data/Notifier.kt"
+            line="126"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ConfigurationScreenWidthHeight"
+        message="Using Configuration.screenHeightDp instead of LocalWindowInfo.current.containerSize"
+        errorLine1="    val screenHeight = LocalConfiguration.current.screenHeightDp.dp"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/QuakeModeTerminal.kt"
+            line="60"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            Toast.makeText(context, context.getString(R.string.workflow_refresh_focus_approvals_latest), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="108"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            Toast.makeText(context, context.getString(R.string.workflow_refresh_focus_approvals_latest), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="128"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="                Toast.makeText(context, context.getString(R.string.approvals_action_failed), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="159"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="                Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="182"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            Toast.makeText(context, context.getString(R.string.approvals_action_failed), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="202"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="        Toast.makeText(context, context.getString(messageRes, successIds.size), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="224"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            HomeRefreshSummaryKind.EMPTY -> context.getString(R.string.home_refresh_summary_empty)"
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/HomeScreen.kt"
+            line="234"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            HomeRefreshSummaryKind.COUNTS -> context.getString("
+        errorLine2="                                             ^">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/HomeScreen.kt"
+            line="235"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="                                Toast.makeText(context, context.getString(R.string.common_copied), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ResultCenterScreen.kt"
+            line="180"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="                                Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ResultCenterScreen.kt"
+            line="195"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            Toast.makeText(context, context.getString(R.string.workflow_refresh_focus_tasks_latest), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/TaskCenterScreen.kt"
+            line="128"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            Toast.makeText(context, context.getString(R.string.workflow_refresh_focus_tasks_latest), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/TaskCenterScreen.kt"
+            line="145"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current"
+        errorLine1="            Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/WorkflowRefreshSupport.kt"
+            line="93"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/TerminalPaneContainer.kt"
+            line="60"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;main_tab_environment&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;main_tab_environment&quot;>Environment&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="348"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;main_tab_environment_cd&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;main_tab_environment_cd&quot;>Environment&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="349"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;main_tab_home&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;main_tab_home&quot;>Home&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="352"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;main_tab_home_cd&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;main_tab_home_cd&quot;>Home&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="353"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;main_tab_sessions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;main_tab_sessions&quot;>Sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="356"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;main_tab_sessions_cd&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;main_tab_sessions_cd&quot;>Sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="357"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_title&quot;>Home&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="362"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_subtitle&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_subtitle&quot;>Pick up your coding flow from anywhere.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="363"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_section_connection&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_section_connection&quot;>Current environment&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="364"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_section_recent_sessions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_section_recent_sessions&quot;>Recent sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="365"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_section_quick_actions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_section_quick_actions&quot;>Quick actions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="366"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_section_tasks&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_section_tasks&quot;>Tasks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="367"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_section_approvals&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_section_approvals&quot;>Approvals&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="368"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_active_profile&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_active_profile&quot;>Active profile&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="369"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_connection&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_connection&quot;>Connection&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="370"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_last_session&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_last_session&quot;>Continue session&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="371"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_server&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_server&quot;>Server&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="372"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_session_count&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_session_count&quot;>History sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="373"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_running_tasks&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_running_tasks&quot;>Running tasks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="374"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_queued_tasks&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_queued_tasks&quot;>Queued tasks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="375"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_todo_count&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_todo_count&quot;>Todo items&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="376"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_pending_approvals&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_pending_approvals&quot;>Pending approvals&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="377"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_queue_mode&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_queue_mode&quot;>Queue mode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="378"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_latest_task&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_latest_task&quot;>Latest task&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="379"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_last_tokens&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_last_tokens&quot;>Last tokens&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="380"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_current_focus&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_current_focus&quot;>Current focus&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="381"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_task_focus_latest_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_task_focus_latest_summary&quot;>Latest summary: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="382"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_task_focus_running&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_task_focus_running&quot;>Running task: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="383"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_task_focus_queued&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_task_focus_queued&quot;>Queued task: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="384"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_approval_focus_targeted&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_approval_focus_targeted&quot;>Focused approval: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="385"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_approval_focus_first&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_approval_focus_first&quot;>Inbox first: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="386"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_empty_recent_sessions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_empty_recent_sessions&quot;>No recent sessions yet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="387"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_empty_task_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_empty_task_summary&quot;>No task snapshot yet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="388"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_empty_approval_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_empty_approval_summary&quot;>No pending approvals.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="389"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_continue&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_continue&quot;>Continue&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="390"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_sessions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_sessions&quot;>Open sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="391"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_terminal&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_terminal&quot;>Open terminal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="392"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_environment&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_environment&quot;>Open environment&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="393"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_files&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_files&quot;>Open files&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="394"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_skills&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_skills&quot;>Open skills&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="395"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_tasks&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_tasks&quot;>Open tasks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="396"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_approvals&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_approvals&quot;>Open approvals&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="397"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_current_approval&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_current_approval&quot;>Open current approval&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="398"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_latest_task&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_latest_task&quot;>Open latest task&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="399"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_latest_result&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_latest_result&quot;>Open latest result&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="400"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_results&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_results&quot;>Open results&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="401"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_current_result&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_current_result&quot;>Open current result&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="402"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_empty_result_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_empty_result_summary&quot;>No result summary yet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="403"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_title&quot;>Results&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="404"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_subtitle&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_subtitle&quot;>Review task summaries, files, and Git follow-ups.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="405"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_section_current&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_section_current&quot;>Current result&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="406"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_section_recent&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_section_recent&quot;>Recent results&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="407"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_empty&quot;>No task summary yet. Run a task first.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="408"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_label_task_id&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_label_task_id&quot;>Task&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="409"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_label_duration&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_label_duration&quot;>Duration&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="410"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_label_files_changed&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_label_files_changed&quot;>Files changed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="411"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_label_total_tokens&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_label_total_tokens&quot;>Total tokens&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="412"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_open_task&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_action_open_task&quot;>Open task chat&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="413"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_open_files&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_action_open_files&quot;>Open files&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="414"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_open_git&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_action_open_git&quot;>Open Git&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="415"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_open_origin&quot; is not translated in &quot;en&quot; (English) or &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;results_action_open_origin&quot;>Open origin&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="416"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_follow_up&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_action_follow_up&quot;>Continue from result&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="417"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_copy_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_action_copy_summary&quot;>Copy summary&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="418"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_action_share_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_action_share_summary&quot;>Share summary&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="419"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_section_saved_artifacts&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_section_saved_artifacts&quot;>Saved artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="420"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifacts_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifacts_empty&quot;>No saved artifacts yet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="421"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_follow_up_sent&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_follow_up_sent&quot;>Follow-up sent&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="422"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_follow_up_failed&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_follow_up_failed&quot;>Failed to send follow-up&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="423"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_summary_metrics&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_summary_metrics&quot;>%1$s - %2$d files - %3$d tokens&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="424"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_queue_mode_sequential&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_queue_mode_sequential&quot;>Sequential&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="425"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_queue_mode_parallel&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_queue_mode_parallel&quot;>Parallel&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="426"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_title&quot;>Tasks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="427"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_subtitle&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_subtitle&quot;>Review queue, summaries, and current todos.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="428"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_section_overview&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_section_overview&quot;>Overview&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="429"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_section_running&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_section_running&quot;>Running tasks&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="430"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_section_queue&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_section_queue&quot;>Queued prompts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="431"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_section_pinned_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_section_pinned_summary&quot;>Pinned summaries&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="432"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_section_recent_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_section_recent_summary&quot;>Recent summaries&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="433"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_empty&quot;>No task data yet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="434"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_running_hint&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_running_hint&quot;>Tap to open task detail in chat.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="435"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_queue_meta&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_queue_meta&quot;>%1$s · agent=%2$s · priority=%3$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="436"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_summary_metrics&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_summary_metrics&quot;>duration=%1$s · files=%2$d · tokens=%3$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="437"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_title&quot;>Approval inbox&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="438"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_subtitle&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_subtitle&quot;>Handle pending approvals without opening chat.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="439"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_empty&quot;>No pending approvals.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="440"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_summary&quot;>Pending approvals: %1$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="441"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_focus_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_focus_title&quot;>Focused approval&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="442"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_focus_missing&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_focus_missing&quot;>Requested approval not found: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="443"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_approve_low_risk&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_approve_low_risk&quot;>Approve low-risk (%1$d)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="444"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_failed&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_failed&quot;>Approval action failed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="445"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_approved&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_approved&quot;>Approval sent&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="446"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_rejected&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_rejected&quot;>Rejection sent&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="447"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_batch_approved&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_batch_approved&quot;>Approved %1$d items&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="448"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_batch_rejected&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_batch_rejected&quot;>Rejected %1$d items&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="449"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_result_ready_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_result_ready_title&quot;>Approval handled&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="450"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_result_ready_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_result_ready_summary&quot;>Latest linked task: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="451"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;task_chat_preview_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;task_chat_preview_title&quot;>Recent chat&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="452"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;approvals_action_open_result&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;approvals_action_open_result&quot;>Open result&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="453"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;workflow_refresh_requested&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;workflow_refresh_requested&quot;>Refresh requested. Waiting for latest agent state.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="454"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;workflow_refresh_failed&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;workflow_refresh_failed&quot;>Refresh request failed. Check pairing or connection.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="455"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;workflow_refresh_focus_tasks_latest&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;workflow_refresh_focus_tasks_latest&quot;>Moved to latest task content.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="456"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;workflow_refresh_focus_approvals_latest&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;workflow_refresh_focus_approvals_latest&quot;>Moved to latest approval content.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="457"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_refresh_summary_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_refresh_summary_empty&quot;>Refresh complete. No active tasks or pending approvals.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="458"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_refresh_summary_counts&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_refresh_summary_counts&quot;>Refresh complete · running=%1$d · queued=%2$d · approvals=%3$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="459"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;empty_state_action_home&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;empty_state_action_home&quot;>Back home&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="460"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;empty_state_action_chat&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;empty_state_action_chat&quot;>Open chat&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="461"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_title&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_title&quot;>Environment&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="462"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_section_overview&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_section_overview&quot;>Environment overview&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="463"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_section_connection_mode&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_section_connection_mode&quot;>Connection mode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="464"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_section_local_direct&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_section_local_direct&quot;>LAN direct&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="465"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_section_health&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_section_health&quot;>Health&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="466"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_active_profile&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_active_profile&quot;>Active profile&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="467"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_server_url&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_server_url&quot;>Server URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="468"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_device_id&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_device_id&quot;>Device ID&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="469"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_session_id&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_session_id&quot;>Session ID&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="470"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_gateway&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_gateway&quot;>Gateway&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="471"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_manual_ip&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_manual_ip&quot;>Manual IP&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="472"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_manual_port&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_manual_port&quot;>Manual port&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="473"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_label_remote_sessions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_label_remote_sessions&quot;>Remote sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="474"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_hint_manual_ip&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_hint_manual_ip&quot;>Example: 192.168.1.23&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="475"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_hint_manual_port&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_hint_manual_port&quot;>Default: 9394&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="476"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_health_connected&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_health_connected&quot;>Connected&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="477"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_health_disconnected&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_health_disconnected&quot;>Disconnected&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="478"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_health_relay_ok&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_health_relay_ok&quot;>Relay reachable&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="479"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_health_relay_failed&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_health_relay_failed&quot;>Relay check failed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="480"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_action_save_local&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_action_save_local&quot;>Save LAN target&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="481"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_action_open_sessions&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_action_open_sessions&quot;>Open sessions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="482"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_action_open_settings&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_action_open_settings&quot;>Open settings&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="483"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_action_copy_server&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_action_copy_server&quot;>Copy server URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="484"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_action_copy_session&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_action_copy_session&quot;>Copy session ID&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="485"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_action_copy_device&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_action_copy_device&quot;>Copy device ID&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="486"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;environment_port_invalid&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;environment_port_invalid&quot;>Manual port must be between 1 and 65535.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="487"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_search_placeholder&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_search_placeholder&quot;>Search task ID, queue prompt, git summary, recent chat...&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1152"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_filter_all&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_filter_all&quot;>All&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1153"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_filter_running&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_filter_running&quot;>Running&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1154"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_filter_queued&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_filter_queued&quot;>Queued&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1155"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_filter_recent&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_filter_recent&quot;>Recent&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1156"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;tasks_filter_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;tasks_filter_empty&quot;>No tasks match the current search or filter.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1157"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;file_manager_context_task&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;file_manager_context_task&quot;>Opened from result task %1$s.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1158"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;file_manager_action_open_git_status&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;file_manager_action_open_git_status&quot;>Open Git status&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1159"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;git_context_task&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;git_context_task&quot;>Showing Git context for task %1$s.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1160"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_mode_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_mode_summary&quot;>Summary&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1161"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_mode_artifacts&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_mode_artifacts&quot;>Artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1162"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_section_artifact_center&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_section_artifact_center&quot;>Artifact Center&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1163"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifacts_filter_empty&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifacts_filter_empty&quot;>No saved artifacts match the current search or filter.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1164"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_search_placeholder&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_search_placeholder&quot;>Search title, language, type, content...&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1165"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_filter_all&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_filter_all&quot;>All&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1166"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_filter_code&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_filter_code&quot;>Code&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1167"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_filter_html&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_filter_html&quot;>HTML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1168"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_filter_svg&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_filter_svg&quot;>SVG&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1169"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_filter_mermaid&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_filter_mermaid&quot;>Mermaid&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1170"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_total&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_total&quot;>Saved artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1171"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_code&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_code&quot;>Code artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1172"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_html&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_html&quot;>HTML artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1173"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_svg&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_svg&quot;>SVG artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1174"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_mermaid&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_mermaid&quot;>Mermaid artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1175"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_visual&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_visual&quot;>Visual artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1176"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_latest_saved&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_latest_saved&quot;>Latest artifact&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1177"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;results_artifact_origin_label&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;results_artifact_origin_label&quot;>Origin&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1178"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_section_artifacts&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_section_artifacts&quot;>Artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1179"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_saved_artifacts&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_saved_artifacts&quot;>Saved artifacts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1180"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_latest_artifact&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_latest_artifact&quot;>Latest artifact&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1181"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_label_latest_artifact_type&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_label_latest_artifact_type&quot;>Artifact type&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1182"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_empty_artifact_summary&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_empty_artifact_summary&quot;>No saved artifacts yet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1183"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;home_action_open_artifact_center&quot; is not translated in &quot;en&quot; (English)"
+        errorLine1="    &lt;string name=&quot;home_action_open_artifact_center&quot;>Open artifact center&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="1184"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedQuantity"
+        message="For language &quot;zh&quot; (Chinese) the following quantities are not relevant: `one`"
+        errorLine1="    &lt;plurals name=&quot;unlock_failed_attempts&quot;>"
+        errorLine2="    ^">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="3"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
+        errorLine1="    var focusHighlightToken by remember { mutableStateOf(0L) }"
+        errorLine2="                                          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="71"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
+        errorLine1="    var autoAdvanceToken by remember { mutableStateOf(0L) }"
+        errorLine2="                                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="73"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
+        errorLine1="    var resultBannerToken by remember { mutableStateOf(0L) }"
+        errorLine2="                                        ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ApprovalInboxScreen.kt"
+            line="75"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var artifactVersion by remember { mutableStateOf(0) }"
+        errorLine2="                                      ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/ResultCenterScreen.kt"
+            line="75"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
+        errorLine1="    var focusHighlightToken by remember { mutableStateOf(0L) }"
+        errorLine2="                                          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/TaskCenterScreen.kt"
+            line="73"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
+        errorLine1="    var successfulRefreshCount by remember(normalizedCommands) { mutableStateOf(0L) }"
+        errorLine2="                                                                 ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/sy/yuanio/app/ui/screen/WorkflowRefreshSupport.kt"
+            line="83"
+            column="66"/>
+    </issue>
+
+</issues>
