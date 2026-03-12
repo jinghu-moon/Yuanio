@@ -19,6 +19,7 @@ FORBIDDEN_PATTERNS = {
 }
 
 ALLOWED_DEFAULT_SESSION_GATEWAY_PATHS = {
+    "android-app/app/src/main/java/sy/yuanio/app/YuanioApp.kt",
     "android-app/app/src/main/java/com/yuanio/app/YuanioApp.kt",
 }
 
