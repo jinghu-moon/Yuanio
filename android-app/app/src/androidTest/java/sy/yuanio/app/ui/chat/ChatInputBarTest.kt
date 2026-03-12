@@ -152,6 +152,7 @@ class ChatInputBarTest {
 
     private fun renderInputBar(
         state: InputBarState,
+        showTranslate: Boolean = false,
         onBroadcastLatestTts: () -> Unit = {},
         onSendPendingDrafts: () -> Unit = {},
         onApproveAllSafe: () -> Unit = {},
@@ -179,6 +180,7 @@ class ChatInputBarTest {
                     onSetComposerStyle = {},
                     onBroadcastLatestTts = onBroadcastLatestTts,
                     onTranslateAuto = {},
+                    showTranslate = showTranslate,
                     onOpenFiles = onOpenFiles,
                     onPickImage = {},
                     onTakePhoto = {},
@@ -239,4 +241,3 @@ class ChatInputBarTest {
         )
     }
 }
-
