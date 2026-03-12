@@ -62,7 +62,7 @@ jobs:
 
       - name: Lint debug
         working-directory: android-app
-        run: ./gradlew lintDebug --console=plain
+        run: ./gradlew :app:lintFullDebug --console=plain
 
       - name: Compile androidTest sources
         working-directory: android-app
