@@ -1,11 +1,11 @@
 // 测试消息密文持久化到 SQLite
-import { io } from "socket.io-client";
 import {
   generateKeyPair, deriveSharedKey,
   createEnvelope, openEnvelope,
-  MessageType, SeqCounter, PROTOCOL_VERSION,
+  MessageType, SeqCounter,
 } from "@yuanio/shared";
 import type { Envelope } from "@yuanio/shared";
+import { connectRelayWs, sendWsFrame, toWsMessageFrame, waitForWsOpen } from "./relay-options";
 
 const serverUrl = process.argv[2] || "http://localhost:3000";
 
@@ -31,11 +31,11 @@ const appKey = deriveSharedKey(appKp.secretKey, agentKp.publicKey);
 console.log(" 配对完成");
 
 // 2. 连接并发送消息
-const agentSocket = io(`${serverUrl}/relay`, { auth: { token: agentToken, protocolVersion: PROTOCOL_VERSION } });
-const appSocket = io(`${serverUrl}/relay`, { auth: { token: appData.sessionToken, protocolVersion: PROTOCOL_VERSION } });
+const agentSocket = connectRelayWs(serverUrl, agentToken);
+const appSocket = connectRelayWs(serverUrl, appData.sessionToken);
 await Promise.all([
-  new Promise<void>((r) => agentSocket.on("connect", r)),
-  new Promise<void>((r) => appSocket.on("connect", r)),
+  waitForWsOpen(agentSocket, 8000),
+  waitForWsOpen(appSocket, 8000),
 ]);
 
 const seq = new SeqCounter();
@@ -49,7 +49,7 @@ for (let i = 0; i < 3; i++) {
     MessageType.STREAM_CHUNK, `消息${i + 1}`, agentKey, seq.next(),
   );
   sentIds.push(env.id);
-  agentSocket.emit("message", env);
+  sendWsFrame(agentSocket, toWsMessageFrame(env));
 }
 console.log(" 已发送 3 条消息");
 
@@ -106,8 +106,8 @@ if (count < 3) {
   }
 }
 
-agentSocket.disconnect();
-appSocket.disconnect();
+agentSocket.close();
+appSocket.close();
 
 if (pass) {
   console.log("\n 消息密文持久化测试全部通过");

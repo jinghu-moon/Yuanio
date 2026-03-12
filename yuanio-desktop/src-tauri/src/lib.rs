@@ -1,3 +1,18 @@
+mod app_core;
+mod crypto;
+mod keystore;
+mod pairing;
+mod ws_client;
+
+use app_core::{
+    app_logs,
+    app_status,
+    pairing_join,
+    pairing_start,
+    relay_send_dummy,
+    relay_start,
+    relay_stop,
+};
 use serde::Serialize;
 use std::{
     env,
@@ -129,12 +144,21 @@ fn daemon_stop() -> Result<DaemonStatus, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let app_state = app_core::init_state();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             daemon_status,
             daemon_start,
-            daemon_stop
+            daemon_stop,
+            app_status,
+            app_logs,
+            pairing_start,
+            pairing_join,
+            relay_start,
+            relay_stop,
+            relay_send_dummy
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

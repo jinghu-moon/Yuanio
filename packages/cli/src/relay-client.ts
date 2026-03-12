@@ -1,105 +1,164 @@
-import { io, Socket } from "socket.io-client";
+import { WebSocket } from "ws";
+import type { RawData } from "ws";
 import type { Envelope, BinaryEnvelope, AckMessage, AckState } from "@yuanio/shared";
-import { createRelaySocketOptions, ensurePollingFallback } from "./relay-options";
+import {
+  buildRelayWsUrl,
+  createRelayHelloFrame,
+  decodeWsData,
+  encodeWsFrame,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  toWsAckFrame,
+  toWsMessageFrame,
+} from "./relay-options";
 
 const ACK_TIMEOUT = 5000;
 const ACK_MAX_RETRIES = 3;
 const OFFLINE_QUEUE_MAX = Number(process.env.YUANIO_RELAY_OFFLINE_QUEUE_MAX ?? 1000);
+const RECONNECT_DELAY_MS = 300;
+const RECONNECT_DELAY_MAX_MS = 5000;
+const RECONNECT_RANDOMIZATION_FACTOR = 0.2;
 
 export class RelayClient {
-  private socket: Socket;
+  private socket: WebSocket;
   private serverUrl: string;
-  private options: ReturnType<typeof createRelaySocketOptions>;
+  private sessionToken: string;
   private _onMessage: ((envelope: Envelope | BinaryEnvelope) => void) | null = null;
   private _onDeviceOnline: (() => void) | null = null;
   private _onConnectionChange: ((connected: boolean) => void) | null = null;
-  private pendingAcks = new Map<string, { resolve: () => void; timer: Timer }>();
+  private _onError: ((message: string) => void) | null = null;
+  private pendingAcks = new Map<string, { resolve: () => void; timer: ReturnType<typeof setTimeout> }>();
   private offlineQueue: Envelope[] = [];
   private _connected = false;
-  private fallbackApplied = false;
   private authRejected = false;
   private droppedWhileAuthRejected = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
+  private closedByUser = false;
 
   get connected(): boolean { return this._connected; }
 
   constructor(serverUrl: string, sessionToken: string) {
     this.serverUrl = serverUrl;
-    this.options = createRelaySocketOptions(sessionToken);
+    this.sessionToken = sessionToken;
     this.socket = this.createSocket();
   }
 
-  private createSocket(): Socket {
-    const socket = io(`${this.serverUrl}/relay`, this.options);
+  private createSocket(): WebSocket {
+    const socket = new WebSocket(buildRelayWsUrl(this.serverUrl));
     this.attachSocketHandlers(socket);
     return socket;
   }
 
-  private attachSocketHandlers(socket: Socket) {
+  private scheduleReconnect() {
+    if (this.closedByUser) return;
+    if (this.reconnectTimer) return;
+    const baseDelay = Math.min(RECONNECT_DELAY_MAX_MS, RECONNECT_DELAY_MS * (2 ** this.reconnectAttempts));
+    const jitter = baseDelay * RECONNECT_RANDOMIZATION_FACTOR * (Math.random() * 2 - 1);
+    const delay = Math.max(0, Math.floor(baseDelay + jitter));
+    this.reconnectAttempts += 1;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.closedByUser) return;
+      this.socket = this.createSocket();
+    }, delay);
+  }
 
-    socket.on("connect", () => {
+  private clearReconnectState() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+  }
+
+  private sendWsFrame(socket: WebSocket, frame: unknown) {
+    if (socket.readyState !== WebSocket.OPEN) return;
+    socket.send(encodeWsFrame(frame));
+  }
+
+  private attachSocketHandlers(socket: WebSocket) {
+    socket.on("open", () => {
+      if (this.socket !== socket) return;
       this._connected = true;
       this.authRejected = false;
       this.droppedWhileAuthRejected = 0;
+      this.closedByUser = false;
+      this.clearReconnectState();
       this._onConnectionChange?.(true);
-      // 重连后补发离线消息
+      this.sendWsFrame(socket, createRelayHelloFrame(this.sessionToken));
       if (this.offlineQueue.length > 0) {
         console.log(`[relay] 补发 ${this.offlineQueue.length} 条离线消息`);
         for (const env of this.offlineQueue) {
-          socket.emit("message", env);
+          this.sendWsFrame(socket, toWsMessageFrame(env));
         }
         this.offlineQueue = [];
       }
       console.log("[relay] 已连接");
     });
 
-    socket.on("message", (envelope: Envelope) => {
-      this._onMessage?.(envelope);
-    });
-
-    socket.on("device:online", () => {
-      this._onDeviceOnline?.();
-    });
-
-    // ACK 监听：收到确认后清除重发定时器
-    socket.on("ack", (ack: AckMessage) => {
-      if (ack.state === "retry_after") return;
-      const pending = this.pendingAcks.get(ack.messageId);
-      if (pending) {
-        clearTimeout(pending.timer);
-        this.pendingAcks.delete(ack.messageId);
-        pending.resolve();
+    socket.on("message", (data: RawData) => {
+      if (this.socket !== socket) return;
+      const raw = decodeWsData(data);
+      const parsed = parseWsFrame(raw);
+      if (!parsed.ok) {
+        this._onError?.(parsed.error);
+        return;
+      }
+      const frame = parsed.frame as { type: string; data?: any };
+      if (frame.type === "message" && frame.data) {
+        const normalized = normalizeEnvelopePayload(frame.data as Envelope | BinaryEnvelope);
+        this._onMessage?.(normalized);
+        return;
+      }
+      if (frame.type === "ack" && frame.data) {
+        const ack = frame.data as AckMessage;
+        if (ack.state === "retry_after") return;
+        const pending = this.pendingAcks.get(ack.messageId);
+        if (pending) {
+          clearTimeout(pending.timer);
+          this.pendingAcks.delete(ack.messageId);
+          pending.resolve();
+        }
+        return;
+      }
+      if (frame.type === "presence") {
+        this._onDeviceOnline?.();
+        return;
+      }
+      if (frame.type === "error") {
+        const code = frame.data?.code as string | undefined;
+        const message = String(frame.data?.message ?? "relay error");
+        if (code === "auth_failed") {
+          this.authRejected = true;
+        }
+        if (message.includes("protocol mismatch")) {
+          console.error("[relay] 协议版本不兼容，请升级 CLI 或 relay 服务");
+        }
+        this._onError?.(message);
       }
     });
 
-    socket.on("disconnect", (reason) => {
+    socket.on("close", (code, reason) => {
+      if (this.socket !== socket) return;
       this._connected = false;
       this._onConnectionChange?.(false);
-      console.log(`[relay] 已断开 (${reason})`);
+      const detail = reason ? ` ${reason.toString()}` : "";
+      console.log(`[relay] 已断开 (${code}${detail})`);
+      this.scheduleReconnect();
     });
 
-    socket.on("connect_error", (err) => {
-      const msg = err.message || "";
-      if (msg.includes("invalid or expired token") || msg.includes("auth token required")) {
-        this.authRejected = true;
-      }
-      if (err.message.includes("protocol mismatch")) {
-        console.error("[relay] 协议版本不兼容，请升级 CLI 或 relay 服务");
-      }
-      if (!this.fallbackApplied) {
-        this.fallbackApplied = ensurePollingFallback(this.options, (msg) => console.warn(msg));
-        if (this.fallbackApplied) {
-          socket.removeAllListeners();
-          socket.disconnect();
-          this.socket = this.createSocket();
-        }
-      }
-      console.error("[relay] 连接错误:", err.message);
+    socket.on("error", (err) => {
+      if (this.socket !== socket) return;
+      const message = err instanceof Error ? err.message : String(err);
+      this._onError?.(message);
+      console.error("[relay] 连接错误:", message);
     });
   }
 
   send(envelope: Envelope | BinaryEnvelope) {
     if (this._connected) {
-      this.socket.emit("message", envelope);
+      this.sendWsFrame(this.socket, toWsMessageFrame(envelope));
     } else {
       // binary 信封不缓存（PTY 数据过期无意义）
       if (envelope.payload instanceof Uint8Array) return;
@@ -124,7 +183,7 @@ export class RelayClient {
       let retries = 0;
 
       const attempt = () => {
-        this.socket.emit("message", envelope);
+        this.sendWsFrame(this.socket, toWsMessageFrame(envelope));
         const timer = setTimeout(() => {
           retries++;
           if (retries >= ACK_MAX_RETRIES) {
@@ -159,7 +218,7 @@ export class RelayClient {
       reason: options?.reason,
       at: Date.now(),
     };
-    this.socket.emit("ack", ack);
+    this.sendWsFrame(this.socket, toWsAckFrame(ack));
   }
 
   onMessage(handler: (envelope: Envelope | BinaryEnvelope) => void) {
@@ -174,13 +233,21 @@ export class RelayClient {
     this._onConnectionChange = handler;
   }
 
+  onError(handler: (message: string) => void) {
+    this._onError = handler;
+  }
+
   disconnect() {
-    this.socket.disconnect();
+    this.closedByUser = true;
+    this.clearReconnectState();
+    this.socket.removeAllListeners();
+    this.socket.close();
   }
 
   reconnect(sessionToken: string) {
-    this.options = createRelaySocketOptions(sessionToken);
-    this.fallbackApplied = false;
+    this.sessionToken = sessionToken;
+    this.closedByUser = false;
+    this.clearReconnectState();
     this.pendingAcks.forEach((p) => clearTimeout(p.timer));
     this.pendingAcks.clear();
     this.offlineQueue = [];
@@ -188,7 +255,7 @@ export class RelayClient {
     this.authRejected = false;
     this.droppedWhileAuthRejected = 0;
     this.socket.removeAllListeners();
-    this.socket.disconnect();
+    this.socket.close();
     this.socket = this.createSocket();
   }
 }

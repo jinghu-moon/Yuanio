@@ -1,34 +1,40 @@
 import assert from "node:assert/strict";
 import {
-  createRelaySocketOptions,
-  ensurePollingFallback,
-  POLLING_FIRST_TRANSPORTS,
-  WEBSOCKET_FIRST_TRANSPORTS,
+  buildRelayWsUrl,
+  createRelayHelloFrame,
+  encodeWsFrame,
+  normalizeEnvelopePayload,
+  parseWsFrame,
+  toWsMessageFrame,
 } from "./relay-options";
-import { PROTOCOL_VERSION } from "@yuanio/shared";
+import { MessageType, PROTOCOL_VERSION } from "@yuanio/shared";
 
-const options = createRelaySocketOptions("token");
-assert.deepEqual(options.transports, [...WEBSOCKET_FIRST_TRANSPORTS]);
-assert.equal(options.reconnection, true);
-assert.equal(options.reconnectionDelay, 300);
-assert.equal(options.reconnectionDelayMax, 5000);
-assert.equal(options.randomizationFactor, 0.2);
-assert.equal(options.timeout, 5000);
-assert.equal(options.rememberUpgrade, false);
-assert.equal(options.upgrade, false);
-assert.equal(options.tryAllTransports, false);
-assert.deepEqual(options.auth, { token: "token", protocolVersion: PROTOCOL_VERSION });
+const wsUrl = buildRelayWsUrl("http://localhost:3000/api/v1");
+assert.equal(wsUrl, "ws://localhost:3000/relay-ws");
+const wssFromHttps = buildRelayWsUrl("https://localhost:3000/api/v1");
+assert.equal(wssFromHttps, "wss://localhost:3000/relay-ws");
+const wssFromWss = buildRelayWsUrl("wss://relay.example.com/api/v1");
+assert.equal(wssFromWss, "wss://relay.example.com/relay-ws");
 
-const fallbackOpts = { transports: [...WEBSOCKET_FIRST_TRANSPORTS], rememberUpgrade: true };
-assert.equal(ensurePollingFallback(fallbackOpts), false);
-assert.deepEqual(fallbackOpts.transports, [...WEBSOCKET_FIRST_TRANSPORTS]);
-assert.equal(fallbackOpts.rememberUpgrade, true);
+const hello = createRelayHelloFrame("token");
+assert.deepEqual(hello, { type: "hello", data: { token: "token", protocolVersion: PROTOCOL_VERSION } });
 
-const noChangeOpts = { transports: [...POLLING_FIRST_TRANSPORTS] };
-assert.equal(ensurePollingFallback(noChangeOpts), false);
-assert.deepEqual(noChangeOpts.transports, [...POLLING_FIRST_TRANSPORTS]);
-
-const missingOpts = {} as { transports?: string[] };
-assert.equal(ensurePollingFallback(missingOpts), false);
+const binaryEnv = {
+  id: "env-1",
+  seq: 1,
+  source: "app",
+  target: "agent",
+  sessionId: "s1",
+  type: MessageType.PTY_OUTPUT,
+  ts: Date.now(),
+  payload: new Uint8Array([1, 2, 3]),
+};
+const frame = toWsMessageFrame(binaryEnv);
+const encoded = encodeWsFrame(frame);
+const parsed = parseWsFrame(encoded);
+assert.equal(parsed.ok, true);
+if (!parsed.ok) throw new Error("ws frame parse failed");
+const normalized = normalizeEnvelopePayload((parsed.frame as { data: any }).data);
+assert.ok(normalized.payload instanceof Uint8Array);
 
 console.log("test-relay-options passed");

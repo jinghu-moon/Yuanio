@@ -1,6 +1,11 @@
 // 测试 JWT session token：签发、认证、吊销
-import { io } from "socket.io-client";
 import { generateKeyPair } from "@yuanio/shared";
+import {
+  connectRelayWs,
+  decodeWsData,
+  parseWsFrame,
+  waitForWsOpen,
+} from "./relay-options";
 
 const serverUrl = process.argv[2] || "http://localhost:3000";
 
@@ -26,28 +31,50 @@ if (parts.length === 3) {
 }
 
 // 2. 用 JWT 连接 relay — 应成功
-const socket1 = io(`${serverUrl}/relay`, { auth: { token: sessionToken } });
-await new Promise<void>((resolve, reject) => {
-  const timer = setTimeout(() => reject(new Error("连接超时")), 5000);
-  socket1.on("connect", () => { clearTimeout(timer); resolve(); });
-  socket1.on("connect_error", (e) => { clearTimeout(timer); reject(e); });
+const socket1 = connectRelayWs(serverUrl, sessionToken);
+await waitForWsOpen(socket1, 5000);
+const authOk = await new Promise<boolean>((resolve) => {
+  const timer = setTimeout(() => resolve(true), 800);
+  socket1.on("message", (data) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string };
+    if (frame.type === "error") {
+      clearTimeout(timer);
+      resolve(false);
+    }
+  });
+  socket1.on("close", () => {
+    clearTimeout(timer);
+    resolve(false);
+  });
 });
+if (!authOk) {
+  console.log(" JWT 认证连接失败");
+  process.exit(1);
+}
 console.log(" JWT 认证连接成功");
-socket1.disconnect();
+socket1.close();
 
 // 3. 用无效 token 连接 — 应被拒绝
-const badSocket = io(`${serverUrl}/relay`, {
-  auth: { token: "invalid.jwt.token" },
-  reconnection: false,
-});
+const badSocket = connectRelayWs(serverUrl, "invalid.jwt.token");
+await waitForWsOpen(badSocket, 5000);
 await new Promise<void>((resolve) => {
-  badSocket.on("connect_error", () => {
+  const timer = setTimeout(() => { console.log(" 无效 token 未被拒绝"); process.exit(1); }, 5000);
+  const done = () => {
+    clearTimeout(timer);
     console.log(" 无效 token 被拒绝");
     resolve();
+  };
+  badSocket.on("message", (data) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string };
+    if (frame.type === "error") done();
   });
-  setTimeout(() => { console.log(" 无效 token 未被拒绝"); process.exit(1); }, 5000);
+  badSocket.on("close", done);
 });
-badSocket.disconnect();
+badSocket.close();
 
 // 4. 吊销 token → 重连应失败
 const revokeRes = await fetch(`${serverUrl}/api/v1/token/revoke`, {
@@ -63,18 +90,24 @@ if (revokeData.revoked) {
   process.exit(1);
 }
 
-const socket2 = io(`${serverUrl}/relay`, {
-  auth: { token: sessionToken },
-  reconnection: false,
-});
+const socket2 = connectRelayWs(serverUrl, sessionToken);
+await waitForWsOpen(socket2, 5000);
 await new Promise<void>((resolve) => {
-  socket2.on("connect_error", () => {
+  const timer = setTimeout(() => { console.log(" 吊销后的 token 未被拒绝"); process.exit(1); }, 5000);
+  const done = () => {
+    clearTimeout(timer);
     console.log(" 吊销后的 token 被拒绝");
     resolve();
+  };
+  socket2.on("message", (data) => {
+    const parsed = parseWsFrame(decodeWsData(data));
+    if (!parsed.ok) return;
+    const frame = parsed.frame as { type: string };
+    if (frame.type === "error") done();
   });
-  setTimeout(() => { console.log(" 吊销后的 token 未被拒绝"); process.exit(1); }, 5000);
+  socket2.on("close", done);
 });
-socket2.disconnect();
+socket2.close();
 
 console.log("\n JWT session token 测试全部通过");
 process.exit(0);

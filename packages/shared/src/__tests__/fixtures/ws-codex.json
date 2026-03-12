@@ -1,0 +1,35 @@
+[
+  {
+    "type": "hello",
+    "data": {
+      "token": "token_codex",
+      "protocolVersion": "1.0.0",
+      "namespace": "default",
+      "deviceId": "agent_codex",
+      "role": "agent"
+    }
+  },
+  {
+    "type": "message",
+    "data": {
+      "id": "msg_codex_1",
+      "seq": 1,
+      "source": "agent",
+      "target": "app",
+      "sessionId": "sess_codex",
+      "type": "prompt",
+      "ts": 1700000001000,
+      "payload": "{\"prompt\":\"say hello\"}"
+    }
+  },
+  {
+    "type": "ack",
+    "data": {
+      "messageId": "msg_codex_1",
+      "source": "app",
+      "sessionId": "sess_codex",
+      "state": "working",
+      "at": 1700000001200
+    }
+  }
+]

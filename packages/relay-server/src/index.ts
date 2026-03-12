@@ -1,7 +1,9 @@
 ﻿import { createServer } from "node:http";
+import type { IncomingMessage } from "node:http";
 import { Hono } from "hono";
+import { WebSocketServer, WebSocket } from "ws";
+import type { RawData } from "ws";
 import { getRequestListener } from "@hono/node-server";
-import { Server as SocketServer, Socket } from "socket.io";
 import { logger } from "./logger";
 import { validateEnvironment } from "./env-validator";
 import {
@@ -18,23 +20,22 @@ import {
   getSessionMembershipsByNamespace, upsertSessionMembership,
   getSessionNamespace, sessionBelongsToNamespace,
 } from "./db";
-import { resolveDeliveryTargets } from "./delivery-queue";
 import { initFCM, isFCMEnabled, sendPush, buildPushPayload, buildErrorPushPayload } from "./fcm";
 import { generatePairingCode, generateDeviceId } from "./pair";
 import { signToken, verifyToken, verifyTokenForRefresh } from "./jwt";
+import { validateWsHelloFrame } from "./ws-handshake";
+import { handleWsAckFrame, handleWsMessageFrame, shouldQueueAckByType } from "./ws-message-handler";
 import { checkRateLimit, checkRateLimitWithWindow } from "./rate-limit";
 import { loadRelayRuntimeEnv } from "@yuanio/shared";
 import {
-  ACK_REQUIRED_TYPES,
   DEFAULT_NAMESPACE,
-  EnvelopeSchema,
   MAX_ENVELOPE_BINARY_PAYLOAD_BYTES,
   PROTOCOL_VERSION,
+  WsFrameSchema,
   isProtocolCompatible,
   normalizeNamespace,
 } from "@yuanio/shared";
 import type { AckState } from "@yuanio/shared";
-import { RELAY_PING_INTERVAL_MS, RELAY_PING_TIMEOUT_MS } from "./socket-options";
 
 const { env: relayEnv } = loadRelayRuntimeEnv({ env: process.env, startDir: import.meta.dir });
 
@@ -49,10 +50,6 @@ const DELIVERY_IMMEDIATE_DIRECT_MAX_ROWS = Number(
   relayEnv.YUANIO_RELAY_DELIVERY_IMMEDIATE_DIRECT_MAX_ROWS ?? 8,
 );
 const SESSION_DEVICE_CACHE_TTL_MS = Number(relayEnv.YUANIO_RELAY_SESSION_DEVICE_CACHE_TTL_MS ?? 1000);
-const recoveryMsRaw = Number(relayEnv.YUANIO_RELAY_RECOVERY_MS ?? 120_000);
-const CONNECTION_RECOVERY_MAX_MS = Number.isFinite(recoveryMsRaw)
-  ? Math.max(5_000, Math.floor(recoveryMsRaw))
-  : 120_000;
 const REQUIRE_PROTOCOL_VERSION = relayEnv.YUANIO_REQUIRE_PROTOCOL_VERSION === "1";
 const maxHttpBufferRaw = Number(
   relayEnv.YUANIO_RELAY_MAX_HTTP_BUFFER_BYTES ?? MAX_ENVELOPE_BINARY_PAYLOAD_BYTES,
@@ -71,15 +68,6 @@ const allowAllOrigins = corsAllowList.length === 0 || corsAllowList.includes("*"
 const EVENT_LOOP_MONITOR_INTERVAL_MS = Number(relayEnv.YUANIO_RELAY_EVENT_LOOP_MONITOR_INTERVAL_MS ?? 100);
 const EVENT_LOOP_WARN_MS = Number(relayEnv.YUANIO_RELAY_EVENT_LOOP_WARN_MS ?? 200);
 const EVENT_LOOP_RING_SIZE = Number(relayEnv.YUANIO_RELAY_EVENT_LOOP_RING_SIZE ?? 256);
-const OUTBOUND_FLUSH_DELAY_MS = Number(relayEnv.YUANIO_RELAY_OUTBOUND_FLUSH_DELAY_MS ?? 2);
-const OUTBOUND_BASE_BATCH_SIZE = Number(relayEnv.YUANIO_RELAY_OUTBOUND_BASE_BATCH_SIZE ?? 16);
-const OUTBOUND_MIN_BATCH_SIZE = Number(relayEnv.YUANIO_RELAY_OUTBOUND_MIN_BATCH_SIZE ?? 6);
-const OUTBOUND_MAX_BATCH_SIZE = Number(relayEnv.YUANIO_RELAY_OUTBOUND_MAX_BATCH_SIZE ?? 96);
-const OUTBOUND_MAX_BUFFERED_BYTES = Number(relayEnv.YUANIO_RELAY_OUTBOUND_MAX_BUFFERED_BYTES ?? 786_432);
-const OUTBOUND_MAX_QUEUE_ITEMS = Number(relayEnv.YUANIO_RELAY_OUTBOUND_MAX_QUEUE_ITEMS ?? 2048);
-const OUTBOUND_AIMD_RTT_WARN_MS = Number(relayEnv.YUANIO_RELAY_OUTBOUND_AIMD_RTT_WARN_MS ?? 900);
-const OUTBOUND_AIMD_DECREASE_FACTOR = Number(relayEnv.YUANIO_RELAY_OUTBOUND_AIMD_DECREASE_FACTOR ?? 0.7);
-const OUTBOUND_AIMD_INCREASE_STEP = Number(relayEnv.YUANIO_RELAY_OUTBOUND_AIMD_INCREASE_STEP ?? 1);
 const ACK_RTT_RING_SIZE = Number(relayEnv.YUANIO_RELAY_ACK_RTT_RING_SIZE ?? 512);
 const ACK_TRACKING_TTL_MS = Number(relayEnv.YUANIO_RELAY_ACK_TRACKING_TTL_MS ?? 120_000);
 const ACK_SWEEP_INTERVAL_MS = Number(relayEnv.YUANIO_RELAY_ACK_SWEEP_INTERVAL_MS ?? 5_000);
@@ -98,12 +86,6 @@ const NON_PERSISTED_MESSAGE_TYPES = new Set<string>([
   "status",
   "interaction_state",
   "terminal_output",
-]);
-const TRANSIENT_OUTBOUND_MESSAGE_TYPES = new Set<string>([
-  ...NON_PERSISTED_MESSAGE_TYPES,
-  "pty_output",
-  "pty_status",
-  "pty_ack",
 ]);
 
 const NORMALIZED_ACK_MARK_FLUSH_DELAY_MS = Number.isFinite(ACK_MARK_FLUSH_DELAY_MS)
@@ -247,7 +229,6 @@ app.get("/health", (c) => {
     relayState,
     eventLoopLagMs: summarizeEventLoopLag(),
     ackRttMs: summarizeAckRtt(),
-    outboundQueue: summarizeOutboundQueues(),
     fcm: {
       enabled: isFCMEnabled(),
       pushRegisterRateLimit: {
@@ -735,55 +716,297 @@ app.post("/api/v1/sessions/:id/update", async (c) => {
   return c.json({ success: true, newVersion: expectedVersion + 1 });
 });
 
-// HTTP + Socket.IO 鏈嶅姟鍣?
+// HTTP + WebSocket 服务
 const server = createServer(getRequestListener(app.fetch));
-const io = new SocketServer(server, {
-  cors: {
-    origin: (origin, callback) => callback(null, isOriginAllowed(origin)),
-  },
-  pingInterval: RELAY_PING_INTERVAL_MS,
-  pingTimeout: RELAY_PING_TIMEOUT_MS,
-  transports: ["websocket"],
-  allowUpgrades: false,
+
+type WsConnectionState = {
+  ws: WebSocket;
+  deviceId: string;
+  sessionId: string;
+  role: string;
+  namespace: string;
+  protocolVersion: string;
+};
+
+const wsConnectionsByDevice = new Map<string, Set<WebSocket>>();
+const wsConnectionBySocket = new Map<WebSocket, WsConnectionState>();
+const WS_HANDSHAKE_TIMEOUT_MS = 10_000;
+
+function registerWsConnection(state: WsConnectionState) {
+  wsConnectionBySocket.set(state.ws, state);
+  let set = wsConnectionsByDevice.get(state.deviceId);
+  if (!set) {
+    set = new Set<WebSocket>();
+    wsConnectionsByDevice.set(state.deviceId, set);
+  }
+  set.add(state.ws);
+}
+
+function unregisterWsConnection(ws: WebSocket): WsConnectionState | null {
+  const state = wsConnectionBySocket.get(ws);
+  if (!state) return null;
+  wsConnectionBySocket.delete(ws);
+  const set = wsConnectionsByDevice.get(state.deviceId);
+  if (set) {
+    set.delete(ws);
+    if (set.size === 0) wsConnectionsByDevice.delete(state.deviceId);
+  }
+  return state;
+}
+
+function sendWsFrame(ws: WebSocket, frame: unknown) {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify(frame));
+}
+
+function sendWsFrameToDevice(deviceId: string, frame: unknown) {
+  const set = wsConnectionsByDevice.get(deviceId);
+  if (!set || set.size === 0) return;
+  for (const socket of set) {
+    sendWsFrame(socket, frame);
+  }
+}
+
+function broadcastWsPresence(namespace: string, sessionId: string) {
+  const rk = roomKey(namespace, sessionId);
+  const devMap = onlineDevices.get(rk);
+  if (!devMap || devMap.size === 0) return;
+  const devices = Array.from(devMap.entries()).map(([id, role]) => ({
+    id,
+    role,
+    sessionId,
+  }));
+  const frame = {
+    type: "presence",
+    data: { sessionId, devices },
+  };
+  for (const deviceId of devMap.keys()) {
+    sendWsFrameToDevice(deviceId, frame);
+  }
+}
+
+function closeWsWithError(ws: WebSocket, code: string, message: string) {
+  sendWsFrame(ws, {
+    type: "error",
+    data: { code, message, retryable: false },
+  });
+  ws.close(1008, message.slice(0, 120));
+}
+
+function normalizeWsPayload(data: RawData): { raw: string; bytes: number } {
+  if (typeof data === "string") return { raw: data, bytes: Buffer.byteLength(data) };
+  if (data instanceof ArrayBuffer) {
+    const buf = Buffer.from(data);
+    return { raw: buf.toString("utf-8"), bytes: buf.byteLength };
+  }
+  if (Array.isArray(data)) {
+    const buf = Buffer.concat(data);
+    return { raw: buf.toString("utf-8"), bytes: buf.byteLength };
+  }
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(String(data));
+  return { raw: buf.toString("utf-8"), bytes: buf.byteLength };
+}
+
+const wsServer = new WebSocketServer({
+  noServer: true,
   perMessageDeflate: false,
-  httpCompression: false,
-  maxHttpBufferSize: RELAY_MAX_HTTP_BUFFER_BYTES,
-  connectionStateRecovery: {
-    maxDisconnectionDuration: CONNECTION_RECOVERY_MAX_MS,
-    skipMiddlewares: true,
-  },
+  maxPayload: RELAY_MAX_HTTP_BUFFER_BYTES,
 });
 
-// 缁熶竴 /relay 鍛藉悕绌洪棿 鈥?闆剁煡璇嗕俊灏佽矾鐢?
-const relay = io.of("/relay");
+server.on("upgrade", (request: IncomingMessage, socket, head) => {
+  const host = request.headers.host ?? "localhost";
+  const url = new URL(request.url ?? "/", `http://${host}`);
+  if (url.pathname !== "/relay-ws") {
+    socket.destroy();
+    return;
+  }
+  wsServer.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+    wsServer.emit("connection", ws, request);
+  });
+});
+
+wsServer.on("connection", (ws: WebSocket, request: IncomingMessage) => {
+  let ready = false;
+  let state: WsConnectionState | null = null;
+  const ip = (request.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+    || request.socket.remoteAddress
+    || null;
+  const timer = setTimeout(() => {
+    closeWsWithError(ws, "handshake_timeout", "hello timeout");
+  }, WS_HANDSHAKE_TIMEOUT_MS);
+  timer.unref?.();
+
+  ws.on("message", async (data: RawData) => {
+    const { raw, bytes } = normalizeWsPayload(data);
+    if (bytes > RELAY_MAX_HTTP_BUFFER_BYTES) {
+      closeWsWithError(ws, "payload_too_large", "payload too large");
+      return;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      closeWsWithError(ws, "bad_request", "invalid json");
+      return;
+    }
+    if (!ready) {
+      const result = await validateWsHelloFrame({
+        frame: parsed,
+        requireProtocolVersion: REQUIRE_PROTOCOL_VERSION,
+        serverVersion: PROTOCOL_VERSION,
+        verifyToken,
+      });
+      if (!result.ok) {
+        closeWsWithError(ws, "auth_failed", result.error);
+        return;
+      }
+      ready = true;
+      clearTimeout(timer);
+      state = {
+        ws,
+        deviceId: result.payload.deviceId,
+        sessionId: result.payload.sessionId,
+        role: result.payload.role,
+        namespace: result.namespace,
+        protocolVersion: result.protocolVersion,
+      };
+      registerWsConnection(state);
+      logger.info(
+        { event: "ws_connected", role: state.role, namespace: state.namespace, deviceId: state.deviceId },
+        "WS device connected",
+      );
+      logConnection(state.deviceId, state.sessionId, state.role, ip, "connect");
+      upsertSessionMembership(state.deviceId, state.sessionId, state.role);
+      invalidateSessionDevicesCache(state.sessionId);
+      const rk = roomKey(state.namespace, state.sessionId);
+      if (!onlineDevices.has(rk)) onlineDevices.set(rk, new Map());
+      const roomOnline = onlineDevices.get(rk)!;
+      const wasOnline = roomOnline.has(state.deviceId);
+      roomOnline.set(state.deviceId, state.role);
+      if (!wasOnline) {
+        broadcastWsPresence(state.namespace, state.sessionId);
+      }
+      return;
+    }
+
+    if (!state) return;
+    const activeState = state;
+    const parsedFrame = WsFrameSchema.safeParse(parsed);
+    if (!parsedFrame.success) {
+      closeWsWithError(ws, "bad_request", "invalid ws frame");
+      return;
+    }
+    const frame = parsedFrame.data;
+    const rk = roomKey(activeState.namespace, activeState.sessionId);
+    touchSessionRuntimeState(rk);
+    if (frame.type === "message") {
+      const envelope = frame.data as any;
+      const relayRecvAt = Date.now();
+      if (envelope?.type === "prompt") {
+        const relayTs = relayRecvAt;
+        envelope.relayTs = relayTs;
+        if (RELAY_LATENCY_LOG) {
+          if (typeof envelope.ts === "number") {
+            console.log(`[relay] send→relay (${envelope.id}): ${relayTs - envelope.ts}ms`);
+          } else {
+            console.log(`[relay] relay_recv (${envelope.id}): ${relayTs}ms`);
+          }
+        }
+      }
+
+      const shouldPersist = (type?: string) => {
+        if (!type) return true;
+        if (type.startsWith("pty_")) return false;
+        return !NON_PERSISTED_MESSAGE_TYPES.has(type);
+      };
+
+      try {
+        handleWsMessageFrame({
+          envelope,
+          sender: activeState,
+          deps: {
+            shouldPersist,
+            shouldQueueAck: shouldQueueAckByType,
+            getSessionDevices: getSessionDevicesCached,
+            sendToDevice: (deviceId, frame) => {
+              const hasWs = wsConnectionsByDevice.has(deviceId);
+              if (hasWs) {
+                sendWsFrameToDevice(deviceId, frame);
+              }
+            },
+            persistEnvelope: (env) => {
+              enqueueWrite({
+                id: env.id,
+                session_id: activeState.sessionId,
+                source: env.source,
+                target: env.target,
+                type: env.type,
+                seq: env.seq,
+                ts: env.ts,
+                payload: env.payload,
+              });
+            },
+            queueDeliveries: (rows) => enqueueDeliveriesWithPriority(rows, true),
+            trackAckExpectations: (messageId, targets, recvAt) => {
+              if (typeof messageId === "string" && targets.length > 0) {
+                trackAckExpectations(messageId, targets, recvAt);
+              }
+            },
+          },
+        });
+      } catch {
+        closeWsWithError(ws, "bad_request", "invalid message");
+      }
+      return;
+    }
+
+    if (frame.type === "ack") {
+      try {
+        handleWsAckFrame({
+          ack: frame.data as any,
+          sender: activeState,
+          deps: {
+            getOnlinePeers: (sessionId, deviceId) => getOnlinePeerDeviceIds(rk, deviceId),
+            sendToDevice: sendWsFrameToDevice,
+            markAcked: (messageId, deviceId) => enqueueAckMark(messageId, deviceId),
+            observeAck: (messageId, deviceId, state) => {
+              if (!state) return;
+              observeAckRtt(messageId, deviceId, state);
+            },
+          },
+        });
+      } catch {
+        closeWsWithError(ws, "bad_request", "invalid ack");
+      }
+      return;
+    }
+  });
+
+  ws.on("close", () => {
+    if (!state) return;
+    unregisterWsConnection(ws);
+    logger.info(
+      { event: "ws_disconnected", role: state.role, namespace: state.namespace, deviceId: state.deviceId },
+      "WS device disconnected",
+    );
+    logConnection(state.deviceId, state.sessionId, state.role, ip, "disconnect");
+    const rk = roomKey(state.namespace, state.sessionId);
+    const devMap = onlineDevices.get(rk);
+    if (devMap) {
+      devMap.delete(state.deviceId);
+      if (devMap.size === 0) onlineDevices.delete(rk);
+    }
+    broadcastWsPresence(state.namespace, state.sessionId);
+  });
+
+  ws.on("error", (err: Error) => {
+    logger.warn({ event: "ws_error", message: err?.message }, "WS error");
+  });
+});
 
 function roomKey(namespace: string, sessionId: string): string {
   return `${normalizeNamespace(namespace)}:${sessionId}`;
 }
-
-// 璁よ瘉涓棿浠讹細楠岃瘉 JWT
-relay.use(async (socket, next) => {
-  const token = socket.handshake.auth?.token as string;
-  if (!token) return next(new Error("auth token required"));
-  const protocolVersion = socket.handshake.auth?.protocolVersion as string | undefined;
-  if (REQUIRE_PROTOCOL_VERSION && !protocolVersion) {
-    return next(new Error("protocol version required"));
-  }
-  const compat = isProtocolCompatible(protocolVersion, PROTOCOL_VERSION);
-  if (!compat.ok) {
-    return next(new Error(`protocol mismatch: ${compat.reason}`));
-  }
-
-  const payload = await verifyToken(token);
-  if (!payload) return next(new Error("invalid or expired token"));
-
-  socket.data.deviceId = payload.deviceId;
-  socket.data.sessionId = payload.sessionId;
-  socket.data.role = payload.role;
-  socket.data.namespace = payload.namespace;
-  socket.data.protocolVersion = protocolVersion;
-  next();
-});
 
 // 寮傛鎵归噺鍐欏叆缂撳啿鍖?鈥?鍏堝箍鎾啀鍒风洏锛屾秷闄ゆ祦寮忚緭鍑洪樆濉?
 const writeBuffer: Parameters<typeof saveEncryptedMessage>[0][] = [];
@@ -925,42 +1148,6 @@ function invalidateSessionDevicesCache(sessionId: string) {
   sessionDevicesCache.delete(sessionId);
 }
 
-type AckPayload = {
-  messageId: string;
-  source: string;
-  sessionId: string;
-  state: AckState;
-  retryAfterMs?: number;
-  reason?: string;
-  at: number;
-};
-
-type OutboundEventName = "message" | "ack";
-
-type OutboundPacket = {
-  event: OutboundEventName;
-  data: unknown;
-  bytes: number;
-  transient: boolean;
-  priority: number;
-  direct?: boolean;
-  type?: string;
-};
-
-type OutboundState = {
-  key: string;
-  roomKey: string;
-  namespace: string;
-  sessionId: string;
-  deviceId: string;
-  queue: OutboundPacket[];
-  bufferedBytes: number;
-  flushTimer: ReturnType<typeof setTimeout> | null;
-  flushing: boolean;
-  batchSize: number;
-  droppedTransient: number;
-  slowDisconnects: number;
-};
 
 type SessionRuntimePhase = "warming_up" | "ready" | "idle";
 
@@ -983,13 +1170,6 @@ type AckPendingRow = {
   recvAt: number;
   expiresAt: number;
 };
-
-const OUTBOUND_PRIORITY_NORMAL = 1;
-const OUTBOUND_PRIORITY_PTY = 2;
-const OUTBOUND_PRIORITY_ACK = 3;
-
-const outboundDeviceSockets = new Map<string, Set<Socket>>();
-const outboundStates = new Map<string, OutboundState>();
 const sessionRuntimeStates = new Map<string, SessionRuntimeState>();
 const ackPending = new Map<string, AckPendingRow>();
 const recentAckByDevice = new Map<string, Map<string, number>>();
@@ -1002,20 +1182,6 @@ function safeInt(value: number, fallback: number, min = 0): number {
   return Math.max(min, Math.floor(value));
 }
 
-const NORMALIZED_OUTBOUND_FLUSH_DELAY_MS = safeInt(OUTBOUND_FLUSH_DELAY_MS, 8, 0);
-const NORMALIZED_OUTBOUND_BASE_BATCH_SIZE = safeInt(OUTBOUND_BASE_BATCH_SIZE, 24, 1);
-const NORMALIZED_OUTBOUND_MIN_BATCH_SIZE = safeInt(OUTBOUND_MIN_BATCH_SIZE, 6, 1);
-const NORMALIZED_OUTBOUND_MAX_BATCH_SIZE = Math.max(
-  NORMALIZED_OUTBOUND_MIN_BATCH_SIZE,
-  safeInt(OUTBOUND_MAX_BATCH_SIZE, 128, NORMALIZED_OUTBOUND_MIN_BATCH_SIZE),
-);
-const NORMALIZED_OUTBOUND_MAX_BUFFERED_BYTES = safeInt(OUTBOUND_MAX_BUFFERED_BYTES, 786_432, 1_024);
-const NORMALIZED_OUTBOUND_MAX_QUEUE_ITEMS = safeInt(OUTBOUND_MAX_QUEUE_ITEMS, 2_048, 8);
-const NORMALIZED_OUTBOUND_AIMD_RTT_WARN_MS = safeInt(OUTBOUND_AIMD_RTT_WARN_MS, 900, 50);
-const NORMALIZED_OUTBOUND_AIMD_INCREASE_STEP = safeInt(OUTBOUND_AIMD_INCREASE_STEP, 1, 1);
-const NORMALIZED_OUTBOUND_AIMD_DECREASE_FACTOR = Number.isFinite(OUTBOUND_AIMD_DECREASE_FACTOR)
-  ? Math.min(0.95, Math.max(0.1, OUTBOUND_AIMD_DECREASE_FACTOR))
-  : 0.7;
 const NORMALIZED_ACK_RTT_RING_SIZE = safeInt(ACK_RTT_RING_SIZE, 512, 32);
 const NORMALIZED_ACK_TRACKING_TTL_MS = safeInt(ACK_TRACKING_TTL_MS, 120_000, 5_000);
 const NORMALIZED_ACK_SWEEP_INTERVAL_MS = safeInt(ACK_SWEEP_INTERVAL_MS, 5_000, 1_000);
@@ -1045,38 +1211,6 @@ function summarizeAckRtt() {
     max: ackRttMaxMs,
     last: ackRttLastMs,
     pending: ackPending.size,
-  };
-}
-
-function summarizeOutboundQueues() {
-  let totalQueueItems = 0;
-  let totalBufferedBytes = 0;
-  let maxQueueItems = 0;
-  let maxBufferedBytes = 0;
-  let droppedTransient = 0;
-  let slowDisconnects = 0;
-
-  for (const state of outboundStates.values()) {
-    totalQueueItems += state.queue.length;
-    totalBufferedBytes += state.bufferedBytes;
-    maxQueueItems = Math.max(maxQueueItems, state.queue.length);
-    maxBufferedBytes = Math.max(maxBufferedBytes, state.bufferedBytes);
-    droppedTransient += state.droppedTransient;
-    slowDisconnects += state.slowDisconnects;
-  }
-
-  return {
-    devices: outboundStates.size,
-    totalQueueItems,
-    totalBufferedBytes,
-    maxQueueItems,
-    maxBufferedBytes,
-    droppedTransient,
-    slowDisconnects,
-    baseBatchSize: NORMALIZED_OUTBOUND_BASE_BATCH_SIZE,
-    minBatchSize: NORMALIZED_OUTBOUND_MIN_BATCH_SIZE,
-    maxBatchSize: NORMALIZED_OUTBOUND_MAX_BATCH_SIZE,
-    flushDelayMs: NORMALIZED_OUTBOUND_FLUSH_DELAY_MS,
   };
 }
 
@@ -1128,58 +1262,6 @@ function buildRelayStateSnapshot() {
     retryAfterMs: runtime.retryAfterMs,
     runtime,
   };
-}
-
-function isTransientMessageType(type: string | undefined): boolean {
-  if (!type) return false;
-  return type.startsWith("pty_") || TRANSIENT_OUTBOUND_MESSAGE_TYPES.has(type);
-}
-
-function estimatePayloadBytes(data: unknown): number {
-  if (data == null) return 0;
-  if (typeof data === "string") return Buffer.byteLength(data);
-  if (Buffer.isBuffer(data)) return data.length;
-  if (data instanceof Uint8Array) return data.byteLength;
-  if (ArrayBuffer.isView(data)) return data.byteLength;
-  if (data instanceof ArrayBuffer) return data.byteLength;
-  try {
-    return Buffer.byteLength(JSON.stringify(data));
-  } catch {
-    return 256;
-  }
-}
-
-function normalizeAckState(value: unknown): AckState {
-  if (value === "working") return "working";
-  if (value === "retry_after") return "retry_after";
-  if (value === "terminal") return "terminal";
-  return "ok";
-}
-
-function normalizeAckPayload(raw: any, source: string, sessionId: string): AckPayload | null {
-  const messageId = typeof raw?.messageId === "string" ? raw.messageId : "";
-  if (!messageId) return null;
-  const state = normalizeAckState(raw?.state);
-  const retryAfterMs = Number.isFinite(raw?.retryAfterMs)
-    ? Math.max(0, Math.floor(raw.retryAfterMs))
-    : undefined;
-  const reason = typeof raw?.reason === "string" && raw.reason.length > 0
-    ? raw.reason.slice(0, 240)
-    : undefined;
-  const at = Number.isFinite(raw?.at) ? Math.floor(raw.at) : Date.now();
-  return {
-    messageId,
-    source,
-    sessionId,
-    state,
-    retryAfterMs,
-    reason,
-    at,
-  };
-}
-
-function deviceQueueKey(rk: string, deviceId: string): string {
-  return `${rk}::${deviceId}`;
 }
 
 function ackTrackKey(messageId: string, targetDeviceId: string): string {
@@ -1289,266 +1371,6 @@ function enqueueAckMark(messageId: string, targetDeviceId: string) {
   ackMarkFlushTimer.unref?.();
 }
 
-function ensureOutboundState(
-  key: string,
-  rk: string,
-  namespace: string,
-  sessionId: string,
-  deviceId: string,
-): OutboundState {
-  const existing = outboundStates.get(key);
-  if (existing) return existing;
-  const state: OutboundState = {
-    key,
-    roomKey: rk,
-    namespace,
-    sessionId,
-    deviceId,
-    queue: [],
-    bufferedBytes: 0,
-    flushTimer: null,
-    flushing: false,
-    batchSize: Math.min(
-      NORMALIZED_OUTBOUND_MAX_BATCH_SIZE,
-      Math.max(NORMALIZED_OUTBOUND_MIN_BATCH_SIZE, NORMALIZED_OUTBOUND_BASE_BATCH_SIZE),
-    ),
-    droppedTransient: 0,
-    slowDisconnects: 0,
-  };
-  outboundStates.set(key, state);
-  return state;
-}
-
-function registerDeviceSocket(
-  rk: string,
-  namespace: string,
-  sessionId: string,
-  deviceId: string,
-  socket: Socket,
-) {
-  const key = deviceQueueKey(rk, deviceId);
-  let set = outboundDeviceSockets.get(key);
-  if (!set) {
-    set = new Set<Socket>();
-    outboundDeviceSockets.set(key, set);
-  }
-  set.add(socket);
-  ensureOutboundState(key, rk, namespace, sessionId, deviceId);
-}
-
-function unregisterDeviceSocket(rk: string, deviceId: string, socket: Socket): boolean {
-  const key = deviceQueueKey(rk, deviceId);
-  const set = outboundDeviceSockets.get(key);
-  if (!set) return false;
-  set.delete(socket);
-  if (set.size > 0) return true;
-  outboundDeviceSockets.delete(key);
-
-  const state = outboundStates.get(key);
-  if (state) {
-    if (state.flushTimer) clearTimeout(state.flushTimer);
-    outboundStates.delete(key);
-  }
-  return false;
-}
-
-function scheduleOutboundFlush(state: OutboundState, immediate = false) {
-  if (state.flushing || state.queue.length === 0) return;
-  if (immediate && state.flushTimer) {
-    clearTimeout(state.flushTimer);
-    state.flushTimer = null;
-  }
-  if (state.flushTimer) return;
-  const delay = immediate ? 0 : Math.max(0, NORMALIZED_OUTBOUND_FLUSH_DELAY_MS);
-  state.flushTimer = setTimeout(() => flushOutboundQueue(state.key), delay);
-  state.flushTimer.unref?.();
-}
-
-function updateBatchSizeByAimd(state: OutboundState): number {
-  const shouldDecrease = eventLoopLagLastMs >= EVENT_LOOP_WARN_MS
-    || ackRttLastMs >= NORMALIZED_OUTBOUND_AIMD_RTT_WARN_MS;
-  if (shouldDecrease) {
-    const decreased = Math.floor(state.batchSize * NORMALIZED_OUTBOUND_AIMD_DECREASE_FACTOR);
-    state.batchSize = Math.max(NORMALIZED_OUTBOUND_MIN_BATCH_SIZE, decreased);
-    return state.batchSize;
-  }
-  state.batchSize = Math.min(
-    NORMALIZED_OUTBOUND_MAX_BATCH_SIZE,
-    state.batchSize + NORMALIZED_OUTBOUND_AIMD_INCREASE_STEP,
-  );
-  return state.batchSize;
-}
-
-function dropOneTransientPacket(state: OutboundState): boolean {
-  let index = -1;
-  for (let i = state.queue.length - 1; i >= 0; i -= 1) {
-    if (state.queue[i]?.transient) {
-      index = i;
-      break;
-    }
-  }
-  if (index < 0) return false;
-  const [dropped] = state.queue.splice(index, 1);
-  if (dropped) {
-    state.bufferedBytes = Math.max(0, state.bufferedBytes - dropped.bytes);
-    state.droppedTransient += 1;
-  }
-  return true;
-}
-
-function disconnectSlowConsumer(state: OutboundState, reason: string) {
-  const sockets = outboundDeviceSockets.get(state.key);
-  state.queue = [];
-  state.bufferedBytes = 0;
-  state.slowDisconnects += 1;
-  if (!sockets || sockets.size === 0) return;
-  console.warn(
-    `[relay] slow consumer disconnected device=${state.deviceId} ns=${state.namespace} session=${state.sessionId} reason=${reason}`,
-  );
-  for (const targetSocket of sockets) {
-    targetSocket.disconnect(true);
-  }
-}
-
-function resolveOutboundPriority(event: OutboundEventName, type: string | undefined): number {
-  if (event === "ack" || type === "ack") return OUTBOUND_PRIORITY_ACK;
-  if (type && type.startsWith("pty_")) return OUTBOUND_PRIORITY_PTY;
-  return OUTBOUND_PRIORITY_NORMAL;
-}
-
-function emitPacketToSockets(sockets: Set<Socket>, packet: OutboundPacket) {
-  for (const targetSocket of sockets) {
-    if (targetSocket.connected) {
-      targetSocket.emit(packet.event, packet.data);
-    }
-  }
-}
-
-function insertPacketByPriority(state: OutboundState, packet: OutboundPacket) {
-  if (state.queue.length === 0) {
-    state.queue.push(packet);
-    return;
-  }
-  const tail = state.queue[state.queue.length - 1];
-  if (tail && tail.priority >= packet.priority) {
-    state.queue.push(packet);
-    return;
-  }
-  let insertAt = state.queue.length;
-  for (let i = state.queue.length - 1; i >= 0; i -= 1) {
-    const current = state.queue[i];
-    if (!current) continue;
-    if (current.priority >= packet.priority) {
-      insertAt = i + 1;
-      break;
-    }
-    insertAt = i;
-  }
-  state.queue.splice(insertAt, 0, packet);
-}
-
-function enqueueOutboundPacket(
-  namespace: string,
-  sessionId: string,
-  rk: string,
-  targetDeviceId: string,
-  packet: OutboundPacket,
-) {
-  const key = deviceQueueKey(rk, targetDeviceId);
-  const sockets = outboundDeviceSockets.get(key);
-  if (!sockets || sockets.size === 0) return;
-  const state = ensureOutboundState(key, rk, namespace, sessionId, targetDeviceId);
-
-  if (packet.direct) {
-    emitPacketToSockets(sockets, packet);
-    return;
-  }
-
-  // prompt 涓轰汉鏈轰氦浜掑叆鍙ｏ紝鍦ㄩ槦鍒楃┖闂叉椂鐩存帴鍙戦€侊紝鍑忓皯 flush 瀹氭椂鍣ㄦ姈鍔ㄣ€?
-if (
-    packet.event === "message"
-    && packet.type === "prompt"
-    && state.queue.length === 0
-    && !state.flushing
-    && !state.flushTimer
-  ) {
-    emitPacketToSockets(sockets, packet);
-    return;
-  }
-
-  const willExceed = state.queue.length + 1 > NORMALIZED_OUTBOUND_MAX_QUEUE_ITEMS
-    || state.bufferedBytes + packet.bytes > NORMALIZED_OUTBOUND_MAX_BUFFERED_BYTES;
-  if (packet.transient && willExceed) {
-    state.droppedTransient += 1;
-    return;
-  }
-
-  insertPacketByPriority(state, packet);
-  state.bufferedBytes += packet.bytes;
-
-  while (
-    (state.queue.length > NORMALIZED_OUTBOUND_MAX_QUEUE_ITEMS
-      || state.bufferedBytes > NORMALIZED_OUTBOUND_MAX_BUFFERED_BYTES)
-    && dropOneTransientPacket(state)
-  ) {
-    // 浼樺厛鍓旈櫎鐬椂娑堟伅锛岄伩鍏嶅叧閿秷鎭涪澶便€?
-    }
-if (
-    state.queue.length > NORMALIZED_OUTBOUND_MAX_QUEUE_ITEMS
-    || state.bufferedBytes > NORMALIZED_OUTBOUND_MAX_BUFFERED_BYTES
-  ) {
-    disconnectSlowConsumer(
-      state,
-      `queue=${state.queue.length}/${NORMALIZED_OUTBOUND_MAX_QUEUE_ITEMS},bytes=${state.bufferedBytes}/${NORMALIZED_OUTBOUND_MAX_BUFFERED_BYTES}`,
-    );
-    return;
-  }
-
-  const shouldImmediate = packet.priority > OUTBOUND_PRIORITY_NORMAL || state.queue.length >= state.batchSize;
-  scheduleOutboundFlush(state, shouldImmediate);
-}
-
-function flushOutboundQueue(stateKey: string) {
-  const state = outboundStates.get(stateKey);
-  if (!state) return;
-  state.flushTimer = null;
-  if (state.flushing) return;
-  state.flushing = true;
-
-  const drain = () => {
-    const current = outboundStates.get(stateKey);
-    if (!current) return;
-    const sockets = outboundDeviceSockets.get(stateKey);
-    if (!sockets || sockets.size === 0) {
-      current.queue = [];
-      current.bufferedBytes = 0;
-      current.flushing = false;
-      return;
-    }
-
-    const batchSize = updateBatchSizeByAimd(current);
-    let sent = 0;
-    while (sent < batchSize && current.queue.length > 0) {
-      const packet = current.queue.shift()!;
-      current.bufferedBytes = Math.max(0, current.bufferedBytes - packet.bytes);
-      emitPacketToSockets(sockets, packet);
-      sent += 1;
-    }
-
-    if (current.queue.length > 0) {
-      runSoon(drain);
-      return;
-    }
-
-    current.flushing = false;
-    if (current.queue.length > 0) {
-      scheduleOutboundFlush(current);
-    }
-  };
-
-  drain();
-}
-
 function getOnlinePeerDeviceIds(rk: string, sourceDeviceId: string): string[] {
   const devMap = onlineDevices.get(rk);
   if (!devMap || devMap.size === 0) return [];
@@ -1557,73 +1379,6 @@ function getOnlinePeerDeviceIds(rk: string, sourceDeviceId: string): string[] {
     if (targetId !== sourceDeviceId) result.push(targetId);
   }
   return result;
-}
-
-function resolveRealtimeTargets(
-  rk: string,
-  sessionId: string,
-  sourceDeviceId: string,
-  target: string,
-): string[] {
-  const devMap = onlineDevices.get(rk);
-  if (!devMap || devMap.size === 0) return [];
-
-  const devices = getSessionDevicesCached(sessionId);
-  const resolved = resolveDeliveryTargets(target, sourceDeviceId, devices);
-  const unique = new Set<string>();
-
-  if (target !== "broadcast" && resolved.length === 0 && devMap.has(target) && target !== sourceDeviceId) {
-    unique.add(target);
-  } else {
-    for (const deviceId of resolved) {
-      if (devMap.has(deviceId)) unique.add(deviceId);
-    }
-  }
-
-  if (target === "broadcast" && unique.size === 0) {
-    for (const deviceId of devMap.keys()) {
-      if (deviceId !== sourceDeviceId) unique.add(deviceId);
-    }
-  }
-
-  return Array.from(unique);
-}
-
-function enqueueOutboundMessage(
-  namespace: string,
-  sessionId: string,
-  rk: string,
-  targetDeviceId: string,
-  envelope: any,
-) {
-  const t = typeof envelope?.type === "string" ? envelope.type : undefined;
-  enqueueOutboundPacket(namespace, sessionId, rk, targetDeviceId, {
-    event: "message",
-    data: envelope,
-    bytes: estimatePayloadBytes(envelope),
-    transient: isTransientMessageType(t),
-    priority: resolveOutboundPriority("message", t),
-    direct: !!t && t.startsWith("pty_"),
-    type: t,
-  });
-}
-
-function enqueueOutboundAck(
-  namespace: string,
-  sessionId: string,
-  rk: string,
-  targetDeviceId: string,
-  ack: AckPayload,
-) {
-  enqueueOutboundPacket(namespace, sessionId, rk, targetDeviceId, {
-    event: "ack",
-    data: ack,
-    bytes: estimatePayloadBytes(ack),
-    transient: false,
-    priority: resolveOutboundPriority("ack", "ack"),
-    direct: true,
-    type: "ack",
-  });
 }
 
 function trackAckExpectations(messageId: string, targets: string[], recvAt: number) {
@@ -1761,41 +1516,11 @@ function reclaimSessionRuntimeState(state: SessionRuntimeState): void {
   invalidateSessionDevicesCache(state.sessionId);
   onlineDevices.delete(state.roomKey);
 
-  const devicePrefix = `${state.roomKey}::`;
-  for (const [key, sockets] of outboundDeviceSockets.entries()) {
-    if (!key.startsWith(devicePrefix)) continue;
-    sockets.clear();
-    outboundDeviceSockets.delete(key);
-  }
-
-  for (const [key, outboundState] of outboundStates.entries()) {
-    if (outboundState.roomKey !== state.roomKey) continue;
-    if (outboundState.flushTimer) clearTimeout(outboundState.flushTimer);
-    outboundStates.delete(key);
-  }
-
   for (const deviceId of state.deviceRefs.keys()) {
     recentAckByDevice.delete(deviceId);
   }
   state.deviceRefs.clear();
   state.reclaimCount += 1;
-}
-
-function emitServerState(
-  socket: Socket,
-  state: SessionRuntimeState,
-  reason: "connect" | "warmup_ready" | "warmup_retry",
-) {
-  socket.emit("server_state", {
-    reason,
-    namespace: state.namespace,
-    sessionId: state.sessionId,
-    phase: state.phase,
-    refs: state.refs,
-    activeDevices: state.deviceRefs.size,
-    retryAfterMs: state.phase === "warming_up" ? NORMALIZED_SESSION_STARTUP_RETRY_AFTER_MS : 0,
-    serverNowMs: Date.now(),
-  });
 }
 
 const sessionRuntimeSweepTimer = setInterval(() => {
@@ -1815,216 +1540,6 @@ const sessionRuntimeSweepTimer = setInterval(() => {
 }, NORMALIZED_SESSION_IDLE_SWEEP_INTERVAL_MS);
 sessionRuntimeSweepTimer.unref?.();
 
-function broadcastDeviceList(namespace: string, sessionId: string) {
-  const rk = roomKey(namespace, sessionId);
-  const devMap = onlineDevices.get(rk);
-  const list = devMap ? Array.from(devMap.entries()).map(([id, role]) => ({ deviceId: id, role })) : [];
-  relay.to(rk).emit("device_list", list);
-}
-
-relay.on("connection", (socket) => {
-  const { deviceId, sessionId, role, namespace } = socket.data;
-  const rk = roomKey(namespace, sessionId);
-  const runtimeState = retainSessionRuntimeState(namespace, sessionId, deviceId);
-  void ensureSessionRuntimeReady(runtimeState)
-    .then(() => {
-      if (socket.connected) emitServerState(socket, runtimeState, "warmup_ready");
-    })
-    .catch(() => {
-      if (socket.connected) emitServerState(socket, runtimeState, "warmup_retry");
-    });
-  const ip = socket.handshake.headers["x-forwarded-for"] as string || socket.handshake.address;
-  let highestInboundSeq = 0;
-  logger.info({ role, namespace, event: "device_connected" }, "Device connected");
-
-  logConnection(deviceId, sessionId, role, ip, "connect");
-  upsertSessionMembership(deviceId, sessionId, role);
-  invalidateSessionDevicesCache(sessionId);
-
-  // 鑷姩鍔犲叆 session room
-  socket.join(rk);
-
-  // 杩借釜鍦ㄧ嚎璁惧
-if (!onlineDevices.has(rk)) onlineDevices.set(rk, new Map());
-  const roomOnline = onlineDevices.get(rk)!;
-  const wasOnline = roomOnline.has(deviceId);
-  roomOnline.set(deviceId, role);
-  registerDeviceSocket(rk, namespace, sessionId, deviceId, socket);
-  emitServerState(socket, runtimeState, "connect");
-
-  // 閫氱煡鍚?session 鍏朵粬璁惧
-if (!wasOnline) {
-    socket.to(rk).emit("device:online", { deviceId, role });
-  }
-  broadcastDeviceList(namespace, sessionId);
-
-  // 淇″皝璺敱锛氭寜鐩爣璁惧鍏ュ嚭绔欓槦鍒?+ 寮傛鎵归噺鍐欏叆 + 绂荤嚎鎺ㄩ€?
-socket.on("message", (rawEnvelope: any) => {
-    touchSessionRuntimeState(rk);
-    const parsedEnvelope = EnvelopeSchema.safeParse(rawEnvelope);
-    if (!parsedEnvelope.success) {
-      if (RELAY_LATENCY_LOG) {
-        const firstIssue = parsedEnvelope.error.issues[0];
-        console.warn(`[relay] drop invalid envelope from ${deviceId}: ${firstIssue?.path?.join(".") || "unknown"} ${firstIssue?.message || ""}`);
-      }
-      return;
-    }
-
-    const envelope = parsedEnvelope.data as any;
-    // source/sessionId 浠?socket 璁よ瘉缁撴灉涓哄噯锛岄伩鍏嶄吉閫犮€?
-envelope.source = deviceId;
-    envelope.sessionId = sessionId;
-
-    if (envelope.seq > highestInboundSeq + 1) {
-      console.warn(
-        `[relay] inbound seq gap device=${deviceId} expected>${highestInboundSeq + 1} got=${envelope.seq}`,
-      );
-    }
-    if (envelope.seq > highestInboundSeq) {
-      highestInboundSeq = envelope.seq;
-    }
-
-    const t = envelope.type as string | undefined;
-    const relayRecvAt = Date.now();
-    if (t === "prompt") {
-      const relayTs = relayRecvAt;
-      envelope.relayTs = relayTs;
-      if (RELAY_LATENCY_LOG) {
-        if (typeof envelope.ts === "number") {
-          console.log(`[relay] send鈫抮elay (${envelope.id}): ${relayTs - envelope.ts}ms`);
-        } else {
-          console.log(`[relay] relay_recv (${envelope.id}): ${relayTs}ms`);
-        }
-      }
-    }
-    const normalizedTarget = typeof envelope?.target === "string" && envelope.target.length > 0
-      ? envelope.target
-      : "broadcast";
-    const realtimeTargets = resolveRealtimeTargets(rk, sessionId, deviceId, normalizedTarget);
-    for (const targetDeviceId of realtimeTargets) {
-      enqueueOutboundMessage(namespace, sessionId, rk, targetDeviceId, envelope);
-    }
-
-    // PTY 涓庨儴鍒嗛珮棰戞秷鎭负涓存椂鏁版嵁娴侊紝涓嶆寔涔呭寲銆?
-const shouldPersist = !(t && (t.startsWith("pty_") || NON_PERSISTED_MESSAGE_TYPES.has(t)));
-    if (shouldPersist) {
-      enqueueWrite({
-        id: envelope.id, session_id: sessionId, source: envelope.source,
-        target: envelope.target, type: envelope.type, seq: envelope.seq,
-        ts: envelope.ts, payload: envelope.payload,
-      });
-    }
-
-    // ACK 蹇呴渶绫诲瀷锛氬啓鍏ヤ氦浠橀槦鍒楋紙鎸夌洰鏍囪澶囷級
-if (ACK_REQUIRED_TYPES.includes(envelope.type)) {
-      const devices = getSessionDevicesCached(sessionId);
-      const targets = resolveDeliveryTargets(normalizedTarget, deviceId, devices);
-      const rows = targets.map((targetId) => ({
-        messageId: envelope.id,
-        sessionId,
-        sourceDeviceId: deviceId,
-        targetDeviceId: targetId,
-      }));
-      enqueueDeliveriesWithPriority(rows, true);
-      if (typeof envelope?.id === "string" && targets.length > 0) {
-        trackAckExpectations(envelope.id, targets, relayRecvAt);
-      }
-    }
-
-    // 绂荤嚎鎺ㄩ€侊細agent 鍙戞秷鎭椂妫€鏌?app 璁惧鏄惁鍦ㄧ嚎
-if (role === "agent" && isFCMEnabled()) {
-      const devMap = onlineDevices.get(rk);
-      const appOnline = devMap
-        ? Array.from(devMap.entries()).some(([, r]) => r === "app")
-        : false;
-
-      if (!appOnline) {
-        if (!t) return;
-        // 鏋勫缓鎺ㄩ€?payload
-        let pushPayload = buildPushPayload(t, {
-          sessionId,
-          messageId: envelope.id,
-        });
-        // status 娑堟伅闇€妫€鏌ユ槸鍚﹀惈 error锛堥浂鐭ヨ瘑锛氬彧鐪?type 瀛楁锛?
-if (!pushPayload && t === "status") {
-          const looksLikeError = (typeof envelope?.status === "string" && envelope.status === "error")
-            || (typeof envelope?.level === "string" && envelope.level === "error");
-          if (looksLikeError) {
-            pushPayload = buildErrorPushPayload({
-              sessionId,
-              messageId: envelope.id,
-            });
-          } else {
-            pushPayload = null; // 淇濆畧绛栫暐锛氫笉鎺ㄩ€佹櫘閫?status
-          }
-        }
-        if (pushPayload) {
-          const tokens = getFcmTokensBySession(sessionId, "app");
-          for (const tk of tokens) {
-            sendPush(tk, pushPayload)
-              .then((ok) => {
-                if (!ok) {
-                  const removed = clearFcmTokenByValue(tk);
-                  if (removed > 0) {
-                    console.log(`[relay] 娓呯悊澶辨晥 FCM token (${removed})`);
-                  }
-                }
-              })
-              .catch(() => {});
-          }
-        }
-      }
-    }
-  });
-
-  // FCM Token 娉ㄥ唽
-socket.on("register_fcm_token", (data: { token?: string }) => {
-    const fcmToken = normalizeFcmToken(data?.token);
-    if (!fcmToken) return;
-    registerFcmTokenForDevice(deviceId, role, fcmToken);
-  });
-
-  // ACK 杞彂锛氭帴鏀舵柟纭鍏抽敭娑堟伅
-socket.on("ack", (ack: any) => {
-    touchSessionRuntimeState(rk);
-    const normalizedAck = normalizeAckPayload(ack, deviceId, sessionId);
-    if (!normalizedAck) return;
-    const shouldMarkDelivery = normalizedAck.state !== "retry_after"
-      && !hasRecentAck(deviceId, normalizedAck.messageId);
-    if (shouldMarkDelivery) {
-      rememberRecentAck(deviceId, normalizedAck.messageId);
-    }
-    observeAckRtt(normalizedAck.messageId, deviceId, normalizedAck.state);
-
-    // ACK 浼樺厛杞彂锛岄伩鍏嶈 DB 鍐欏叆闃诲锛涗氦浠樿惤搴撴敼涓哄紓姝ュ井鎵广€?
-const targets = getOnlinePeerDeviceIds(rk, deviceId);
-    for (const targetDeviceId of targets) {
-      enqueueOutboundAck(namespace, sessionId, rk, targetDeviceId, normalizedAck);
-    }
-    if (shouldMarkDelivery) {
-      enqueueAckMark(normalizedAck.messageId, deviceId);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    logger.info({ role, event: "device_disconnected" }, "Device disconnected");
-    logConnection(deviceId, sessionId, role, ip, "disconnect");
-    invalidateSessionDevicesCache(sessionId);
-    const stillOnline = unregisterDeviceSocket(rk, deviceId, socket);
-    releaseSessionRuntimeState(rk, deviceId);
-    if (stillOnline) return;
-    // 绉婚櫎鍦ㄧ嚎璁惧
-const devMap = onlineDevices.get(rk);
-    if (devMap) {
-      devMap.delete(deviceId);
-      if (devMap.size === 0) onlineDevices.delete(rk);
-    }
-    socket.to(rk).emit("device:offline", { deviceId, role });
-    broadcastDeviceList(namespace, sessionId);
-  });
-});
-
-// 楠岃瘉鐜鍙橀噺
 validateEnvironment();
 
 // 鍒濆鍖?FCM 鎺ㄩ€?

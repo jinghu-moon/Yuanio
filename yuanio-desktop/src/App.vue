@@ -17,6 +17,7 @@ const theme = ref<"dark" | "light">("dark");
 const pairingCode = ref("");
 const logs = ref<string[]>([]);
 const serverUrl = ref("http://localhost:3000");
+const pairingMode = ref<"start" | "join">("start");
 const serviceStatus = ref({
   relay: "offline" as ServiceStatus,
   daemon: "offline" as ServiceStatus,
@@ -59,12 +60,22 @@ const applyDaemonStatus = (status: DaemonStatus | null) => {
 const refreshStatus = async () => {
   try {
     const status = await invoke<DaemonStatus>("daemon_status");
+    const appStatus = await invoke<{ paired: boolean; session?: { session_id: string } }>("app_status");
     applyDaemonStatus(status);
     if (!status.running) {
       appendLog("Daemon 未运行。");
-      return;
+    } else {
+      appendLog(`Daemon 运行中（端口 ${status.port ?? "?"}）。`);
     }
-    appendLog(`Daemon 运行中（端口 ${status.port ?? "?"}）。`);
+    if (appStatus?.paired) {
+      appendLog(`已配对（session ${appStatus.session?.session_id ?? "?"}）。`);
+    } else {
+      appendLog("尚未配对。");
+    }
+    const newLogs = await invoke<string[]>("app_logs");
+    if (newLogs.length > 0) {
+      logs.value = newLogs.slice().reverse().slice(0, 8);
+    }
   } catch (err: any) {
     appendLog(`状态刷新失败：${err?.message || String(err)}`);
   }
@@ -75,6 +86,7 @@ const startLan = async () => {
   try {
     const status = await invoke<DaemonStatus>("daemon_start", { serverUrl: serverUrl.value });
     applyDaemonStatus(status);
+    await invoke("relay_start", { serverUrl: serverUrl.value });
     appendLog("已请求启动 daemon（LAN 模式）。");
   } catch (err: any) {
     appendLog(`启动失败：${err?.message || String(err)}`);
@@ -86,6 +98,7 @@ const startTunnel = async () => {
   try {
     const status = await invoke<DaemonStatus>("daemon_start", { serverUrl: serverUrl.value });
     applyDaemonStatus(status);
+    await invoke("relay_start", { serverUrl: serverUrl.value });
     appendLog("已请求启动 daemon（Tunnel 模式）。");
   } catch (err: any) {
     appendLog(`启动失败：${err?.message || String(err)}`);
@@ -97,6 +110,7 @@ const stopAll = async () => {
     const status = await invoke<DaemonStatus>("daemon_stop");
     applyDaemonStatus(status);
     serviceStatus.value.tunnel = "offline";
+    await invoke("relay_stop");
     appendLog("已请求停止 daemon。");
   } catch (err: any) {
     appendLog(`停止失败：${err?.message || String(err)}`);
@@ -105,11 +119,27 @@ const stopAll = async () => {
 
 const submitPairing = () => {
   const code = pairingCode.value.trim();
-  if (!code) {
-    appendLog("配对码为空，请先输入或扫码。");
+  if (pairingMode.value === "join") {
+    if (!code) {
+      appendLog("配对码为空，请先输入或扫码。");
+      return;
+    }
+    appendLog(`提交配对码 ${code}，等待远端响应。`);
+    invoke("pairing_join", { serverUrl: serverUrl.value, code })
+      .then(() => refreshStatus())
+      .catch((err: any) => appendLog(`配对失败：${err?.message || String(err)}`));
     return;
   }
-  appendLog(`提交配对码 ${code}，等待远端响应。`);
+  appendLog("开始创建配对码...");
+  invoke<{ pairing_code: string }>("pairing_start", { serverUrl: serverUrl.value })
+    .then((resp) => {
+      if (resp?.pairing_code) {
+        pairingCode.value = resp.pairing_code;
+        appendLog(`配对码已生成：${resp.pairing_code}`);
+      }
+      refreshStatus();
+    })
+    .catch((err: any) => appendLog(`配对失败：${err?.message || String(err)}`));
 };
 
 const scanPairing = () => {
@@ -204,16 +234,40 @@ watch(theme, (value) => setTheme(value));
       <section class="section">
         <h2 class="section-title">配对入口</h2>
         <div class="row">
+          <button
+            class="btn btn-ghost btn-sm"
+            type="button"
+            :class="{ active: pairingMode === 'start' }"
+            @click="pairingMode = 'start'"
+          >
+            创建配对
+          </button>
+          <button
+            class="btn btn-ghost btn-sm"
+            type="button"
+            :class="{ active: pairingMode === 'join' }"
+            @click="pairingMode = 'join'"
+          >
+            加入配对
+          </button>
+        </div>
+        <div class="row">
           <input
             v-model="pairingCode"
             class="input"
             type="text"
             placeholder="输入配对码（如 123-456）"
           />
-          <button class="btn btn-primary" type="button" @click="submitPairing">提交配对</button>
+          <button class="btn btn-primary" type="button" @click="submitPairing">
+            {{ pairingMode === 'start' ? '生成配对码' : '提交配对' }}
+          </button>
           <button class="btn btn-ghost" type="button" @click="scanPairing">扫码</button>
         </div>
-        <p class="section-desc">配对成功后将转交 CLI 进行会话创建与服务拉起。</p>
+        <p class="section-desc">
+          {{ pairingMode === 'start'
+            ? '创建配对后可用移动端加入。'
+            : '输入移动端显示的配对码完成绑定。' }}
+        </p>
       </section>
 
       <section class="section">

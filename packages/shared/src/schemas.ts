@@ -34,12 +34,25 @@ function getBinaryPayloadLength(value: unknown): number {
   return -1;
 }
 
-const BinaryPayloadSchema = z.custom<Uint8Array | ArrayBuffer>((value) => {
+type BufferJsonPayload = { type: "Buffer"; data: number[] };
+
+const BinaryPayloadSchema = z.custom<Uint8Array | ArrayBuffer | BufferJsonPayload>((value) => {
   if (value instanceof Uint8Array || value instanceof ArrayBuffer) return true;
   const bufferRef = (globalThis as { Buffer?: { isBuffer: (v: unknown) => boolean } }).Buffer;
   if (bufferRef?.isBuffer?.(value)) return true;
+  if (value && typeof value === "object") {
+    const payload = value as { type?: unknown; data?: unknown };
+    if (payload.type === "Buffer" && Array.isArray(payload.data)) {
+      return payload.data.every((item) => Number.isInteger(item) && item >= 0 && item <= 255);
+    }
+  }
   return false;
 }, { message: "invalid binary payload" }).refine((value) => {
+  if (value && typeof value === "object" && (value as { type?: unknown }).type === "Buffer") {
+    const data = (value as { data?: unknown }).data;
+    const bytes = Array.isArray(data) ? data.length : -1;
+    return bytes >= 0 && bytes <= MAX_ENVELOPE_BINARY_PAYLOAD_BYTES;
+  }
   const bytes = getBinaryPayloadLength(value);
   return bytes >= 0 && bytes <= MAX_ENVELOPE_BINARY_PAYLOAD_BYTES;
 }, {
@@ -68,6 +81,67 @@ export const AckMessageSchema = z.object({
   reason: z.string().max(240).optional(),
   at: z.number().int().nonnegative().optional(),
 });
+
+// ── WebSocket frames ──
+
+export const DeviceRoleSchema = z.enum(["agent", "app"]);
+
+export const WsHelloPayloadSchema = z.object({
+  token: z.string().min(1),
+  protocolVersion: z.string().optional(),
+  namespace: z.string().optional(),
+  deviceId: z.string().optional(),
+  role: DeviceRoleSchema.optional(),
+  clientVersion: z.string().optional(),
+});
+
+export const WsPresencePayloadSchema = z.object({
+  sessionId: z.string().min(1),
+  devices: z.array(z.object({
+    id: z.string().min(1),
+    role: DeviceRoleSchema,
+    sessionId: z.string().min(1),
+  })),
+});
+
+export const WsErrorPayloadSchema = z.object({
+  code: z.string().min(1),
+  message: z.string().min(1),
+  retryable: z.boolean().optional(),
+});
+
+export const WsHelloFrameSchema = z.object({
+  type: z.literal("hello"),
+  data: WsHelloPayloadSchema,
+});
+
+export const WsMessageFrameSchema = z.object({
+  type: z.literal("message"),
+  data: EnvelopeSchema,
+});
+
+export const WsAckFrameSchema = z.object({
+  type: z.literal("ack"),
+  data: AckMessageSchema,
+});
+
+export const WsPresenceFrameSchema = z.object({
+  type: z.literal("presence"),
+  data: WsPresencePayloadSchema,
+});
+
+export const WsErrorFrameSchema = z.object({
+  type: z.literal("error"),
+  data: WsErrorPayloadSchema,
+});
+
+export const WsFrameSchema = z.discriminatedUnion("type", [
+  WsHelloFrameSchema,
+  WsMessageFrameSchema,
+  WsAckFrameSchema,
+  WsPresenceFrameSchema,
+  WsErrorFrameSchema,
+]);
 
 // ── 基础类型 schema ──
 

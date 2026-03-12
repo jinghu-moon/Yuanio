@@ -7,9 +7,9 @@ import {
   openEnvelopeWeb,
   type Envelope,
 } from "@yuanio/shared";
-import { io, type Socket } from "socket.io-client";
 import { loadKeys, type StoredKeys } from "@/keystore";
-import { createRelaySocketOptions } from "@/relay-options";
+import { RelayClient } from "@/relay-client";
+import { isTextEnvelope } from "@/relay-options";
 import type { LauncherI18n } from "../i18n/index.ts";
 
 const SESSION_POLL_INTERVAL_MS = 3000;
@@ -174,7 +174,7 @@ export function useRemoteMonitor(active: boolean, i18n: LauncherI18n): RemoteMon
   const seenIdsRef = useRef<Map<string, Set<string>>>(new Map());
   const afterTsRef = useRef<Map<string, number>>(new Map());
   const pollingRef = useRef({ sessions: false, messages: false });
-  const socketRef = useRef<Socket | null>(null);
+  const relayRef = useRef<RelayClient | null>(null);
 
   const applySelectedSession = useCallback((sessionId: string | null) => {
     selectedSessionRef.current = sessionId;
@@ -346,21 +346,22 @@ export function useRemoteMonitor(active: boolean, i18n: LauncherI18n): RemoteMon
     const keys = loadKeys();
     if (!keys) return;
 
-    const socket = io(`${keys.serverUrl}/relay`, createRelaySocketOptions(keys.sessionToken));
-    socketRef.current = socket;
+    const relay = new RelayClient(keys.serverUrl, keys.sessionToken);
+    relayRef.current = relay;
 
-    socket.on("connect", () => {
+    relay.onConnectionChange((connected) => {
+      if (!connected) return;
       const realtime = i18n.t("monitor.status.realtime_connected");
       setStatus((prev) => (prev.includes(realtime) ? prev : `${prev} · ${realtime}`));
       setError(null);
     });
 
-    socket.on("connect_error", (err) => {
-      setError(i18n.t("monitor.error.realtime_sub", { message: err.message }));
+    relay.onError((message) => {
+      setError(i18n.t("monitor.error.realtime_sub", { message }));
     });
 
-    socket.on("message", (env: Envelope) => {
-      if (typeof (env as any)?.payload !== "string") return;
+    relay.onMessage((env) => {
+      if (!isTextEnvelope(env)) return;
       void (async () => {
         try {
           const cryptoCtx = await getCryptoContext(cryptoCacheRef.current, keys, env.sessionId);
@@ -381,9 +382,8 @@ export function useRemoteMonitor(active: boolean, i18n: LauncherI18n): RemoteMon
     });
 
     return () => {
-      socket.removeAllListeners();
-      socket.disconnect();
-      if (socketRef.current === socket) socketRef.current = null;
+      relay.disconnect();
+      if (relayRef.current === relay) relayRef.current = null;
     };
   }, [active, appendLine, i18n]);
 

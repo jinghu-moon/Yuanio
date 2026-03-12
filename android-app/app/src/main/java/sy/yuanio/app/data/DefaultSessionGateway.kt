@@ -4,7 +4,7 @@ import org.json.JSONArray
 
 internal class DefaultSessionGateway(
     private val relayFactory: (String, String) -> GatewayTransport = { serverUrl, sessionToken ->
-        RelayGatewayTransport(RelayClient(serverUrl, sessionToken))
+        RelayGatewayTransport(RelayWebSocketClient(serverUrl, sessionToken))
     },
     private val localFactory: (SessionGatewayConfig) -> GatewayTransport = { config ->
         LocalGatewayTransport(
@@ -174,7 +174,7 @@ internal class DefaultSessionGateway(
 }
 
 internal class RelayGatewayTransport(
-    private val client: RelayClient,
+    private val client: RelayWebSocketClient,
 ) : GatewayTransport {
     override var onMessage: ((org.json.JSONObject) -> Unit)?
         get() = client.onMessage
@@ -294,4 +294,3 @@ internal class LocalGatewayTransport(
         reason: String?,
     ) = Unit
 }
-

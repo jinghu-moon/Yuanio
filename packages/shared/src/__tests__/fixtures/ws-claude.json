@@ -1,0 +1,35 @@
+[
+  {
+    "type": "hello",
+    "data": {
+      "token": "token_claude",
+      "protocolVersion": "1.0.0",
+      "namespace": "default",
+      "deviceId": "agent_claude",
+      "role": "agent"
+    }
+  },
+  {
+    "type": "message",
+    "data": {
+      "id": "msg_claude_1",
+      "seq": 1,
+      "source": "agent",
+      "target": "app",
+      "sessionId": "sess_claude",
+      "type": "stream_chunk",
+      "ts": 1700000000000,
+      "payload": "{\"type\":\"text\",\"value\":\"hello from claude\"}"
+    }
+  },
+  {
+    "type": "ack",
+    "data": {
+      "messageId": "msg_claude_1",
+      "source": "app",
+      "sessionId": "sess_claude",
+      "state": "ok",
+      "at": 1700000000100
+    }
+  }
+]
