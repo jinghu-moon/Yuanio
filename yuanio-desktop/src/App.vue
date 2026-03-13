@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 type ServiceStatus = "online" | "warn" | "offline";
 
@@ -34,6 +35,9 @@ const themeLabel = computed(() => (theme.value === "dark" ? "浅色" : "深色")
 
 const setTheme = (value: "dark" | "light") => {
   document.documentElement.dataset.theme = value;
+  if (isTauri()) {
+    void getCurrentWindow().setTheme(value);
+  }
 };
 
 const appendLog = (text: string) => {

@@ -8,6 +8,17 @@
 
 html {
   font-size: 16px;
+  height: 100%;
+  overflow: hidden;
+}
+
+:root {
+  --scrollbar-size: 6px;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--gray-alpha-600);
+  --scrollbar-thumb-hover: var(--gray-alpha-800);
+  --scrollbar-thumb-active: var(--gray-alpha-900);
 }
 
 html[data-theme="dark"] {
@@ -26,6 +37,46 @@ body {
   color: var(--gray-1000);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  height: 100%;
+  overflow: hidden;
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+  background: transparent;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-radius);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-radius);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+  background: transparent;
 }
 
 a {
@@ -39,13 +90,17 @@ button {
 
 #app {
   min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 
 .app-shell {
   min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--background-100);
+  overflow: hidden;
 }
 
 .topbar {
@@ -93,6 +148,8 @@ button {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .section {
