@@ -28,3 +28,4 @@ p256 = { version = "0.13", features = ["arithmetic", "ecdh", "pkcs8"] }
 hkdf = "0.12"
 sha2 = "0.10"
 base64 = "0.22"
+aes-gcm = "0.10"

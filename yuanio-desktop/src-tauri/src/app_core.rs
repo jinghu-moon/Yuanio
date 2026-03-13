@@ -1,9 +1,17 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use crate::keystore::{load_keys, save_keys, StoredSession};
-use crate::pairing::{join_pairing, start_pairing, ReqwestPairingClient};
+use crate::pairing::{
+    create_pairing,
+    finalize_pairing,
+    join_pairing,
+    start_pairing,
+    PendingPairing,
+    PairingClient,
+    ReqwestPairingClient,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PairingStartResponse {
@@ -33,10 +41,11 @@ pub struct AppStatus {
 pub struct AppState {
     pub status: Option<AppStatus>,
     pub logs: Vec<String>,
+    pub pending_pairing: Option<PendingPairingState>,
 }
 
 impl AppState {
-    fn push_log(&mut self, text: String) {
+    pub fn push_log(&mut self, text: String) {
         self.logs.push(text);
         if self.logs.len() > 40 {
             let overflow = self.logs.len() - 40;
@@ -67,6 +76,26 @@ fn init_status_from_disk() -> AppStatus {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct PendingPairingState {
+    pub pending: PendingPairing,
+    pub created_at: Instant,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PairingPrepareResponse {
+    pub pairing_code: String,
+    pub server_url: String,
+    pub namespace: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairingPollResponse {
+    pub status: String,
+    pub message: Option<String>,
+}
+
 #[tauri::command]
 pub fn app_status(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> AppStatus {
     let mut guard = state.lock().unwrap();
@@ -94,11 +123,114 @@ pub fn pairing_start(server_url: String, namespace: Option<String>, state: tauri
         paired: true,
         session: Some(summarize_session(&derived.session)),
     });
+    guard.pending_pairing = None;
     guard.push_log(format!("配对完成: session={} device={}", derived.session.keys.session_id, derived.session.keys.device_id));
 
     Ok(PairingStartResponse {
         pairing_code: derived.pairing_code,
     })
+}
+
+#[tauri::command]
+pub fn pairing_prepare(
+    server_url: String,
+    namespace: Option<String>,
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+) -> Result<PairingPrepareResponse, String> {
+    let ns = namespace.unwrap_or_else(|| "default".to_string());
+    let client = ReqwestPairingClient::new()?;
+    let pending = create_pairing(&client, &server_url, &ns)?;
+
+    let mut guard = state.lock().unwrap();
+    guard.pending_pairing = Some(PendingPairingState {
+        pending: pending.clone(),
+        created_at: Instant::now(),
+    });
+    guard.push_log(format!("已创建配对码: {}", pending.create.pairing_code));
+
+    Ok(PairingPrepareResponse {
+        pairing_code: pending.create.pairing_code,
+        server_url,
+        namespace: ns,
+    })
+}
+
+#[tauri::command]
+pub fn pairing_poll(
+    code: String,
+    state: tauri::State<'_, Arc<Mutex<AppState>>>,
+) -> Result<PairingPollResponse, String> {
+    let pending_state = {
+        let guard = state.lock().unwrap();
+        guard.pending_pairing.clone()
+    };
+
+    let Some(pending_state) = pending_state else {
+        return Ok(PairingPollResponse {
+            status: "idle".to_string(),
+            message: Some("没有进行中的配对".to_string()),
+        });
+    };
+
+    if pending_state.pending.create.pairing_code != code {
+        return Ok(PairingPollResponse {
+            status: "error".to_string(),
+            message: Some("配对码不匹配".to_string()),
+        });
+    }
+
+    if pending_state.created_at.elapsed() > Duration::from_secs(300) {
+        let mut guard = state.lock().unwrap();
+        guard.pending_pairing = None;
+        guard.push_log("配对超时".to_string());
+        return Ok(PairingPollResponse {
+            status: "timeout".to_string(),
+            message: Some("配对超时".to_string()),
+        });
+    }
+
+    let client = ReqwestPairingClient::new()?;
+    let status = client.poll_status(
+        &pending_state.pending.server_url,
+        &pending_state.pending.create.pairing_code,
+    )?;
+
+    if status.joined {
+        if let Some(app_public_key) = status.app_public_key {
+            let derived = finalize_pairing(pending_state.pending.clone(), app_public_key)?;
+            save_keys(&derived.session)?;
+
+            let mut guard = state.lock().unwrap();
+            guard.pending_pairing = None;
+            guard.status = Some(AppStatus {
+                paired: true,
+                session: Some(summarize_session(&derived.session)),
+            });
+            guard.push_log(format!(
+                "配对完成: session={} device={}",
+                derived.session.keys.session_id,
+                derived.session.keys.device_id
+            ));
+
+            return Ok(PairingPollResponse {
+                status: "success".to_string(),
+                message: None,
+            });
+        }
+    }
+
+    Ok(PairingPollResponse {
+        status: "waiting".to_string(),
+        message: None,
+    })
+}
+
+#[tauri::command]
+pub fn pairing_cancel(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+    let mut guard = state.lock().unwrap();
+    guard.pending_pairing = None;
+    guard.push_log("已取消配对".to_string());
+    Ok(())
 }
 
 #[tauri::command]
@@ -115,6 +247,7 @@ pub fn pairing_join(server_url: String, code: String, state: tauri::State<'_, Ar
         paired: true,
         session: Some(summarize_session(&derived.session)),
     });
+    guard.pending_pairing = None;
     guard.push_log(format!("加入配对完成: session={} device={}", derived.session.keys.session_id, derived.session.keys.device_id));
 
     Ok(PairingJoinResponse {

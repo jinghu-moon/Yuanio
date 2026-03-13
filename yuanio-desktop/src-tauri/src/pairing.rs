@@ -64,6 +64,14 @@ pub struct DerivedKeys {
     pub pairing_code: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct PendingPairing {
+    pub server_url: String,
+    pub namespace: String,
+    pub keypair: crate::crypto::KeyPair,
+    pub create: PairCreateResponse,
+}
+
 pub trait PairingClient {
     fn create_pair(&self, server_url: &str, namespace: &str, public_key: &str) -> Result<PairCreateResponse, String>;
     fn join_pair(&self, server_url: &str, code: &str, public_key: &str) -> Result<PairJoinResponse, String>;
@@ -152,12 +160,11 @@ pub fn start_pairing(
     server_url: &str,
     namespace: &str,
 ) -> Result<DerivedKeys, String> {
-    let kp = generate_keypair()?;
-    let create = client.create_pair(server_url, namespace, &kp.public_key)?;
+    let pending = create_pairing(client, server_url, namespace)?;
 
     let poll_deadline = std::time::Instant::now() + std::time::Duration::from_secs(300);
     let app_public_key = loop {
-        let status = client.poll_status(server_url, &create.pairing_code)?;
+        let status = client.poll_status(server_url, &pending.create.pairing_code)?;
         if status.joined {
             if let Some(pk) = status.app_public_key {
                 break pk;
@@ -169,31 +176,7 @@ pub fn start_pairing(
         std::thread::sleep(std::time::Duration::from_secs(2));
     };
 
-    let shared_key = derive_aes_key(DeriveKeyParams {
-        private_key: kp.private_key.clone(),
-        public_key: app_public_key.clone(),
-        salt: create.session_id.clone(),
-        info: Some(DEFAULT_E2EE_INFO.to_string()),
-    })?;
-
-    let stored = StoredKeys {
-        crypto_version: "rust-ecdh".to_string(),
-        protocol_version: create.protocol_version.clone(),
-        namespace: create.namespace.clone(),
-        public_key: kp.public_key.clone(),
-        private_key: kp.private_key.clone(),
-        device_id: create.device_id.clone(),
-        session_id: create.session_id.clone(),
-        session_token: create.session_token.clone(),
-        peer_public_key: app_public_key,
-        server_url: server_url.to_string(),
-    };
-
-    Ok(DerivedKeys {
-        shared_key,
-        session: new_session(stored),
-        pairing_code: create.pairing_code,
-    })
+    finalize_pairing(pending, app_public_key)
 }
 
 pub fn join_pairing(
@@ -228,6 +211,52 @@ pub fn join_pairing(
         shared_key,
         session: new_session(stored),
         pairing_code: code.to_string(),
+    })
+}
+
+pub fn create_pairing(
+    client: &dyn PairingClient,
+    server_url: &str,
+    namespace: &str,
+) -> Result<PendingPairing, String> {
+    let kp = generate_keypair()?;
+    let create = client.create_pair(server_url, namespace, &kp.public_key)?;
+    Ok(PendingPairing {
+        server_url: server_url.to_string(),
+        namespace: namespace.to_string(),
+        keypair: kp,
+        create,
+    })
+}
+
+pub fn finalize_pairing(
+    pending: PendingPairing,
+    app_public_key: String,
+) -> Result<DerivedKeys, String> {
+    let shared_key = derive_aes_key(DeriveKeyParams {
+        private_key: pending.keypair.private_key.clone(),
+        public_key: app_public_key.clone(),
+        salt: pending.create.session_id.clone(),
+        info: Some(DEFAULT_E2EE_INFO.to_string()),
+    })?;
+
+    let stored = StoredKeys {
+        crypto_version: "rust-ecdh".to_string(),
+        protocol_version: pending.create.protocol_version.clone(),
+        namespace: pending.create.namespace.clone(),
+        public_key: pending.keypair.public_key.clone(),
+        private_key: pending.keypair.private_key.clone(),
+        device_id: pending.create.device_id.clone(),
+        session_id: pending.create.session_id.clone(),
+        session_token: pending.create.session_token.clone(),
+        peer_public_key: app_public_key,
+        server_url: pending.server_url.clone(),
+    };
+
+    Ok(DerivedKeys {
+        shared_key,
+        session: new_session(stored),
+        pairing_code: pending.create.pairing_code.clone(),
     })
 }
 

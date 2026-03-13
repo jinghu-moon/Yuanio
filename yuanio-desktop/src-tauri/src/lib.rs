@@ -1,30 +1,41 @@
 mod app_core;
 mod crypto;
+mod daemon_state;
 mod keystore;
+mod monitor;
+mod net;
 mod pairing;
+mod services;
 mod ws_client;
 
 use app_core::{
     app_logs,
     app_status,
+    pairing_cancel,
     pairing_join,
+    pairing_poll,
+    pairing_prepare,
     pairing_start,
     relay_send_dummy,
     relay_start,
     relay_stop,
 };
+use monitor::{monitor_messages, monitor_sessions};
+use daemon_state::read_state;
+use net::local_ipv4_address;
+use services::{CloudflaredInstallPayload, ServiceManager, ServiceSnapshot, ServiceStartPayload};
 use serde::Serialize;
 use std::{
     env,
-    fs,
     path::{Path, PathBuf},
     process::Command,
+    sync::{Arc, Mutex},
     thread,
     time::Duration,
 };
 
 #[derive(Serialize)]
-struct DaemonStatus {
+pub(crate) struct DaemonStatus {
     running: bool,
     pid: Option<u32>,
     port: Option<u16>,
@@ -33,43 +44,33 @@ struct DaemonStatus {
     sessions: Option<Vec<String>>,
 }
 
-#[derive(Serialize, serde::Deserialize)]
-struct DaemonState {
-    pid: u32,
-    port: u16,
-    version: String,
-    #[serde(rename = "startedAt")]
-    started_at: String,
-    sessions: Vec<String>,
-}
-
-fn resolve_state_path() -> PathBuf {
-    if let Ok(path) = env::var("YUANIO_DAEMON_STATE") {
-        return PathBuf::from(path);
-    }
-    let home = env::var("USERPROFILE")
-        .or_else(|_| env::var("HOME"))
-        .unwrap_or_else(|_| ".".to_string());
-    Path::new(&home).join(".yuanio").join("daemon.json")
-}
-
-fn read_state() -> Option<DaemonState> {
-    let path = resolve_state_path();
-    let text = fs::read_to_string(path).ok()?;
-    serde_json::from_str(&text).ok()
-}
-
-fn resolve_repo_root() -> PathBuf {
+pub(crate) fn resolve_repo_root() -> PathBuf {
     if let Ok(root) = env::var("YUANIO_REPO_ROOT") {
         return PathBuf::from(root);
     }
-    env::current_dir()
-        .ok()
-        .and_then(|cwd| cwd.parent().map(|parent| parent.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."))
+    let cwd = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    if has_packages_dir(&cwd) {
+        return cwd;
+    }
+    if let Some(parent) = cwd.parent() {
+        if has_packages_dir(parent) {
+            return parent.to_path_buf();
+        }
+        if let Some(grand) = parent.parent() {
+            if has_packages_dir(grand) {
+                return grand.to_path_buf();
+            }
+        }
+        return parent.to_path_buf();
+    }
+    cwd
 }
 
-fn resolve_cli_entry() -> PathBuf {
+fn has_packages_dir(path: &Path) -> bool {
+    path.join("packages").is_dir()
+}
+
+pub(crate) fn resolve_cli_entry() -> PathBuf {
     if let Ok(entry) = env::var("YUANIO_CLI_ENTRY") {
         return PathBuf::from(entry);
     }
@@ -80,11 +81,11 @@ fn resolve_cli_entry() -> PathBuf {
         .join("index.ts")
 }
 
-fn resolve_bun_cmd() -> String {
+pub(crate) fn resolve_bun_cmd() -> String {
     env::var("YUANIO_BUN_CMD").unwrap_or_else(|_| "bun".to_string())
 }
 
-fn status_from_state(state: Option<DaemonState>) -> DaemonStatus {
+fn status_from_state(state: Option<daemon_state::DaemonState>) -> DaemonStatus {
     match state {
         Some(value) => DaemonStatus {
             running: true,
@@ -111,7 +112,11 @@ fn daemon_status() -> DaemonStatus {
 }
 
 #[tauri::command]
-fn daemon_start(server_url: String) -> Result<DaemonStatus, String> {
+fn local_ipv4() -> Option<String> {
+    local_ipv4_address()
+}
+
+pub(crate) fn daemon_start(server_url: String) -> Result<DaemonStatus, String> {
     let cli_entry = resolve_cli_entry();
     let bun_cmd = resolve_bun_cmd();
     Command::new(bun_cmd)
@@ -127,8 +132,7 @@ fn daemon_start(server_url: String) -> Result<DaemonStatus, String> {
     Ok(daemon_status())
 }
 
-#[tauri::command]
-fn daemon_stop() -> Result<DaemonStatus, String> {
+pub(crate) fn daemon_stop() -> Result<DaemonStatus, String> {
     let cli_entry = resolve_cli_entry();
     let bun_cmd = resolve_bun_cmd();
     Command::new(bun_cmd)
@@ -142,20 +146,91 @@ fn daemon_stop() -> Result<DaemonStatus, String> {
     Ok(daemon_status())
 }
 
+#[tauri::command]
+fn service_state(services: tauri::State<'_, Arc<Mutex<ServiceManager>>>) -> ServiceSnapshot {
+    let mut manager = services.lock().expect("service manager lock");
+    manager.snapshot()
+}
+
+#[tauri::command]
+fn service_start_profile(
+    payload: ServiceStartPayload,
+    services: tauri::State<'_, Arc<Mutex<ServiceManager>>>,
+    app_state: tauri::State<'_, Arc<Mutex<app_core::AppState>>>,
+) -> Result<ServiceSnapshot, String> {
+    let manager_handle = services.inner().clone();
+    let app_handle = app_state.inner().clone();
+    let mut manager = manager_handle.lock().map_err(|_| "服务状态被占用")?;
+    manager.start_profile(manager_handle.clone(), payload, app_handle)
+}
+
+#[tauri::command]
+fn service_stop_all(
+    services: tauri::State<'_, Arc<Mutex<ServiceManager>>>,
+    app_state: tauri::State<'_, Arc<Mutex<app_core::AppState>>>,
+) -> Result<ServiceSnapshot, String> {
+    let app_handle = app_state.inner().clone();
+    let mut manager = services.lock().map_err(|_| "服务状态被占用")?;
+    manager.stop_all(&app_handle)
+}
+
+#[tauri::command]
+fn remote_bridge_reload(
+    services: tauri::State<'_, Arc<Mutex<ServiceManager>>>,
+    app_state: tauri::State<'_, Arc<Mutex<app_core::AppState>>>,
+) -> Result<ServiceSnapshot, String> {
+    let app_handle = app_state.inner().clone();
+    let mut manager = services.lock().map_err(|_| "服务状态被占用")?;
+    manager.reload_remote_bridge(app_handle)
+}
+
+#[tauri::command]
+fn cloudflared_refresh(
+    services: tauri::State<'_, Arc<Mutex<ServiceManager>>>,
+    app_state: tauri::State<'_, Arc<Mutex<app_core::AppState>>>,
+) -> services::CloudflaredServiceState {
+    let app_handle = app_state.inner().clone();
+    let mut manager = services.lock().expect("service manager lock");
+    manager.refresh_cloudflared(app_handle)
+}
+
+#[tauri::command]
+fn cloudflared_install(
+    payload: CloudflaredInstallPayload,
+    services: tauri::State<'_, Arc<Mutex<ServiceManager>>>,
+    app_state: tauri::State<'_, Arc<Mutex<app_core::AppState>>>,
+) -> services::CloudflaredServiceState {
+    let app_handle = app_state.inner().clone();
+    let mut manager = services.lock().expect("service manager lock");
+    manager.install_cloudflared(payload, app_handle)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = app_core::init_state();
+    let service_manager = Arc::new(Mutex::new(ServiceManager::new()));
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(app_state)
+        .manage(service_manager)
         .invoke_handler(tauri::generate_handler![
             daemon_status,
-            daemon_start,
-            daemon_stop,
+            local_ipv4,
+            service_state,
+            service_start_profile,
+            service_stop_all,
+            remote_bridge_reload,
+            cloudflared_refresh,
+            cloudflared_install,
             app_status,
             app_logs,
             pairing_start,
+            pairing_prepare,
+            pairing_poll,
+            pairing_cancel,
             pairing_join,
+            monitor_sessions,
+            monitor_messages,
             relay_start,
             relay_stop,
             relay_send_dummy
