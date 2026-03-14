@@ -15,7 +15,7 @@ pub struct DaemonState {
     pub sessions: Vec<String>,
 }
 
-fn resolve_state_path() -> PathBuf {
+pub fn resolve_state_path() -> PathBuf {
     if let Ok(path) = env::var("YUANIO_DAEMON_STATE") {
         return PathBuf::from(path);
     }
@@ -23,6 +23,14 @@ fn resolve_state_path() -> PathBuf {
         .or_else(|_| env::var("HOME"))
         .unwrap_or_else(|_| ".".to_string());
     Path::new(&home).join(".yuanio").join("daemon.json")
+}
+
+pub fn remove_state_file() -> Result<(), String> {
+    let path = resolve_state_path();
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| format!("删除 daemon state 失败: {e}"))?;
+    }
+    Ok(())
 }
 
 pub fn read_state() -> Option<DaemonState> {

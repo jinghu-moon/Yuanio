@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::keystore::{load_keys, save_keys, StoredSession};
 use crate::pairing::{
@@ -40,18 +40,52 @@ pub struct AppStatus {
 #[derive(Debug, Default)]
 pub struct AppState {
     pub status: Option<AppStatus>,
-    pub logs: Vec<String>,
+    pub logs: Vec<AppLogEntry>,
     pub pending_pairing: Option<PendingPairingState>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppLogEntry {
+    pub ts: u64,
+    pub source: String,
+    pub level: String,
+    pub text: String,
 }
 
 impl AppState {
     pub fn push_log(&mut self, text: String) {
-        self.logs.push(text);
-        if self.logs.len() > 40 {
-            let overflow = self.logs.len() - 40;
+        let (source, cleaned) = split_log_source(&text);
+        self.logs.push(AppLogEntry {
+            ts: now_ms(),
+            source,
+            level: "info".to_string(),
+            text: cleaned,
+        });
+        if self.logs.len() > 200 {
+            let overflow = self.logs.len() - 200;
             self.logs.drain(0..overflow);
         }
     }
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn split_log_source(text: &str) -> (String, String) {
+    if let Some(rest) = text.strip_prefix('[') {
+        if let Some(end) = rest.find(']') {
+            let source = rest[..end].trim();
+            let message = rest[(end + 1)..].trim();
+            if !source.is_empty() {
+                return (source.to_string(), message.to_string());
+            }
+        }
+    }
+    ("ops".to_string(), text.trim().to_string())
 }
 
 fn summarize_session(session: &StoredSession) -> StoredSessionInfo {
@@ -106,9 +140,16 @@ pub fn app_status(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> AppStatus {
 }
 
 #[tauri::command]
-pub fn app_logs(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Vec<String> {
+pub fn app_logs(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Vec<AppLogEntry> {
     let guard = state.lock().unwrap();
     guard.logs.clone()
+}
+
+#[tauri::command]
+pub fn app_logs_clear(state: tauri::State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+    let mut guard = state.lock().unwrap();
+    guard.logs.clear();
+    Ok(())
 }
 
 #[tauri::command]

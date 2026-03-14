@@ -97,6 +97,34 @@ pub struct ServiceStartPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RelayStartPayload {
+    pub relay_port: Option<u16>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TunnelStartPayload {
+    pub relay_port: Option<u16>,
+    pub tunnel_mode: Option<String>,
+    pub tunnel_name: Option<String>,
+    pub tunnel_hostname: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DaemonStartPayload {
+    pub server_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BridgeStartPayload {
+    pub server_url: Option<String>,
+    pub namespace: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CloudflaredInstallPayload {
     pub tunnel_name: Option<String>,
     pub relay_port: Option<u16>,
@@ -202,6 +230,117 @@ impl ServiceManager {
             }
         }
 
+        Ok(self.snapshot())
+    }
+
+    pub fn start_relay_only(
+        &mut self,
+        payload: RelayStartPayload,
+        app_state: Arc<Mutex<AppState>>,
+    ) -> Result<ServiceSnapshot, String> {
+        let relay_port = payload.relay_port.unwrap_or(3000);
+        let relay_url = relay_url_for(relay_port);
+        self.start_relay(&relay_url, relay_port, app_state)?;
+        Ok(self.snapshot())
+    }
+
+    pub fn stop_relay_only(&mut self, app_state: &Arc<Mutex<AppState>>) -> Result<ServiceSnapshot, String> {
+        self.stop_relay(app_state);
+        Ok(self.snapshot())
+    }
+
+    pub fn start_tunnel_only(
+        &mut self,
+        manager_handle: Arc<Mutex<ServiceManager>>,
+        payload: TunnelStartPayload,
+        app_state: Arc<Mutex<AppState>>,
+    ) -> Result<ServiceSnapshot, String> {
+        let relay_port = payload
+            .relay_port
+            .or(self.service.relay.port)
+            .unwrap_or(3000);
+        let relay_url = relay_url_for(relay_port);
+        self.service.relay.port = Some(relay_port);
+        self.service.relay.url = Some(relay_url.clone());
+
+        if !matches!(self.service.relay.status, ServiceStatus::Running | ServiceStatus::Starting) {
+            self.start_relay(&relay_url, relay_port, app_state.clone())?;
+        }
+
+        let tunnel_mode = payload
+            .tunnel_mode
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "quick".to_string());
+        let tunnel_name = payload.tunnel_name.unwrap_or_default();
+        let tunnel_hostname = payload.tunnel_hostname.unwrap_or_default();
+
+        self.start_tunnel(
+            manager_handle,
+            &relay_url,
+            &tunnel_mode,
+            &tunnel_name,
+            &tunnel_hostname,
+            app_state,
+        )?;
+        Ok(self.snapshot())
+    }
+
+    pub fn stop_tunnel_only(&mut self, app_state: &Arc<Mutex<AppState>>) -> Result<ServiceSnapshot, String> {
+        self.stop_tunnel(app_state);
+        Ok(self.snapshot())
+    }
+
+    pub fn start_daemon_only(
+        &mut self,
+        payload: DaemonStartPayload,
+        app_state: Arc<Mutex<AppState>>,
+    ) -> Result<ServiceSnapshot, String> {
+        let relay_url = self
+            .service
+            .relay
+            .url
+            .clone()
+            .unwrap_or_else(|| relay_url_for(self.service.relay.port.unwrap_or(3000)));
+        let server_url = payload
+            .server_url
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| relay_url.clone());
+        let target = if matches!(self.service.relay.status, ServiceStatus::Running | ServiceStatus::Starting) {
+            relay_url
+        } else {
+            server_url
+        };
+        self.start_daemon(&target, app_state)?;
+        Ok(self.snapshot())
+    }
+
+    pub fn stop_daemon_only(&mut self, app_state: &Arc<Mutex<AppState>>) -> Result<ServiceSnapshot, String> {
+        self.stop_daemon(app_state)?;
+        Ok(self.snapshot())
+    }
+
+    pub fn start_bridge_only(
+        &mut self,
+        payload: BridgeStartPayload,
+        app_state: Arc<Mutex<AppState>>,
+    ) -> Result<ServiceSnapshot, String> {
+        let relay_url = self
+            .service
+            .relay
+            .url
+            .clone()
+            .unwrap_or_else(|| relay_url_for(self.service.relay.port.unwrap_or(3000)));
+        let server_url = payload
+            .server_url
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| relay_url.clone());
+        let namespace = payload.namespace.or_else(|| load_keys().ok().flatten().map(|s| s.keys.namespace));
+        self.start_remote_bridge(&server_url, &relay_url, namespace, app_state)?;
+        Ok(self.snapshot())
+    }
+
+    pub fn stop_bridge_only(&mut self, app_state: &Arc<Mutex<AppState>>) -> Result<ServiceSnapshot, String> {
+        self.stop_remote_bridge(app_state);
         Ok(self.snapshot())
     }
 

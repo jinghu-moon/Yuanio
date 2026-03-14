@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::crypto::{derive_aes_key, generate_keypair, DEFAULT_E2EE_INFO, DeriveKeyParams};
+use crate::crypto::generate_keypair;
 use crate::keystore::{new_session, StoredSession};
 
 const PROTOCOL_VERSION: &str = "1.0.0";
@@ -59,7 +59,6 @@ pub struct PairJoinResponse {
 
 #[derive(Debug, Clone)]
 pub struct DerivedKeys {
-    pub shared_key: Vec<u8>,
     pub session: StoredSession,
     pub pairing_code: String,
 }
@@ -67,7 +66,6 @@ pub struct DerivedKeys {
 #[derive(Debug, Clone)]
 pub struct PendingPairing {
     pub server_url: String,
-    pub namespace: String,
     pub keypair: crate::crypto::KeyPair,
     pub create: PairCreateResponse,
 }
@@ -187,13 +185,6 @@ pub fn join_pairing(
     let kp = generate_keypair()?;
     let join = client.join_pair(server_url, code, &kp.public_key)?;
 
-    let shared_key = derive_aes_key(DeriveKeyParams {
-        private_key: kp.private_key.clone(),
-        public_key: join.agent_public_key.clone(),
-        salt: join.session_id.clone(),
-        info: Some(DEFAULT_E2EE_INFO.to_string()),
-    })?;
-
     let stored = StoredKeys {
         crypto_version: "rust-ecdh".to_string(),
         protocol_version: join.protocol_version.clone(),
@@ -208,7 +199,6 @@ pub fn join_pairing(
     };
 
     Ok(DerivedKeys {
-        shared_key,
         session: new_session(stored),
         pairing_code: code.to_string(),
     })
@@ -223,7 +213,6 @@ pub fn create_pairing(
     let create = client.create_pair(server_url, namespace, &kp.public_key)?;
     Ok(PendingPairing {
         server_url: server_url.to_string(),
-        namespace: namespace.to_string(),
         keypair: kp,
         create,
     })
@@ -233,13 +222,6 @@ pub fn finalize_pairing(
     pending: PendingPairing,
     app_public_key: String,
 ) -> Result<DerivedKeys, String> {
-    let shared_key = derive_aes_key(DeriveKeyParams {
-        private_key: pending.keypair.private_key.clone(),
-        public_key: app_public_key.clone(),
-        salt: pending.create.session_id.clone(),
-        info: Some(DEFAULT_E2EE_INFO.to_string()),
-    })?;
-
     let stored = StoredKeys {
         crypto_version: "rust-ecdh".to_string(),
         protocol_version: pending.create.protocol_version.clone(),
@@ -254,7 +236,6 @@ pub fn finalize_pairing(
     };
 
     Ok(DerivedKeys {
-        shared_key,
         session: new_session(stored),
         pairing_code: pending.create.pairing_code.clone(),
     })
@@ -313,7 +294,6 @@ mod tests {
         assert_eq!(result.session.keys.session_id, "session-1");
         assert_eq!(result.session.keys.namespace, "default");
         assert_eq!(result.pairing_code, "123-456");
-        assert_eq!(result.shared_key.len(), 32);
     }
 
     #[test]
@@ -345,6 +325,5 @@ mod tests {
         assert_eq!(result.session.keys.session_id, "session-1");
         assert_eq!(result.session.keys.device_id, "device-2");
         assert_eq!(result.pairing_code, "123-456");
-        assert_eq!(result.shared_key.len(), 32);
     }
 }
