@@ -13,7 +13,7 @@ defineProps<{
 <template>
   <header class="topbar">
     <div class="brand">
-      <span>Yuanio Desktop</span>
+      <span class="logo-text topbar-logo-text">Yuanio Desktop</span>
     </div>
     <div class="row">
       <button

@@ -1,11 +1,23 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from "vue";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import QRCode from "qrcode";
+import {
+  IconActivityHeartbeat,
+  IconCloud,
+  IconLayoutDashboard,
+  IconListDetails,
+  IconServer,
+  IconSettings,
+  IconShieldCheck,
+  IconTool,
+  IconUsers,
+} from "@tabler/icons-vue";
 import TopBar from "./sections/TopBar.vue";
+import SidebarNav from "./sections/SidebarNav.vue";
 import DashboardSection from "./sections/DashboardSection.vue";
 import ServicesSection from "./sections/ServicesSection.vue";
 import CloudflaredSection from "./sections/CloudflaredSection.vue";
@@ -128,6 +140,138 @@ const quickLinks: QuickLink[] = [
   { id: "skills", label: "技能管理" },
   { id: "config", label: "配置中心" },
 ];
+type SidebarItem = {
+  id: string;
+  label: string;
+  icon: Component;
+};
+const sidebarItems: SidebarItem[] = [
+  { id: "dashboard", label: "仪表盘", icon: IconLayoutDashboard },
+  { id: "services", label: "服务控制", icon: IconServer },
+  { id: "cloudflared", label: "Cloudflared 服务", icon: IconCloud },
+  { id: "pairing", label: "配对入口", icon: IconUsers },
+  { id: "monitor", label: "远程监控", icon: IconActivityHeartbeat },
+  { id: "config", label: "配置中心", icon: IconSettings },
+  { id: "skills", label: "技能管理", icon: IconTool },
+  { id: "doctor", label: "诊断", icon: IconShieldCheck },
+  { id: "logs", label: "日志面板", icon: IconListDetails },
+];
+const sectionOrder = sidebarItems.map((item) => item.id);
+const activeSection = ref<SidebarItem["id"]>("dashboard");
+const contentRef = ref<HTMLDivElement | null>(null);
+const sidebarCollapsed = ref(false);
+const sidebarWidth = ref(240);
+const sidebarMinWidth = 200;
+const sidebarMaxWidth = 320;
+const sidebarStorageKey = "yuanio.desktop.sidebar.width";
+const uiStorageKey = "yuanio.desktop.ui";
+const configDraftStorageKey = "yuanio.desktop.config.draft";
+const uiBootstrapped = ref(false);
+const configBootstrapped = ref(false);
+const sidebarResizing = ref(false);
+let sidebarResizeCleanup: (() => void) | null = null;
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+};
+const clampSidebarWidth = (value: number) =>
+  Math.min(sidebarMaxWidth, Math.max(sidebarMinWidth, Math.round(value)));
+const loadSidebarWidth = () => {
+  if (typeof localStorage === "undefined") return;
+  const raw = localStorage.getItem(sidebarStorageKey);
+  const parsed = raw ? Number(raw) : NaN;
+  if (Number.isFinite(parsed)) {
+    sidebarWidth.value = clampSidebarWidth(parsed);
+  }
+};
+const saveSidebarWidth = () => {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(sidebarStorageKey, String(sidebarWidth.value));
+};
+const loadUiPrefs = () => {
+  if (typeof localStorage === "undefined") return;
+  const raw = localStorage.getItem(uiStorageKey);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw) as Partial<{
+      theme: "dark" | "light";
+      sidebarCollapsed: boolean;
+      activeSection: SidebarItem["id"];
+      logFilter: string;
+      logSearch: string;
+      pairingMode: "start" | "join";
+      skillScope: "project" | "user";
+      skillSource: string;
+    }>;
+    if (parsed.theme === "dark" || parsed.theme === "light") {
+      theme.value = parsed.theme;
+    }
+    if (typeof parsed.sidebarCollapsed === "boolean") {
+      sidebarCollapsed.value = parsed.sidebarCollapsed;
+    }
+    if (parsed.activeSection && sidebarItems.some((item) => item.id === parsed.activeSection)) {
+      activeSection.value = parsed.activeSection;
+    }
+    if (typeof parsed.logFilter === "string") {
+      logFilter.value = parsed.logFilter;
+    }
+    if (typeof parsed.logSearch === "string") {
+      logSearch.value = parsed.logSearch;
+    }
+    if (parsed.pairingMode === "start" || parsed.pairingMode === "join") {
+      pairingMode.value = parsed.pairingMode;
+    }
+    if (parsed.skillScope === "project" || parsed.skillScope === "user") {
+      skillScope.value = parsed.skillScope;
+    }
+    if (typeof parsed.skillSource === "string") {
+      skillSource.value = parsed.skillSource;
+    }
+  } catch {
+    return;
+  }
+};
+const saveUiPrefs = () => {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(uiStorageKey, JSON.stringify({
+    theme: theme.value,
+    sidebarCollapsed: sidebarCollapsed.value,
+    activeSection: activeSection.value,
+    logFilter: logFilter.value,
+    logSearch: logSearch.value,
+    pairingMode: pairingMode.value,
+    skillScope: skillScope.value,
+    skillSource: skillSource.value,
+  }));
+};
+const startResizeSidebar = (event: PointerEvent) => {
+  if (sidebarCollapsed.value) return;
+  event.preventDefault();
+  const startX = event.clientX;
+  const startWidth = sidebarWidth.value;
+  sidebarResizing.value = true;
+  const originalUserSelect = document.body.style.userSelect;
+  document.body.style.userSelect = "none";
+
+  const onMove = (moveEvent: PointerEvent) => {
+    const delta = moveEvent.clientX - startX;
+    sidebarWidth.value = clampSidebarWidth(startWidth + delta);
+  };
+  const onUp = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    sidebarResizing.value = false;
+    document.body.style.userSelect = originalUserSelect;
+    saveSidebarWidth();
+    sidebarResizeCleanup = null;
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  sidebarResizeCleanup = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = originalUserSelect;
+  };
+};
 
 const translations: Record<Exclude<Locale, "zh-CN">, Record<string, string>> = {
   "zh-TW": {
@@ -626,6 +770,36 @@ const currentConfig = () => normalizeConfig({
   tunnelHostname: tunnelHostname.value,
   language: configLanguage.value,
 });
+const loadConfigDraft = (): Partial<AppConfig> | null => {
+  if (typeof localStorage === "undefined") return null;
+  const raw = localStorage.getItem(configDraftStorageKey);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Partial<AppConfig>;
+  } catch {
+    return null;
+  }
+};
+const applyConfigDraft = () => {
+  const draft = loadConfigDraft();
+  if (!draft) return;
+  const normalized = normalizeConfig(draft);
+  serverUrl.value = normalized.serverUrl;
+  pairingNamespace.value = normalized.namespace;
+  relayPort.value = normalized.relayPort;
+  configAutoStart.value = normalized.autoStart;
+  configProfile.value = normalized.connectionProfile;
+  tunnelMode.value = normalized.tunnelMode;
+  tunnelName.value = normalized.tunnelName;
+  tunnelHostname.value = normalized.tunnelHostname;
+  configLanguage.value = normalized.language;
+  doctorControlUrl.value = normalized.serverUrl;
+  doctorPublicUrl.value = normalized.tunnelHostname ? `https://${normalized.tunnelHostname}` : "";
+};
+const saveConfigDraft = () => {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(configDraftStorageKey, JSON.stringify(currentConfig()));
+};
 
 const configDirty = computed(() => {
   if (!configSnapshot.value) return false;
@@ -825,7 +999,7 @@ const runServiceAction = async (action: () => Promise<ServiceSnapshot>, successM
 };
 
 const startRelay = async () => runServiceAction(
-  () => invoke<ServiceSnapshot>("service_start_relay", { relayPort: normalizeRelayPort() }),
+  () => invoke<ServiceSnapshot>("service_start_relay", { payload: { relayPort: normalizeRelayPort() } }),
   t("已请求启动 Relay。"),
 );
 
@@ -841,10 +1015,12 @@ const restartRelay = async () => {
 
 const startTunnel = async () => runServiceAction(
   () => invoke<ServiceSnapshot>("service_start_tunnel", {
-    relayPort: normalizeRelayPort(),
-    tunnelMode: tunnelMode.value,
-    tunnelName: tunnelName.value,
-    tunnelHostname: tunnelHostname.value,
+    payload: {
+      relayPort: normalizeRelayPort(),
+      tunnelMode: tunnelMode.value,
+      tunnelName: tunnelName.value,
+      tunnelHostname: tunnelHostname.value,
+    },
   }),
   t("已请求启动 Tunnel。"),
 );
@@ -860,7 +1036,7 @@ const restartTunnel = async () => {
 };
 
 const startDaemon = async () => runServiceAction(
-  () => invoke<ServiceSnapshot>("service_start_daemon", { serverUrl: serverUrl.value }),
+  () => invoke<ServiceSnapshot>("service_start_daemon", { payload: { serverUrl: serverUrl.value } }),
   t("已请求启动 Daemon。"),
 );
 
@@ -877,13 +1053,15 @@ const restartDaemon = async () => {
 const startProfile = async (profile: "lan" | "tunnel"): Promise<boolean> => {
   try {
     const snapshot = await invoke<ServiceSnapshot>("service_start_profile", {
-      profile,
-      serverUrl: serverUrl.value,
-      relayPort: normalizeRelayPort(),
-      tunnelMode: tunnelMode.value,
-      tunnelName: tunnelName.value,
-      tunnelHostname: tunnelHostname.value,
-      namespace: pairingNamespace.value.trim() || undefined,
+      payload: {
+        profile,
+        serverUrl: serverUrl.value,
+        relayPort: normalizeRelayPort(),
+        tunnelMode: tunnelMode.value,
+        tunnelName: tunnelName.value,
+        tunnelHostname: tunnelHostname.value,
+        namespace: pairingNamespace.value.trim() || undefined,
+      },
     });
     applyServiceSnapshot(snapshot);
     pushUiLog(t("已请求启动 {profile}。", { profile: profile === "lan" ? "LAN" : "Tunnel" }));
@@ -930,8 +1108,10 @@ const installCloudflared = async () => {
   }
   try {
     const state = await invoke<CloudflaredServiceState>("cloudflared_install", {
-      tunnelName: tunnelName.value.trim(),
-      relayPort: normalizeRelayPort(),
+      payload: {
+        tunnelName: tunnelName.value.trim(),
+        relayPort: normalizeRelayPort(),
+      },
     });
     cloudflaredState.value = state;
     pushUiLog(t("已请求安装 Cloudflared 服务。"));
@@ -1034,13 +1214,13 @@ const MONITOR_MAX_LINES = 2000;
 
 const shortSessionId = (value: string) => value.slice(0, 8);
 
-const scrollToSection = (id: string) => {
-  if (typeof document === "undefined") return;
-  const el = document.getElementById(id);
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+const goToSection = (id: string) => {
+  activeSection.value = id;
+  nextTick(() => {
+    contentRef.value?.scrollTo({ top: 0, behavior: "smooth" });
+  });
 };
+const slideDirection = ref<"slide-up" | "slide-down">("slide-up");
 
 const formatMonitorText = (value: string) => {
   const flattened = value.replace(/\r?\n/g, "\\n");
@@ -1159,7 +1339,7 @@ const selectMonitorSession = (sessionId: string) => {
   applyMonitorSelection(sessionId);
 };
 
-const loadConfig = async () => {
+const loadConfig = async (options?: { applyDraft?: boolean }) => {
   configLoading.value = true;
   try {
     const loaded = await invoke<AppConfig>("config_load");
@@ -1176,14 +1356,21 @@ const loadConfig = async () => {
     configLanguage.value = normalized.language;
     doctorControlUrl.value = normalized.serverUrl;
     doctorPublicUrl.value = normalized.tunnelHostname ? `https://${normalized.tunnelHostname}` : "";
+    if (options?.applyDraft) {
+      applyConfigDraft();
+    }
     configMessage.value = t("配置已加载");
-    if (normalized.autoStart) {
-      await maybeAutoStart(normalized.connectionProfile);
+    if (configAutoStart.value) {
+      await maybeAutoStart(configProfile.value);
     }
   } catch (err: any) {
     configMessage.value = t("配置加载失败：{message}", { message: err?.message || String(err) });
   } finally {
     configLoading.value = false;
+    if (options?.applyDraft) {
+      configBootstrapped.value = true;
+      saveConfigDraft();
+    }
   }
 };
 
@@ -1493,9 +1680,13 @@ const toggleTheme = () => {
 };
 
 onMounted(() => {
+  loadSidebarWidth();
+  loadUiPrefs();
+  uiBootstrapped.value = true;
+  saveUiPrefs();
   setTheme(theme.value);
   pushUiLog(t("桌面壳初始化完成。"));
-  void loadConfig();
+  void loadConfig({ applyDraft: true });
   refreshStatus();
   void refreshReadiness();
   void refreshMonitorNow();
@@ -1555,8 +1746,54 @@ watch(pairingMode, () => {
   resetPairingState();
 });
 
+watch(activeSection, (value, prev) => {
+  const currentIndex = sectionOrder.indexOf(value);
+  const prevIndex = sectionOrder.indexOf(prev);
+  if (currentIndex === -1 || prevIndex === -1) return;
+  slideDirection.value = currentIndex >= prevIndex ? "slide-up" : "slide-down";
+});
+
+watch(
+  () => [
+    theme.value,
+    sidebarCollapsed.value,
+    activeSection.value,
+    logFilter.value,
+    logSearch.value,
+    pairingMode.value,
+    skillScope.value,
+    skillSource.value,
+  ],
+  () => {
+    if (!uiBootstrapped.value) return;
+    saveUiPrefs();
+  },
+);
+
+watch(
+  () => [
+    serverUrl.value,
+    pairingNamespace.value,
+    relayPort.value,
+    configAutoStart.value,
+    configProfile.value,
+    tunnelMode.value,
+    tunnelName.value,
+    tunnelHostname.value,
+    configLanguage.value,
+  ],
+  () => {
+    if (!configBootstrapped.value) return;
+    saveConfigDraft();
+  },
+);
+
 onBeforeUnmount(() => {
   clearPairingPoll();
+  if (sidebarResizeCleanup) {
+    sidebarResizeCleanup();
+    sidebarResizeCleanup = null;
+  }
   if (monitorSessionsTimer) {
     clearInterval(monitorSessionsTimer);
     monitorSessionsTimer = null;
@@ -1585,164 +1822,199 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="app-shell">
-    <TopBar
-      :theme="theme"
-      :theme-label="themeLabel"
+  <main
+    class="app-shell"
+    :class="{ 'sidebar-collapsed': sidebarCollapsed, 'sidebar-resizing': sidebarResizing }"
+    :style="{ '--sidebar-width': `${sidebarWidth}px` }"
+  >
+    <SidebarNav
+      :items="sidebarItems"
+      :active-id="activeSection"
+      :collapsed="sidebarCollapsed"
+      :on-select="goToSection"
+      :on-toggle="toggleSidebar"
       :t="t"
-      :toggle-theme="toggleTheme"
     />
-    <div class="content">
-      <DashboardSection
-        :profile-label="profileLabel"
-        :service-state="serviceState"
-        :config-dirty="configDirty"
-        :server-url="serverUrl"
-        :pairing-namespace="pairingNamespace"
-        :relay-port="relayPort"
-        :tunnel-mode="tunnelMode"
-        :status-label="statusLabel"
-        :badge-tone="badgeTone"
-        :status-tone="statusTone"
-        :daemon-sessions="daemonSessions"
-        :daemon-session-preview="daemonSessionPreview"
-        :quick-links="quickLinks"
-        :scroll-to-section="scrollToSection"
-        :short-session-id="shortSessionId"
-        :system-info="systemInfo"
-        :uptime-label="uptimeLabel"
-        :app-version="appVersion"
-        :dashboard-logs="dashboardLogs"
+    <div v-show="!sidebarCollapsed" class="sidebar-resizer" @pointerdown="startResizeSidebar"></div>
+    <div class="app-main">
+      <TopBar
+        :theme="theme"
+        :theme-label="themeLabel"
         :t="t"
+        :toggle-theme="toggleTheme"
       />
-      <ServicesSection
-        v-model:server-url="serverUrl"
-        v-model:relay-port="relayPort"
-        v-model:tunnel-mode="tunnelMode"
-        v-model:tunnel-name="tunnelName"
-        v-model:tunnel-hostname="tunnelHostname"
-        :profile-label="profileLabel"
-        :service-state="serviceState"
-        :status-label="statusLabel"
-        :badge-tone="badgeTone"
-        :refresh-status="refreshStatus"
-        :start-relay="startRelay"
-        :stop-relay="stopRelay"
-        :restart-relay="restartRelay"
-        :start-daemon="startDaemon"
-        :stop-daemon="stopDaemon"
-        :restart-daemon="restartDaemon"
-        :start-tunnel="startTunnel"
-        :stop-tunnel="stopTunnel"
-        :restart-tunnel="restartTunnel"
-        :start-profile="startProfile"
-        :stop-all="stopAll"
-        :reload-bridge="reloadBridge"
-        :t="t"
-      />
-      <CloudflaredSection
-        :cloudflared-state="cloudflaredState"
-        :cloudflared-label="cloudflaredLabel"
-        :cloudflared-confirm="cloudflaredConfirm"
-        :refresh-cloudflared="refreshCloudflared"
-        :confirm-cloudflared-install="confirmCloudflaredInstall"
-        :t="t"
-      />
-      <PairingSection
-        v-model:pairing-mode="pairingMode"
-        v-model:pairing-namespace="pairingNamespace"
-        v-model:pairing-code="pairingCode"
-        :pair-status="pairStatus"
-        :pair-status-label="pairStatusLabel"
-        :pair-error="pairError"
-        :pair-qr-data="pairQrData"
-        :pair-op-message="pairOpMessage"
-        :pair-checking="pairChecking"
-        :pair-control-ready="pairControlReady"
-        :pair-mobile-ready="pairMobileReady"
-        :pair-lan-ip="pairLanIp"
-        :pair-server-url="pairServerUrl"
-        :display-pair-url="displayPairUrl"
-        :is-lan-pair="isLanPair"
-        :readiness-label="readinessLabel"
-        :submit-pairing="submitPairing"
-        :scan-pairing="scanPairing"
-        :cancel-pairing="cancelPairing"
-        :refresh-readiness="refreshReadiness"
-        :t="t"
-      />
-      <MonitorSection
-        :monitor-ready="monitorReady"
-        :monitor-status="monitorStatus"
-        :monitor-realtime="monitorRealtime"
-        :monitor-realtime-label="monitorRealtimeLabel"
-        :monitor-error="monitorError"
-        :monitor-sessions="monitorSessions"
-        :monitor-selected-session-id="monitorSelectedSessionId"
-        :monitor-lines="monitorLines"
-        :monitor-readonly-selection="monitorReadonlySelection"
-        :short-session-id="shortSessionId"
-        :refresh-monitor-now="refreshMonitorNow"
-        :clear-monitor-lines="clearMonitorLines"
-        :select-monitor-session="selectMonitorSession"
-        :t="t"
-      />
-      <ConfigSection
-        v-model:server-url="serverUrl"
-        v-model:pairing-namespace="pairingNamespace"
-        v-model:relay-port="relayPort"
-        v-model:config-auto-start="configAutoStart"
-        v-model:config-profile="configProfile"
-        v-model:tunnel-mode="tunnelMode"
-        v-model:tunnel-name="tunnelName"
-        v-model:tunnel-hostname="tunnelHostname"
-        v-model:config-language="configLanguage"
-        :config-dirty="configDirty"
-        :config-loading="configLoading"
-        :config-saving="configSaving"
-        :config-message="configMessage"
-        :load-config="loadConfig"
-        :save-config="saveConfig"
-        :t="t"
-      />
-      <SkillsSection
-        v-model:skill-source="skillSource"
-        v-model:skill-scope="skillScope"
-        v-model:skill-install-id="skillInstallId"
-        :skill-candidates="skillCandidates"
-        :skill-selected="skillSelected"
-        :skill-installed="skillInstalled"
-        :skill-logs="skillLogs"
-        :skill-status="skillStatus"
-        :skill-error="skillError"
-        :skill-busy="skillBusy"
-        :prepare-skills="prepareSkills"
-        :refresh-skills="refreshSkills"
-        :select-valid-candidates="selectValidCandidates"
-        :commit-skills="commitSkills"
-        :cancel-skills="cancelSkills"
-        :toggle-skill-candidate="toggleSkillCandidate"
-        :t="t"
-      />
-      <DoctorSection
-        v-model:doctor-control-url="doctorControlUrl"
-        v-model:doctor-public-url="doctorPublicUrl"
-        :doctor-running="doctorRunning"
-        :doctor-report="doctorReport"
-        :doctor-error="doctorError"
-        :doctor-status-label="doctorStatusLabel"
-        :run-doctor="runDoctor"
-        :t="t"
-      />
-      <LogsSection
-        v-model:log-filter="logFilter"
-        v-model:log-search="logSearch"
-        :log-sources="logSources"
-        :filtered-logs="filteredLogs"
-        :refresh-app-logs="refreshAppLogs"
-        :clear-app-logs="clearAppLogs"
-        :t="t"
-      />
+      <div ref="contentRef" class="content">
+        <Transition :name="slideDirection" mode="out-in">
+          <DashboardSection
+            v-if="activeSection === 'dashboard'"
+            key="dashboard"
+            :profile-label="profileLabel"
+            :service-state="serviceState"
+            :config-dirty="configDirty"
+            :server-url="serverUrl"
+            :pairing-namespace="pairingNamespace"
+            :relay-port="relayPort"
+            :tunnel-mode="tunnelMode"
+            :status-label="statusLabel"
+            :badge-tone="badgeTone"
+            :status-tone="statusTone"
+            :daemon-sessions="daemonSessions"
+            :daemon-session-preview="daemonSessionPreview"
+            :quick-links="quickLinks"
+            :go-to-section="goToSection"
+            :short-session-id="shortSessionId"
+            :system-info="systemInfo"
+            :uptime-label="uptimeLabel"
+            :app-version="appVersion"
+            :dashboard-logs="dashboardLogs"
+            :t="t"
+          />
+          <ServicesSection
+            v-else-if="activeSection === 'services'"
+            key="services"
+            v-model:server-url="serverUrl"
+            v-model:relay-port="relayPort"
+            v-model:tunnel-mode="tunnelMode"
+            v-model:tunnel-name="tunnelName"
+            v-model:tunnel-hostname="tunnelHostname"
+            :profile-label="profileLabel"
+            :service-state="serviceState"
+            :status-label="statusLabel"
+            :badge-tone="badgeTone"
+            :refresh-status="refreshStatus"
+            :start-relay="startRelay"
+            :stop-relay="stopRelay"
+            :restart-relay="restartRelay"
+            :start-daemon="startDaemon"
+            :stop-daemon="stopDaemon"
+            :restart-daemon="restartDaemon"
+            :start-tunnel="startTunnel"
+            :stop-tunnel="stopTunnel"
+            :restart-tunnel="restartTunnel"
+            :start-profile="startProfile"
+            :stop-all="stopAll"
+            :reload-bridge="reloadBridge"
+            :t="t"
+          />
+          <CloudflaredSection
+            v-else-if="activeSection === 'cloudflared'"
+            key="cloudflared"
+            :cloudflared-state="cloudflaredState"
+            :cloudflared-label="cloudflaredLabel"
+            :cloudflared-confirm="cloudflaredConfirm"
+            :refresh-cloudflared="refreshCloudflared"
+            :confirm-cloudflared-install="confirmCloudflaredInstall"
+            :t="t"
+          />
+          <PairingSection
+            v-else-if="activeSection === 'pairing'"
+            key="pairing"
+            v-model:pairing-mode="pairingMode"
+            v-model:pairing-namespace="pairingNamespace"
+            v-model:pairing-code="pairingCode"
+            :pair-status="pairStatus"
+            :pair-status-label="pairStatusLabel"
+            :pair-error="pairError"
+            :pair-qr-data="pairQrData"
+            :pair-op-message="pairOpMessage"
+            :pair-checking="pairChecking"
+            :pair-control-ready="pairControlReady"
+            :pair-mobile-ready="pairMobileReady"
+            :pair-lan-ip="pairLanIp"
+            :pair-server-url="pairServerUrl"
+            :display-pair-url="displayPairUrl"
+            :is-lan-pair="isLanPair"
+            :readiness-label="readinessLabel"
+            :submit-pairing="submitPairing"
+            :scan-pairing="scanPairing"
+            :cancel-pairing="cancelPairing"
+            :refresh-readiness="refreshReadiness"
+            :t="t"
+          />
+          <MonitorSection
+            v-else-if="activeSection === 'monitor'"
+            key="monitor"
+            :monitor-ready="monitorReady"
+            :monitor-status="monitorStatus"
+            :monitor-realtime="monitorRealtime"
+            :monitor-realtime-label="monitorRealtimeLabel"
+            :monitor-error="monitorError"
+            :monitor-sessions="monitorSessions"
+            :monitor-selected-session-id="monitorSelectedSessionId"
+            :monitor-lines="monitorLines"
+            :monitor-readonly-selection="monitorReadonlySelection"
+            :short-session-id="shortSessionId"
+            :refresh-monitor-now="refreshMonitorNow"
+            :clear-monitor-lines="clearMonitorLines"
+            :select-monitor-session="selectMonitorSession"
+            :t="t"
+          />
+          <ConfigSection
+            v-else-if="activeSection === 'config'"
+            key="config"
+            v-model:server-url="serverUrl"
+            v-model:pairing-namespace="pairingNamespace"
+            v-model:relay-port="relayPort"
+            v-model:config-auto-start="configAutoStart"
+            v-model:config-profile="configProfile"
+            v-model:tunnel-mode="tunnelMode"
+            v-model:tunnel-name="tunnelName"
+            v-model:tunnel-hostname="tunnelHostname"
+            v-model:config-language="configLanguage"
+            :config-dirty="configDirty"
+            :config-loading="configLoading"
+            :config-saving="configSaving"
+            :config-message="configMessage"
+            :load-config="loadConfig"
+            :save-config="saveConfig"
+            :t="t"
+          />
+          <SkillsSection
+            v-else-if="activeSection === 'skills'"
+            key="skills"
+            v-model:skill-source="skillSource"
+            v-model:skill-scope="skillScope"
+            v-model:skill-install-id="skillInstallId"
+            :skill-candidates="skillCandidates"
+            :skill-selected="skillSelected"
+            :skill-installed="skillInstalled"
+            :skill-logs="skillLogs"
+            :skill-status="skillStatus"
+            :skill-error="skillError"
+            :skill-busy="skillBusy"
+            :prepare-skills="prepareSkills"
+            :refresh-skills="refreshSkills"
+            :select-valid-candidates="selectValidCandidates"
+            :commit-skills="commitSkills"
+            :cancel-skills="cancelSkills"
+            :toggle-skill-candidate="toggleSkillCandidate"
+            :t="t"
+          />
+          <DoctorSection
+            v-else-if="activeSection === 'doctor'"
+            key="doctor"
+            v-model:doctor-control-url="doctorControlUrl"
+            v-model:doctor-public-url="doctorPublicUrl"
+            :doctor-running="doctorRunning"
+            :doctor-report="doctorReport"
+            :doctor-error="doctorError"
+            :doctor-status-label="doctorStatusLabel"
+            :run-doctor="runDoctor"
+            :t="t"
+          />
+          <LogsSection
+            v-else
+            key="logs"
+            v-model:log-filter="logFilter"
+            v-model:log-search="logSearch"
+            :log-sources="logSources"
+            :filtered-logs="filteredLogs"
+            :refresh-app-logs="refreshAppLogs"
+            :clear-app-logs="clearAppLogs"
+            :t="t"
+          />
+        </Transition>
+      </div>
     </div>
   </main>
 </template>

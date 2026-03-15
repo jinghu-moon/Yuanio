@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from "../components/AppSelect.vue";
 import type { TranslateFn } from "../types/desktop";
 
 const serverUrl = defineModel<string>("serverUrl");
@@ -64,17 +65,25 @@ defineProps<{
           </label>
           <label class="field">
             <span class="field-label">{{ t("连接模式") }}</span>
-            <select v-model="configProfile" class="input field-control">
-              <option value="lan">LAN</option>
-              <option value="tunnel">Tunnel</option>
-            </select>
+            <AppSelect
+              v-model="configProfile"
+              class="field-control"
+              :options="[
+                { value: 'lan', label: 'LAN' },
+                { value: 'tunnel', label: 'Tunnel' },
+              ]"
+            />
           </label>
           <label class="field">
             <span class="field-label">{{ t("Tunnel 模式") }}</span>
-            <select v-model="tunnelMode" class="input field-control">
-              <option value="named">{{ t("命名") }}</option>
-              <option value="quick">Quick</option>
-            </select>
+            <AppSelect
+              v-model="tunnelMode"
+              class="field-control"
+              :options="[
+                { value: 'named', label: t('命名') },
+                { value: 'quick', label: 'Quick' },
+              ]"
+            />
           </label>
           <label class="field">
             <span class="field-label">{{ t("Tunnel 名称") }}</span>
@@ -86,11 +95,15 @@ defineProps<{
           </label>
           <label class="field">
             <span class="field-label">{{ t("语言") }}</span>
-            <select v-model="configLanguage" class="input field-control">
-              <option value="zh-CN">{{ t("简体中文") }}</option>
-              <option value="zh-TW">{{ t("繁体中文") }}</option>
-              <option value="en">English</option>
-            </select>
+            <AppSelect
+              v-model="configLanguage"
+              class="field-control"
+              :options="[
+                { value: 'zh-CN', label: t('简体中文') },
+                { value: 'zh-TW', label: t('繁体中文') },
+                { value: 'en', label: 'English' },
+              ]"
+            />
           </label>
         </div>
       </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppSelect from "../components/AppSelect.vue";
 import type { SkillCandidate, SkillItem, SkillLogItem, TranslateFn } from "../types/desktop";
 
 const skillSource = defineModel<string>("skillSource");
@@ -34,10 +35,13 @@ defineProps<{
     <p class="section-desc">{{ t("技能管理说明") }}</p>
     <div class="row">
       <input v-model="skillSource" class="input" type="text" :placeholder="t('安装源（如 ./refer/teleclaude）')" />
-      <select v-model="skillScope" class="input">
-        <option value="project">project</option>
-        <option value="user">user</option>
-      </select>
+      <AppSelect
+        v-model="skillScope"
+        :options="[
+          { value: 'project', label: 'project' },
+          { value: 'user', label: 'user' },
+        ]"
+      />
       <button class="btn btn-secondary btn-sm" type="button" @click="prepareSkills" :disabled="skillBusy">
         prepare
       </button>
