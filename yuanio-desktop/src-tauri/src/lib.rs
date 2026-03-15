@@ -1,14 +1,18 @@
 mod app_core;
 mod config;
 mod crypto;
+mod daemon;
 mod daemon_state;
 mod doctor;
 mod keystore;
 mod monitor;
 mod net;
 mod pairing;
+mod remote_bridge;
+mod relay;
 mod services;
 mod skills;
+mod ws_client;
 
 use app_core::{
     app_logs_clear,
@@ -50,10 +54,7 @@ use serde::Serialize;
 use std::{
     env,
     path::{Path, PathBuf},
-    process::Command,
     sync::{Arc, Mutex},
-    thread,
-    time::Duration,
 };
 
 #[derive(Serialize)]
@@ -92,21 +93,6 @@ fn has_packages_dir(path: &Path) -> bool {
     path.join("packages").is_dir()
 }
 
-pub(crate) fn resolve_cli_entry() -> PathBuf {
-    if let Ok(entry) = env::var("YUANIO_CLI_ENTRY") {
-        return PathBuf::from(entry);
-    }
-    resolve_repo_root()
-        .join("packages")
-        .join("cli")
-        .join("src")
-        .join("index.ts")
-}
-
-pub(crate) fn resolve_bun_cmd() -> String {
-    env::var("YUANIO_BUN_CMD").unwrap_or_else(|_| "bun".to_string())
-}
-
 fn status_from_state(state: Option<daemon_state::DaemonState>) -> DaemonStatus {
     match state {
         Some(value) => DaemonStatus {
@@ -136,36 +122,6 @@ fn daemon_status() -> DaemonStatus {
 #[tauri::command]
 fn local_ipv4() -> Option<String> {
     local_ipv4_address()
-}
-
-pub(crate) fn daemon_start(server_url: String) -> Result<DaemonStatus, String> {
-    let cli_entry = resolve_cli_entry();
-    let bun_cmd = resolve_bun_cmd();
-    Command::new(bun_cmd)
-        .arg("run")
-        .arg(cli_entry)
-        .arg("daemon")
-        .arg("start")
-        .arg("--server")
-        .arg(server_url)
-        .spawn()
-        .map_err(|err| format!("启动 daemon 失败：{err}"))?;
-    thread::sleep(Duration::from_millis(600));
-    Ok(daemon_status())
-}
-
-pub(crate) fn daemon_stop() -> Result<DaemonStatus, String> {
-    let cli_entry = resolve_cli_entry();
-    let bun_cmd = resolve_bun_cmd();
-    Command::new(bun_cmd)
-        .arg("run")
-        .arg(cli_entry)
-        .arg("daemon")
-        .arg("stop")
-        .status()
-        .map_err(|err| format!("停止 daemon 失败：{err}"))?;
-    thread::sleep(Duration::from_millis(300));
-    Ok(daemon_status())
 }
 
 #[derive(Serialize)]

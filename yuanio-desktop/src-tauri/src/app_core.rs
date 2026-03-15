@@ -12,6 +12,7 @@ use crate::pairing::{
     PairingClient,
     ReqwestPairingClient,
 };
+use crate::relay::protocol::Envelope;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PairingStartResponse {
@@ -42,6 +43,7 @@ pub struct AppState {
     pub status: Option<AppStatus>,
     pub logs: Vec<AppLogEntry>,
     pub pending_pairing: Option<PendingPairingState>,
+    pub inbound_messages: Vec<Envelope>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -64,6 +66,14 @@ impl AppState {
         if self.logs.len() > 200 {
             let overflow = self.logs.len() - 200;
             self.logs.drain(0..overflow);
+        }
+    }
+
+    pub fn push_inbound(&mut self, envelope: Envelope) {
+        self.inbound_messages.push(envelope);
+        if self.inbound_messages.len() > 200 {
+            let overflow = self.inbound_messages.len() - 200;
+            self.inbound_messages.drain(0..overflow);
         }
     }
 }

@@ -1,19 +1,27 @@
 use serde::{Deserialize, Serialize};
 use std::{
     io::{BufRead, BufReader},
+    net::TcpStream,
     process::{Child, Command, Stdio},
-    sync::{Arc, Mutex},
+    sync::{mpsc, Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
+use tungstenite::{connect, Message};
 
 use crate::{
     app_core::AppState,
-    daemon_state::read_state,
+    daemon::{DaemonServer, DaemonServerHandle},
+    daemon_state::{read_state, DaemonState},
     keystore::load_keys,
-    resolve_bun_cmd,
-    resolve_cli_entry,
+    relay::{
+        config::RelayConfig,
+        protocol::{should_queue_ack_by_type, AckMessage, AckState, Envelope, WsFrame},
+        server::{RelayServer, RelayServerHandle},
+    },
+    remote_bridge::{build_hello_frame, build_ws_url, normalize_envelope_payload, HelloOptions},
     resolve_repo_root,
+    ws_client::{CoreConfig, RelayWsClientCore, SendOutcome},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,6 +49,25 @@ pub struct ServiceState {
     pub relay: ServiceInfo,
     pub daemon: ServiceInfo,
     pub tunnel: ServiceInfo,
+}
+
+struct RemoteBridgeConfig {
+    server_url: String,
+    session_token: String,
+    session_id: String,
+    device_id: String,
+}
+
+struct RemoteBridgeHandle {
+    shutdown_tx: mpsc::Sender<()>,
+    join: thread::JoinHandle<()>,
+}
+
+impl RemoteBridgeHandle {
+    fn stop(self) {
+        let _ = self.shutdown_tx.send(());
+        let _ = self.join.join();
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,9 +160,10 @@ pub struct CloudflaredInstallPayload {
 pub struct ServiceManager {
     service: ServiceState,
     cloudflared: CloudflaredServiceState,
-    relay_proc: Option<Child>,
+    relay_handle: Option<RelayServerHandle>,
+    daemon_handle: Option<DaemonServerHandle>,
     tunnel_proc: Option<Child>,
-    remote_bridge_proc: Option<Child>,
+    remote_bridge_handle: Option<RemoteBridgeHandle>,
 }
 
 impl ServiceManager {
@@ -166,9 +194,10 @@ impl ServiceManager {
                 },
             },
             cloudflared: initial_cloudflared_state(),
-            relay_proc: None,
+            relay_handle: None,
+            daemon_handle: None,
             tunnel_proc: None,
-            remote_bridge_proc: None,
+            remote_bridge_handle: None,
         }
     }
 
@@ -384,9 +413,13 @@ impl ServiceManager {
     }
 
     fn refresh_processes(&mut self) {
-        refresh_child_process(&mut self.relay_proc, &mut self.service.relay);
+        if self.relay_handle.is_none()
+            && matches!(self.service.relay.status, ServiceStatus::Running | ServiceStatus::Starting)
+        {
+            self.service.relay.status = ServiceStatus::Stopped;
+            self.service.relay.pid = None;
+        }
         refresh_child_process(&mut self.tunnel_proc, &mut self.service.tunnel);
-        refresh_child_handle(&mut self.remote_bridge_proc);
     }
 
     fn refresh_daemon(&mut self) {
@@ -415,35 +448,26 @@ impl ServiceManager {
         if matches!(self.service.relay.status, ServiceStatus::Running | ServiceStatus::Starting) {
             return Ok(());
         }
+        if self.relay_handle.is_some() {
+            return Ok(());
+        }
 
         self.service.relay.status = ServiceStatus::Starting;
         self.service.relay.port = Some(relay_port);
         self.service.relay.url = Some(relay_url.to_string());
         append_log(&app_state, format!("准备启动 relay: {relay_url}"));
 
-        let relay_entry = resolve_repo_root()
-            .join("packages")
-            .join("relay-server")
-            .join("src")
-            .join("index.ts");
-        let bun_cmd = resolve_bun_cmd();
+        let mut config = RelayConfig::from_env().map_err(|e| {
+            self.service.relay.status = ServiceStatus::Error;
+            format!("启动 relay 失败: {e}")
+        })?;
+        config.port = relay_port;
 
-        let mut child = Command::new(bun_cmd)
-            .arg("run")
-            .arg(relay_entry)
-            .env("PORT", relay_port.to_string())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| {
-                self.service.relay.status = ServiceStatus::Error;
-                format!("启动 relay 失败: {e}")
-            })?;
-
-        self.service.relay.pid = Some(child.id());
-        spawn_reader(child.stdout.take(), app_state.clone(), "relay");
-        spawn_reader(child.stderr.take(), app_state.clone(), "relay");
-        self.relay_proc = Some(child);
+        let handle = RelayServer::spawn(config).map_err(|e| {
+            self.service.relay.status = ServiceStatus::Error;
+            format!("启动 relay 失败: {e}")
+        })?;
+        self.relay_handle = Some(handle);
 
         if wait_for_health(&format!("{relay_url}/health"), Duration::from_secs(8)) {
             self.service.relay.status = ServiceStatus::Running;
@@ -452,14 +476,16 @@ impl ServiceManager {
         }
 
         self.service.relay.status = ServiceStatus::Error;
+        if let Some(handle) = self.relay_handle.take() {
+            handle.stop();
+        }
         append_log(&app_state, "relay 启动超时".to_string());
         Ok(())
     }
 
     fn stop_relay(&mut self, app_state: &Arc<Mutex<AppState>>) {
-        if let Some(mut child) = self.relay_proc.take() {
-            let _ = child.kill();
-            let _ = child.wait();
+        if let Some(handle) = self.relay_handle.take() {
+            handle.stop();
         }
         self.service.relay.status = ServiceStatus::Stopped;
         self.service.relay.pid = None;
@@ -467,22 +493,43 @@ impl ServiceManager {
     }
 
     fn start_daemon(&mut self, server_url: &str, app_state: Arc<Mutex<AppState>>) -> Result<(), String> {
+        if matches!(self.service.daemon.status, ServiceStatus::Running | ServiceStatus::Starting) {
+            return Ok(());
+        }
         append_log(&app_state, format!("准备启动 daemon: {server_url}"));
-        let status = crate::daemon_start(server_url.to_string())?;
-        if status.running {
-            self.service.daemon.status = ServiceStatus::Running;
-            self.service.daemon.pid = status.pid;
-            self.service.daemon.port = status.port;
-            append_log(&app_state, "daemon 已启动".to_string());
-        } else {
+        self.service.daemon.status = ServiceStatus::Starting;
+        self.service.daemon.pid = None;
+        self.service.daemon.port = None;
+
+        let handle = DaemonServer::spawn().map_err(|e| {
             self.service.daemon.status = ServiceStatus::Error;
+            format!("启动 daemon 失败: {e}")
+        })?;
+        let daemon_port = handle.port;
+        self.service.daemon.port = Some(daemon_port);
+
+        let state = wait_for_daemon_state(6, Duration::from_millis(200));
+        match state {
+            Some(state) => {
+                self.daemon_handle = Some(handle);
+                self.service.daemon.status = ServiceStatus::Running;
+                self.service.daemon.pid = Some(state.pid);
+                self.service.daemon.port = Some(state.port);
+                append_log(&app_state, "daemon 已启动".to_string());
+            }
+            None => {
+                handle.stop();
+                self.service.daemon.status = ServiceStatus::Error;
+                self.service.daemon.port = None;
+                append_log(&app_state, "daemon 启动失败：状态未落盘，已停止".to_string());
+            }
         }
         Ok(())
     }
 
     fn stop_daemon(&mut self, app_state: &Arc<Mutex<AppState>>) -> Result<(), String> {
-        if let Err(err) = crate::daemon_stop() {
-            append_log(app_state, format!("停止 daemon 失败: {err}"));
+        if let Some(handle) = self.daemon_handle.take() {
+            handle.stop();
         }
         self.service.daemon.status = ServiceStatus::Stopped;
         self.service.daemon.pid = None;
@@ -578,13 +625,16 @@ impl ServiceManager {
         namespace: Option<String>,
         app_state: Arc<Mutex<AppState>>,
     ) -> Result<(), String> {
-        if self.remote_bridge_proc.is_some() {
+        if self.remote_bridge_handle.is_some() {
             return Ok(());
         }
-        if load_keys().ok().flatten().is_none() {
-            append_log(&app_state, "尚未配对，跳过远程桥接".to_string());
-            return Ok(());
-        }
+        let session = match load_keys().ok().flatten() {
+            Some(value) => value,
+            None => {
+                append_log(&app_state, "尚未配对，跳过远程桥接".to_string());
+                return Ok(());
+            }
+        };
         let target_url = if matches!(self.service.relay.status, ServiceStatus::Running | ServiceStatus::Starting) {
             relay_url
         } else {
@@ -593,35 +643,269 @@ impl ServiceManager {
 
         append_log(&app_state, format!("准备启动远程桥接: {target_url}"));
 
-        let bun_cmd = resolve_bun_cmd();
-        let cli_entry = resolve_cli_entry();
-        let mut cmd = Command::new(bun_cmd);
-        cmd.arg("run")
-            .arg(cli_entry)
-            .arg("--server")
-            .arg(target_url)
-            .arg("--continue");
-        if let Some(ns) = namespace {
-            cmd.arg("--namespace").arg(ns);
-        }
-        let mut child = cmd
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("启动远程桥接失败: {e}"))?;
-
-        spawn_reader(child.stdout.take(), app_state.clone(), "bridge");
-        spawn_reader(child.stderr.take(), app_state.clone(), "bridge");
-        self.remote_bridge_proc = Some(child);
+        let config = RemoteBridgeConfig {
+            server_url: target_url.to_string(),
+            session_token: session.keys.session_token.clone(),
+            session_id: session.keys.session_id.clone(),
+            device_id: session.keys.device_id.clone(),
+        };
+        let handle = spawn_remote_bridge(config, namespace, app_state.clone())?;
+        self.remote_bridge_handle = Some(handle);
         Ok(())
     }
 
     fn stop_remote_bridge(&mut self, app_state: &Arc<Mutex<AppState>>) {
-        if let Some(mut child) = self.remote_bridge_proc.take() {
-            let _ = child.kill();
-            let _ = child.wait();
+        if let Some(handle) = self.remote_bridge_handle.take() {
+            handle.stop();
             append_log(app_state, "已停止远程桥接".to_string());
         }
+    }
+}
+
+fn spawn_remote_bridge(
+    config: RemoteBridgeConfig,
+    namespace: Option<String>,
+    app_state: Arc<Mutex<AppState>>,
+) -> Result<RemoteBridgeHandle, String> {
+    let (shutdown_tx, shutdown_rx) = mpsc::channel();
+    let join = thread::spawn(move || {
+        remote_bridge_loop(config, namespace, app_state, shutdown_rx);
+    });
+    Ok(RemoteBridgeHandle { shutdown_tx, join })
+}
+
+fn remote_bridge_loop(
+    config: RemoteBridgeConfig,
+    namespace: Option<String>,
+    app_state: Arc<Mutex<AppState>>,
+    shutdown_rx: mpsc::Receiver<()>,
+) {
+    let mut core = RelayWsClientCore::new(CoreConfig {
+        ack_timeout_ms: 5_000,
+        ack_max_retries: 3,
+        offline_queue_max: 500,
+    });
+    let reconnect_delay = Duration::from_millis(800);
+    let read_timeout = Duration::from_millis(500);
+
+    loop {
+        if shutdown_rx.try_recv().is_ok() {
+            break;
+        }
+
+        let ws_url = match build_ws_url(&config.server_url) {
+            Ok(url) => url,
+            Err(err) => {
+                append_log(&app_state, format!("远程桥接地址错误: {err}"));
+                if wait_for_shutdown(&shutdown_rx, reconnect_delay) {
+                    break;
+                }
+                continue;
+            }
+        };
+
+        let connect_result = connect(ws_url.as_str());
+        let Ok((mut socket, _)) = connect_result else {
+            append_log(&app_state, "远程桥接连接失败".to_string());
+            if wait_for_shutdown(&shutdown_rx, reconnect_delay) {
+                break;
+            }
+            continue;
+        };
+        set_ws_read_timeout(&mut socket, read_timeout);
+        append_log(&app_state, "远程桥接已连接".to_string());
+
+        let hello = build_hello_frame(
+            &config.session_token,
+            HelloOptions {
+                protocol_version: None,
+                namespace: namespace.clone(),
+                device_id: None,
+                role: None,
+                client_version: None,
+            },
+        );
+        let _ = send_ws_frame(&mut socket, &hello);
+
+        let queued = core.set_connected(true);
+        for payload in queued {
+            let _ = socket.send(Message::Text(payload));
+        }
+
+        loop {
+            if shutdown_rx.try_recv().is_ok() {
+                let _ = socket.close(None);
+                return;
+            }
+
+            let now = now_ms();
+            let resend = core.tick(now);
+            for payload in resend {
+                if socket.send(Message::Text(payload.clone())).is_ok() {
+                    if let Ok(frame) = serde_json::from_str::<WsFrame>(&payload) {
+                        if let WsFrame::Ack(ack) = frame {
+                            core.handle_ack(&ack.message_id, "ok");
+                        }
+                    }
+                }
+            }
+
+            match socket.read() {
+                Ok(msg) => handle_remote_bridge_message(&mut socket, &mut core, &config, &app_state, msg),
+                Err(tungstenite::Error::Io(err))
+                    if matches!(err.kind(), std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock) =>
+                {
+                    continue;
+                }
+                Err(err) => {
+                    append_log(&app_state, format!("远程桥接连接中断: {err}"));
+                    break;
+                }
+            }
+        }
+
+        core.set_connected(false);
+        if wait_for_shutdown(&shutdown_rx, reconnect_delay) {
+            break;
+        }
+    }
+}
+
+fn handle_remote_bridge_message(
+    socket: &mut tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>,
+    core: &mut RelayWsClientCore,
+    config: &RemoteBridgeConfig,
+    app_state: &Arc<Mutex<AppState>>,
+    msg: Message,
+) {
+    let text = match msg {
+        Message::Text(value) => value,
+        Message::Binary(value) => String::from_utf8_lossy(&value).to_string(),
+        _ => return,
+    };
+    let frame = match serde_json::from_str::<WsFrame>(&text) {
+        Ok(frame) => frame,
+        Err(err) => {
+            append_log(app_state, format!("远程桥接收到非法帧: {err}"));
+            return;
+        }
+    };
+
+    match frame {
+        WsFrame::Message(envelope) => {
+            if let Err(err) = normalize_envelope_payload(&envelope.payload) {
+                append_log(app_state, format!("远程桥接收到非法 payload: {err}"));
+                return;
+            }
+
+            let message_id = envelope.id.clone();
+            let kind = envelope.kind.clone();
+            if !queue_inbound_message(app_state, envelope) {
+                append_log(app_state, "远程桥接入站队列写入失败".to_string());
+                return;
+            }
+
+            if should_queue_ack_by_type(&kind) {
+                let ack = AckMessage {
+                    message_id: message_id.clone(),
+                    source: config.device_id.clone(),
+                    session_id: config.session_id.clone(),
+                    state: Some(AckState::Ok),
+                    retry_after_ms: None,
+                    reason: None,
+                    at: Some(now_ms_i64()),
+                };
+                if let Ok(payload) = serde_json::to_string(&WsFrame::Ack(ack)) {
+                    core.track_reliable(message_id.clone(), payload.clone(), now_ms());
+                    if send_or_queue(core, socket, payload, app_state) {
+                        core.handle_ack(&message_id, "ok");
+                    }
+                }
+            }
+        }
+        WsFrame::Ack(ack) => {
+            let state = match ack.state {
+                Some(AckState::RetryAfter) => "retry_after",
+                Some(AckState::Working) => "working",
+                Some(AckState::Terminal) => "terminal",
+                _ => "ok",
+            };
+            core.handle_ack(&ack.message_id, state);
+        }
+        WsFrame::Presence(_) => {}
+        WsFrame::Hello(_) => {}
+        WsFrame::Error(err) => {
+            append_log(app_state, format!("远程桥接错误: {}", err.message));
+        }
+    }
+}
+
+fn send_or_queue(
+    core: &mut RelayWsClientCore,
+    socket: &mut tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>,
+    payload: String,
+    app_state: &Arc<Mutex<AppState>>,
+) -> bool {
+    match core.enqueue_or_send(payload.clone()) {
+        SendOutcome::Sent => {
+            return socket.send(Message::Text(payload)).is_ok();
+        }
+        SendOutcome::Queued => {
+            append_log(app_state, "远程桥接离线缓存消息".to_string());
+        }
+        SendOutcome::Dropped => {
+            append_log(app_state, "远程桥接离线队列已满，丢弃消息".to_string());
+        }
+    }
+    false
+}
+
+fn send_ws_frame(
+    socket: &mut tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>,
+    frame: &WsFrame,
+) -> Result<(), String> {
+    let payload = serde_json::to_string(frame).map_err(|e| format!("序列化帧失败: {e}"))?;
+    socket.send(Message::Text(payload)).map_err(|e| format!("发送帧失败: {e}"))
+}
+
+fn set_ws_read_timeout(
+    socket: &mut tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<TcpStream>>,
+    timeout: Duration,
+) {
+    use tungstenite::stream::MaybeTlsStream;
+    match socket.get_mut() {
+        MaybeTlsStream::Plain(stream) => {
+            let _ = stream.set_read_timeout(Some(timeout));
+        }
+        MaybeTlsStream::Rustls(stream) => {
+            let _ = stream.get_ref().set_read_timeout(Some(timeout));
+        }
+        _ => {}
+    }
+}
+
+fn wait_for_shutdown(shutdown_rx: &mpsc::Receiver<()>, timeout: Duration) -> bool {
+    match shutdown_rx.recv_timeout(timeout) {
+        Ok(_) => true,
+        Err(mpsc::RecvTimeoutError::Timeout) => false,
+        Err(_) => true,
+    }
+}
+
+fn now_ms() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+fn now_ms_i64() -> i64 {
+    let value = now_ms();
+    if value > i64::MAX as u64 {
+        i64::MAX
+    } else {
+        value as i64
     }
 }
 
@@ -629,10 +913,28 @@ fn relay_url_for(port: u16) -> String {
     format!("http://localhost:{port}")
 }
 
+fn wait_for_daemon_state(retries: usize, delay: Duration) -> Option<DaemonState> {
+    for _ in 0..retries {
+        if let Some(state) = read_state() {
+            return Some(state);
+        }
+        thread::sleep(delay);
+    }
+    None
+}
+
 fn append_log(state: &Arc<Mutex<AppState>>, text: String) {
     if let Ok(mut guard) = state.lock() {
         guard.push_log(text);
     }
+}
+
+fn queue_inbound_message(state: &Arc<Mutex<AppState>>, envelope: Envelope) -> bool {
+    if let Ok(mut guard) = state.lock() {
+        guard.push_inbound(envelope);
+        return true;
+    }
+    false
 }
 
 fn refresh_child_process(proc: &mut Option<Child>, info: &mut ServiceInfo) {
@@ -648,18 +950,6 @@ fn refresh_child_process(proc: &mut Option<Child>, info: &mut ServiceInfo) {
             Err(_) => {
                 info.status = ServiceStatus::Error;
             }
-        }
-    }
-}
-
-fn refresh_child_handle(proc: &mut Option<Child>) {
-    if let Some(child) = proc.as_mut() {
-        match child.try_wait() {
-            Ok(Some(_)) => {
-                *proc = None;
-            }
-            Ok(None) => {}
-            Err(_) => {}
         }
     }
 }
@@ -961,4 +1251,89 @@ fn extract_backup_dir(text: &str) -> Option<String> {
     let marker = "备份目录:";
     let pos = text.find(marker)?;
     Some(text[(pos + marker.len())..].trim().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::keystore::{save_keys, StoredSession};
+    use crate::pairing::StoredKeys;
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn temp_dir(label: &str) -> PathBuf {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|v| v.as_millis())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("yuanio-{label}-{now}"));
+        let _ = fs::create_dir_all(&dir);
+        dir
+    }
+
+    fn prepare_keys(dir: &PathBuf) {
+        std::env::set_var("YUANIO_KEYSTORE_DIR", dir);
+        let session = StoredSession {
+            schema_version: 1,
+            keys: StoredKeys {
+                crypto_version: "rust-ecdh".to_string(),
+                protocol_version: "1.0.0".to_string(),
+                namespace: "default".to_string(),
+                public_key: "pub".to_string(),
+                private_key: "priv".to_string(),
+                device_id: "device-1".to_string(),
+                session_id: "session-1".to_string(),
+                session_token: "token-1".to_string(),
+                peer_public_key: "peer".to_string(),
+                server_url: "http://localhost:3000".to_string(),
+            },
+        };
+        save_keys(&session).expect("save keys");
+    }
+
+    #[test]
+    fn start_daemon_ignores_bun_cmd() {
+        let state_path = temp_dir("daemon-state").join("daemon.json");
+        std::env::set_var("YUANIO_DAEMON_STATE", &state_path);
+        std::env::set_var("YUANIO_BUN_CMD", "missing-bun");
+
+        let app_state = Arc::new(Mutex::new(AppState::default()));
+        let mut manager = ServiceManager::new();
+        let result = manager.start_daemon_only(
+            DaemonStartPayload { server_url: Some("http://localhost:3000".to_string()) },
+            app_state.clone(),
+        );
+        assert!(result.is_ok());
+
+        let _ = manager.stop_daemon_only(&app_state);
+        if let Some(parent) = state_path.parent() {
+            let _ = fs::remove_dir_all(parent);
+        }
+        std::env::remove_var("YUANIO_DAEMON_STATE");
+        std::env::remove_var("YUANIO_BUN_CMD");
+    }
+
+    #[test]
+    fn start_bridge_ignores_bun_cmd() {
+        let dir = temp_dir("keystore");
+        prepare_keys(&dir);
+        std::env::set_var("YUANIO_BUN_CMD", "missing-bun");
+
+        let app_state = Arc::new(Mutex::new(AppState::default()));
+        let mut manager = ServiceManager::new();
+        let result = manager.start_bridge_only(
+            BridgeStartPayload {
+                server_url: Some("http://localhost:3000".to_string()),
+                namespace: None,
+            },
+            app_state.clone(),
+        );
+        assert!(result.is_ok());
+        assert!(manager.remote_bridge_handle.is_some());
+
+        let _ = manager.stop_bridge_only(&app_state);
+        let _ = fs::remove_dir_all(&dir);
+        std::env::remove_var("YUANIO_KEYSTORE_DIR");
+        std::env::remove_var("YUANIO_BUN_CMD");
+    }
 }

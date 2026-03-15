@@ -38,3 +38,13 @@ pub fn read_state() -> Option<DaemonState> {
     let text = fs::read_to_string(path).ok()?;
     serde_json::from_str(&text).ok()
 }
+
+pub fn write_state(state: &DaemonState) -> Result<(), String> {
+    let path = resolve_state_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("创建 daemon 目录失败: {e}"))?;
+    }
+    let payload = serde_json::to_string_pretty(state).map_err(|e| format!("序列化 daemon state 失败: {e}"))?;
+    fs::write(path, payload).map_err(|e| format!("写入 daemon state 失败: {e}"))?;
+    Ok(())
+}

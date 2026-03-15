@@ -22,6 +22,11 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+jsonwebtoken = "9"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 rand = "0.8"
 p256 = { version = "0.13", features = ["arithmetic", "ecdh", "pkcs8"] }
@@ -31,3 +36,6 @@ base64 = "0.22"
 aes-gcm = "0.10"
 tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 url = "2"
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

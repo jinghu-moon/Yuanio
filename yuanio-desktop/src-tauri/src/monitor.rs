@@ -9,7 +9,7 @@ use serde_json::Value;
 use std::sync::{Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use tungstenite::{connect, Message};
 use url::Url;
 
@@ -235,7 +235,7 @@ fn monitor_realtime_loop(app_handle: AppHandle) {
             }
         };
 
-        let connect_result = connect(ws_url);
+        let connect_result = connect(ws_url.as_str());
         let Ok((mut socket, _)) = connect_result else {
             emit_monitor_status(&app_handle, "error", "realtime connect failed");
             thread::sleep(Duration::from_millis(REALTIME_RETRY_DELAY_MS));
@@ -250,10 +250,10 @@ fn monitor_realtime_loop(app_handle: AppHandle) {
                 "protocolVersion": PROTOCOL_VERSION,
             }
         });
-        let _ = socket.write_message(Message::Text(hello.to_string()));
+        let _ = socket.send(Message::Text(hello.to_string()));
 
         loop {
-            let msg = match socket.read_message() {
+            let msg = match socket.read() {
                 Ok(value) => value,
                 Err(err) => {
                     emit_monitor_status(&app_handle, "disconnected", &format!("realtime closed: {err}"));
@@ -266,7 +266,7 @@ fn monitor_realtime_loop(app_handle: AppHandle) {
                 _ => continue,
             };
             if let Ok(line) = parse_ws_line(&text, &key, &session.keys.session_id) {
-                let _ = app_handle.emit_all("monitor-line", line);
+                let _ = app_handle.emit("monitor-line", line);
             }
         }
 
@@ -348,7 +348,7 @@ fn emit_monitor_status(app_handle: &AppHandle, status: &str, message: &str) {
         "status": status,
         "message": message,
     });
-    let _ = app_handle.emit_all("monitor-realtime", payload);
+    let _ = app_handle.emit("monitor-realtime", payload);
 }
 
 #[tauri::command]

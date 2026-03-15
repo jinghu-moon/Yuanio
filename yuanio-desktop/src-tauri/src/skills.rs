@@ -1,7 +1,9 @@
 use reqwest::{blocking::Client, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::sync::{Mutex, OnceLock};
 
+use crate::daemon::{DaemonServer, DaemonServerHandle};
 use crate::daemon_state::read_state;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,7 +74,25 @@ fn http_client() -> Result<Client, String> {
         .map_err(|e| format!("创建 HTTP 客户端失败: {e}"))
 }
 
+fn daemon_handle() -> &'static Mutex<Option<DaemonServerHandle>> {
+    static HANDLE: OnceLock<Mutex<Option<DaemonServerHandle>>> = OnceLock::new();
+    HANDLE.get_or_init(|| Mutex::new(None))
+}
+
+fn ensure_daemon_running() -> Result<(), String> {
+    if let Some(state) = read_state() {
+        if state.port != 0 {
+            return Ok(());
+        }
+    }
+    let handle = DaemonServer::spawn().map_err(|e| format!("启动 daemon 失败: {e}"))?;
+    let mut guard = daemon_handle().lock().map_err(|_| "daemon 句柄被占用".to_string())?;
+    *guard = Some(handle);
+    Ok(())
+}
+
 fn daemon_base_url() -> Result<String, String> {
+    ensure_daemon_running()?;
     let state = read_state().ok_or_else(|| "Daemon 未运行".to_string())?;
     if state.port == 0 {
         return Err("Daemon 端口未知".to_string());
