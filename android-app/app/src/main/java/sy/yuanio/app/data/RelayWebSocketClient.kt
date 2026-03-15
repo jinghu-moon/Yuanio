@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit
 class RelayWebSocketClient(
     private val serverUrl: String,
     private val sessionToken: String,
-    private val namespace: String = DEFAULT_NAMESPACE,
+    private val namespace: String = "",
     private val deviceId: String = "",
-    private val role: String = DEFAULT_ROLE,
+    private val role: String = "",
     private val protocolVersion: String = PROTOCOL_VERSION,
 ) : GatewayTransport {
 
@@ -221,8 +221,6 @@ class RelayWebSocketClient(
     companion object {
         private const val CONNECT_TIMEOUT_MS = 5_000L
         private const val PING_INTERVAL_SEC = 15L
-        private const val DEFAULT_NAMESPACE = "default"
-        private const val DEFAULT_ROLE = "app"
 
         @JvmStatic
         fun buildHelloFrame(
@@ -232,12 +230,11 @@ class RelayWebSocketClient(
             deviceId: String,
             role: String,
         ): JSONObject {
-            val data = JSONObject()
-                .put("token", token)
-                .put("protocolVersion", protocolVersion)
-                .put("namespace", namespace)
-                .put("deviceId", deviceId)
-                .put("role", role)
+            val data = JSONObject().put("token", token)
+            if (protocolVersion.isNotBlank()) data.put("protocolVersion", protocolVersion)
+            if (namespace.isNotBlank()) data.put("namespace", namespace)
+            if (deviceId.isNotBlank()) data.put("deviceId", deviceId)
+            if (role.isNotBlank()) data.put("role", role)
             return JSONObject()
                 .put("type", "hello")
                 .put("data", data)

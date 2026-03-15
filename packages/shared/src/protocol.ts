@@ -1,8 +1,6 @@
-export const PROTOCOL_VERSION = "1.0.0";
-export const DEFAULT_NAMESPACE = "default";
-export const WS_EVENT_TYPES = ["hello", "message", "ack", "presence", "error"] as const;
-
-export type WsEventType = typeof WS_EVENT_TYPES[number];
+import { DEFAULT_NAMESPACE, PROTOCOL_VERSION, WS_EVENT_TYPES } from "./generated/relay-protocol";
+export { DEFAULT_NAMESPACE, PROTOCOL_VERSION, WS_EVENT_TYPES };
+export type { WsEventType } from "./generated/relay-protocol";
 
 export interface ProtocolCompatibility {
   ok: boolean;

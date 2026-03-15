@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { MessageType } from "./types";
-
-// Envelope payload 上限（与 relay maxHttpBufferSize 协同）
-export const MAX_ENVELOPE_STRING_PAYLOAD_CHARS = 1_048_576; // 1 MiB 文本
-export const MAX_ENVELOPE_BINARY_PAYLOAD_BYTES = 1_048_576; // 1 MiB 二进制
+import {
+  MAX_ENVELOPE_BINARY_PAYLOAD_BYTES,
+  MAX_ENVELOPE_STRING_PAYLOAD_CHARS,
+} from "./generated/relay-protocol";
 
 // ── 辅助函数 ──
 

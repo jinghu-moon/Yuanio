@@ -89,6 +89,57 @@ struct RelayState {
 
 static NEXT_CONN_ID: AtomicU64 = AtomicU64::new(1);
 
+fn empty_event_loop_lag() -> Value {
+    json!({
+        "count": 0,
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "last": 0,
+    })
+}
+
+fn is_fcm_enabled() -> bool {
+    std::env::var("FCM_SERVICE_ACCOUNT")
+        .ok()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+}
+
+fn build_relay_state_snapshot(state: &RelayState, now_ms: i64) -> Value {
+    let (rooms, devices, connections) = {
+        let online = state.online_devices.lock().unwrap();
+        let rooms = online.len();
+        let mut devices = 0usize;
+        for room in online.values() {
+            devices += room.len();
+        }
+        let senders = state.senders.lock().unwrap();
+        let connections: usize = senders.values().map(|entry| entry.len()).sum();
+        (rooms, devices, connections)
+    };
+    json!({
+        "status": "ready",
+        "protocolVersion": PROTOCOL_VERSION,
+        "serverNowMs": now_ms,
+        "retryAfterMs": 0,
+        "runtime": {
+            "trackedSessions": rooms,
+            "activeSessions": rooms,
+            "warmingUpSessions": 0,
+            "readySessions": rooms,
+            "idleSessions": 0,
+            "activeRefs": connections,
+            "activeDevices": devices,
+            "startupInFlight": 0,
+            "reclaimedSessions": 0,
+            "retryAfterMs": 0,
+            "idleReclaimMs": 0,
+            "sweepIntervalMs": 0
+        }
+    })
+}
+
 pub struct RelayServerHandle {
     shutdown_tx: oneshot::Sender<()>,
     join: JoinHandle<()>,
@@ -164,6 +215,7 @@ async fn start_server(state: Arc<RelayState>, shutdown_rx: oneshot::Receiver<()>
 fn build_app(state: Arc<RelayState>) -> Router {
     Router::new()
         .route("/health", get(health_handler))
+        .route("/relay/state", get(relay_state_handler))
         .route("/relay-ws", get(relay_ws_handler))
         .route("/sessions", post(create_session))
         .route("/sessions/:id", get(get_session_messages))
@@ -193,13 +245,39 @@ async fn relay_ws_handler(
 }
 
 async fn health_handler(State(state): State<Arc<RelayState>>) -> impl IntoResponse {
+    let now_ms = now_millis();
     let ack = summarize_ack_rtt(&state);
+    let relay_state = build_relay_state_snapshot(&state, now_ms);
     Json(json!({
         "status": "ok",
         "protocolVersion": PROTOCOL_VERSION,
-        "serverNowMs": now_millis(),
+        "serverNowMs": now_ms,
+        "relayState": relay_state,
+        "eventLoopLagMs": empty_event_loop_lag(),
         "ackRttMs": ack,
+        "fcm": {
+            "enabled": is_fcm_enabled(),
+            "pushRegisterRateLimit": {
+                "max": PUSH_REGISTER_RATE_LIMIT_MAX,
+                "windowMs": PUSH_REGISTER_RATE_LIMIT_WINDOW_MS,
+            }
+        }
     }))
+}
+
+async fn relay_state_handler(State(state): State<Arc<RelayState>>) -> impl IntoResponse {
+    let now_ms = now_millis();
+    let relay_state = build_relay_state_snapshot(&state, now_ms);
+    let status = relay_state
+        .get("status")
+        .and_then(|value| value.as_str())
+        .unwrap_or("ready");
+    let status_code = if status == "warming_up" {
+        StatusCode::ACCEPTED
+    } else {
+        StatusCode::OK
+    };
+    (status_code, Json(relay_state))
 }
 
 async fn handle_socket(mut socket: WebSocket, state: Arc<RelayState>, ip: Option<String>) {

@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+target/
+crates/**/target/
 
 # Android signing and local secrets
 android-app/keystore/

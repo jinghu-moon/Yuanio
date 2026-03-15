@@ -1,0 +1,8 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+relay-protocol = { path = "../relay-protocol" }
+ts-rs = "7"
