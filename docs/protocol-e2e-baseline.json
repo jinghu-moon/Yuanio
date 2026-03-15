@@ -1,17 +1,66 @@
 {
-  "status": "fail",
-  "generatedAt": "2026-03-07T13:37:06.478Z",
+  "status": "pass",
+  "generatedAt": "2026-03-15T23:20:26.416Z",
   "serverUrl": "http://127.0.0.1:3300",
-  "autoRelay": true,
+  "autoRelay": false,
   "timeoutMs": 8000,
   "steps": [
     {
       "name": "relay-health-or-start",
-      "status": "fail",
-      "durationMs": 15090.3,
-      "detail": "[relay] 健康检查超时: http://127.0.0.1:3300/health"
+      "status": "pass",
+      "durationMs": 8.99
+    },
+    {
+      "name": "pair-create",
+      "status": "pass",
+      "durationMs": 2.15
+    },
+    {
+      "name": "pair-join",
+      "status": "pass",
+      "durationMs": 0.84
+    },
+    {
+      "name": "socket-connect-agent",
+      "status": "pass",
+      "durationMs": 1.86
+    },
+    {
+      "name": "socket-connect-app",
+      "status": "pass",
+      "durationMs": 0.88
+    },
+    {
+      "name": "ack-round-trip",
+      "status": "pass",
+      "durationMs": 3.82
+    },
+    {
+      "name": "ack-required-matrix-pending-clear",
+      "status": "pass",
+      "durationMs": 272.29
+    },
+    {
+      "name": "replay-after-cursor",
+      "status": "pass",
+      "durationMs": 4.94
+    },
+    {
+      "name": "recovery-pending-ack-clear",
+      "status": "pass",
+      "durationMs": 133.09
     }
   ],
-  "metrics": {},
-  "error": "[relay] 健康检查超时: http://127.0.0.1:3300/health"
+  "metrics": {
+    "ackRttMs": 2.57,
+    "ackRequiredMatrixPassCount": 3,
+    "ackRequiredMatrixTotal": 3,
+    "ackRequiredMatrixAckClearMeanMs": 88.44,
+    "ackRequiredMatrixAckClearP95Ms": 130.36,
+    "replayFirstPageCount": 1,
+    "replaySecondPageCount": 1,
+    "replayUniqueIds": 2,
+    "recoveryPendingAppearMs": 0.75,
+    "recoveryAckClearMs": 130.69
+  }
 }

@@ -31,6 +31,14 @@ function Get-BunExecutable {
   throw "未找到 bun，请先安装并加入 PATH。"
 }
 
+function Get-CargoExecutable {
+  $cargo = Get-Command "cargo" -ErrorAction SilentlyContinue
+  if ($cargo -and $cargo.Source) { return $cargo.Source }
+  $cargoExe = Get-Command "cargo.exe" -ErrorAction SilentlyContinue
+  if ($cargoExe -and $cargoExe.Source) { return $cargoExe.Source }
+  throw "未找到 cargo，请先安装并加入 PATH。"
+}
+
 function Get-ListenerPid([int]$Port) {
   try {
     $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -254,14 +262,21 @@ if ($webhookListener) {
 }
 
 $bunExe = Get-BunExecutable
+$cargoExe = Get-CargoExecutable
 $relayPid = $null
 if (-not $relayListener) {
   $relayOut = Join-Path $logDir "relay.out.log"
   $relayErr = Join-Path $logDir "relay.err.log"
-  if ($bunExe.ToLower().EndsWith(".ps1")) {
-    $relayProc = Start-Process -FilePath "pwsh" -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "$bunExe", "run", "packages/relay-server/src/index.ts") -WorkingDirectory "$RepoRoot" -PassThru -WindowStyle Hidden -RedirectStandardOutput "$relayOut" -RedirectStandardError "$relayErr"
-  } else {
-    $relayProc = Start-Process -FilePath "$bunExe" -ArgumentList @("run", "packages/relay-server/src/index.ts") -WorkingDirectory "$RepoRoot" -PassThru -WindowStyle Hidden -RedirectStandardOutput "$relayOut" -RedirectStandardError "$relayErr"
+  $prevPort = $env:PORT
+  $env:PORT = "3000"
+  try {
+    $relayProc = Start-Process -FilePath "$cargoExe" -ArgumentList @("run", "--manifest-path", "crates/relay-server/Cargo.toml") -WorkingDirectory "$RepoRoot" -PassThru -WindowStyle Hidden -RedirectStandardOutput "$relayOut" -RedirectStandardError "$relayErr"
+  } finally {
+    if ($null -eq $prevPort) {
+      Remove-Item -Path "Env:PORT" -ErrorAction SilentlyContinue
+    } else {
+      $env:PORT = $prevPort
+    }
   }
   $relayPid = $relayProc.Id
   if (-not (Wait-Port 3000 8000)) {

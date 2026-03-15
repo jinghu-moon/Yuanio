@@ -18,7 +18,7 @@ bun run packages/cli/src/index.ts --server http://localhost:3000 --public-server
 1. 启动本地 Relay：
 
 ```bash
-bun run packages/relay-server/src/index.ts
+cargo run --manifest-path crates/relay-server/Cargo.toml
 ```
 
 2. 配置并验证 Named Tunnel：

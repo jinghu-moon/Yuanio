@@ -5,13 +5,13 @@ const relayPort = process.env.YUANIO_RELAY_PORT || "3000";
 const controlServer = process.env.YUANIO_CONTROL_SERVER || `http://localhost:${relayPort}`;
 const isWin = process.platform === "win32";
 
-function buildApp(name, commandArgs, env = {}) {
+function buildApp(name, commandArgs, env = {}, runner = "bun") {
   if (isWin) {
     return {
       name,
       cwd: root,
       script: "cmd.exe",
-      args: `/c bun ${commandArgs}`,
+      args: `/c ${runner} ${commandArgs}`,
       interpreter: "none",
       env,
       autorestart: true,
@@ -22,7 +22,7 @@ function buildApp(name, commandArgs, env = {}) {
   return {
     name,
     cwd: root,
-    script: "bun",
+    script: runner,
     args: commandArgs,
     interpreter: "none",
     env,
@@ -34,9 +34,9 @@ function buildApp(name, commandArgs, env = {}) {
 
 module.exports = {
   apps: [
-    buildApp("yuanio-relay", "run packages/relay-server/src/index.ts", {
+    buildApp("yuanio-relay", "run --manifest-path crates/relay-server/Cargo.toml", {
       PORT: relayPort,
-    }),
+    }, "cargo"),
     buildApp("yuanio-daemon", `run packages/cli/src/daemon-process.ts --server ${controlServer}`),
   ],
 };

@@ -715,13 +715,27 @@ function Get-BunExecutable() {
   return "bun"
 }
 
+function Get-CargoExecutable() {
+  $cargoCmd = Get-Command "cargo" -ErrorAction SilentlyContinue
+  if ($cargoCmd -and $cargoCmd.Source) { return $cargoCmd.Source }
+  $cargoExeCmd = Get-Command "cargo.exe" -ErrorAction SilentlyContinue
+  if ($cargoExeCmd -and $cargoExeCmd.Source) { return $cargoExeCmd.Source }
+  return "cargo"
+}
+
 function Start-Relay([string]$RepoRoot, [string]$LogOut, [string]$LogErr) {
   Write-Info "[relay] 启动本机中继服务器..."
-  $bunExe = Get-BunExecutable
-  if ($bunExe.ToLower().EndsWith(".ps1")) {
-    $proc = Start-Process "pwsh" -ArgumentList "-File",$bunExe,"run","packages/relay-server/src/index.ts" -WorkingDirectory "$RepoRoot" -RedirectStandardOutput "$LogOut" -RedirectStandardError "$LogErr" -PassThru
-  } else {
-    $proc = Start-Process $bunExe -ArgumentList "run","packages/relay-server/src/index.ts" -WorkingDirectory "$RepoRoot" -RedirectStandardOutput "$LogOut" -RedirectStandardError "$LogErr" -PassThru
+  $cargoExe = Get-CargoExecutable
+  $prevPort = $env:PORT
+  $env:PORT = "$RelayPort"
+  try {
+    $proc = Start-Process $cargoExe -ArgumentList @("run", "--manifest-path", "crates/relay-server/Cargo.toml") -WorkingDirectory "$RepoRoot" -RedirectStandardOutput "$LogOut" -RedirectStandardError "$LogErr" -PassThru
+  } finally {
+    if ($null -eq $prevPort) {
+      Remove-Item -Path "Env:PORT" -ErrorAction SilentlyContinue
+    } else {
+      $env:PORT = $prevPort
+    }
   }
   if (-not (Wait-ForPort $RelayPort 5000)) {
     Write-Warn "[relay] 启动后未监听端口 $RelayPort，请检查日志: $LogOut / $LogErr"
@@ -812,6 +826,7 @@ if ($MyInvocation.InvocationName -ne '.') {
   Set-Location "$RepoRoot"
 
   Require-Command "bun"
+  Require-Command "cargo"
   $claudeResolved = Resolve-AgentCommand "claude" "YUANIO_CLAUDE_CMD" $true $true
   $codexResolved = Resolve-AgentCommand "codex" "YUANIO_CODEX_CMD" $false $false
   $geminiResolved = Resolve-AgentCommand "gemini" "YUANIO_GEMINI_CMD" $false $false

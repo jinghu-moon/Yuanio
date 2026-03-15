@@ -1,14 +1,23 @@
-FROM oven/bun:1 AS base
+FROM rust:1.77 AS builder
 WORKDIR /app
 
-COPY package.json bun.lock ./
-COPY packages/shared/package.json packages/shared/
-COPY packages/relay-server/package.json packages/relay-server/
+COPY crates/relay-protocol/Cargo.toml crates/relay-protocol/Cargo.toml
+COPY crates/relay-server/Cargo.toml crates/relay-server/Cargo.toml
+COPY crates/relay-server/Cargo.lock crates/relay-server/Cargo.lock
 
-RUN bun install --production
+COPY crates/relay-protocol/src crates/relay-protocol/src
+COPY crates/relay-server/src crates/relay-server/src
 
-COPY packages/shared/src packages/shared/src
-COPY packages/relay-server/src packages/relay-server/src
+RUN cargo build --release --manifest-path crates/relay-server/Cargo.toml
+
+FROM debian:bookworm-slim
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/crates/relay-server/target/release/relay-server /usr/local/bin/relay-server
 
 EXPOSE 3000
-CMD ["bun", "run", "packages/relay-server/src/index.ts"]
+CMD ["relay-server"]

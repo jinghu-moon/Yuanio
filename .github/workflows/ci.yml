@@ -91,12 +91,18 @@ jobs:
           bun-version: latest
       - run: bun install
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Start relay server
         run: |
-          cd packages/relay-server
-          bun run src/index.ts &
-          sleep 2
-          curl -f http://localhost:3000/health
+          cargo run --manifest-path crates/relay-server/Cargo.toml &
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3000/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
 
       - name: Run E2E test with mock agent
         run: |

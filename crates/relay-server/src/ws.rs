@@ -17,7 +17,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::{mpsc, Mutex};
-use tracing::warn;
+use tracing::{debug, warn};
 
 type DeviceId = String;
 type RoomKey = String;
@@ -122,12 +122,13 @@ impl WsHub {
         }
     }
 
-    async fn send_to_device(&self, device_id: &str, payload: &str) {
+    async fn send_to_device(&self, device_id: &str, payload: &str) -> bool {
         let connections = self.connections.lock().await;
-        let Some(device) = connections.get(device_id) else { return };
+        let Some(device) = connections.get(device_id) else { return false };
         for sender in device.values() {
             let _ = sender.send(axum::extract::ws::Message::Text(payload.to_string()));
         }
+        true
     }
 
     async fn broadcast_presence(&self, room_key: &str, session_id: &str) {
@@ -204,6 +205,13 @@ async fn handle_socket(state: AppState, socket: axum::extract::ws::WebSocket) {
     };
 
     let room_key = format!("{}:{}", state_result.namespace, state_result.session_id);
+    debug!(
+        "ws hello ok device={} role={:?} session={} namespace={}",
+        state_result.device_id,
+        state_result.role,
+        state_result.session_id,
+        state_result.namespace
+    );
     let conn_id = state
         .ws
         .register(&room_key, &state_result.device_id, state_result.role.clone(), tx.clone())
@@ -327,7 +335,13 @@ async fn handle_frame(
     room_key: &str,
     text: &str,
 ) -> Result<(), ()> {
-    let frame: WsFrame = serde_json::from_str(text).map_err(|_| ())?;
+    let frame: WsFrame = match serde_json::from_str(text) {
+        Ok(value) => value,
+        Err(err) => {
+            warn!("ws frame parse failed: {}", err);
+            return Err(());
+        }
+    };
     match frame {
         WsFrame::Message(mut envelope) => {
             envelope.source = sender.device_id.clone();
@@ -354,15 +368,34 @@ async fn handle_frame(
                 device_rows.into_iter().map(|row| row.id).collect()
             };
             let targets = resolve_delivery_targets(&envelope.target, &sender.device_id, &fallback_devices);
+            let message_type = envelope.kind.clone();
+            debug!(
+                "ws message recv source={} target={} session={} type={} targets={}",
+                sender.device_id,
+                envelope.target,
+                sender.session_id,
+                message_type,
+                targets.len()
+            );
 
             let frame_payload = serde_json::to_string(&WsFrame::Message(envelope.clone()));
             if let Ok(payload) = frame_payload {
+                let mut delivered = 0;
                 for device_id in &targets {
-                    state.ws.send_to_device(device_id, &payload).await;
+                    if state.ws.send_to_device(device_id, &payload).await {
+                        delivered += 1;
+                    }
+                }
+                if delivered == 0 {
+                    warn!(
+                        "ws message no active targets: source={} target={} session={}",
+                        sender.device_id,
+                        envelope.target,
+                        sender.session_id
+                    );
                 }
             }
 
-            let message_type = envelope.kind.clone();
             let should_queue_ack = should_queue_ack_by_type(&message_type);
             let should_persist = should_persist_ws(&message_type);
             let payload_text = envelope.payload.as_str().map(|value| value.to_string());
@@ -428,7 +461,15 @@ async fn handle_frame(
                     .await;
             }
             if let Ok(payload) = serde_json::to_string(&WsFrame::Ack(ack)) {
-                for device_id in state.ws.peer_device_ids(room_key, &sender.device_id).await {
+                let peers = state.ws.peer_device_ids(room_key, &sender.device_id).await;
+                if peers.is_empty() {
+                    warn!(
+                        "ws ack no peer targets: sender={} session={}",
+                        sender.device_id,
+                        sender.session_id
+                    );
+                }
+                for device_id in peers {
                     state.ws.send_to_device(&device_id, &payload).await;
                 }
             }

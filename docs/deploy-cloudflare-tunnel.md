@@ -24,7 +24,7 @@
 docker run -d --name yuanio-relay -p 3000:3000 ghcr.io/anthropics/yuanio/relay-server:latest
 
 # 或源码方式
-cd packages/relay-server && bun run src/index.ts
+cargo run --manifest-path crates/relay-server/Cargo.toml
 ```
 
 ### 2. 创建 Tunnel
@@ -124,6 +124,6 @@ bun run packages/cli/src/index.ts doctor --server http://localhost:3000 --public
 
 ## 注意事项
 
-- Socket.IO WebSocket 连接通过 Cloudflare Tunnel 自动支持
+- 原生 WebSocket 连接通过 Cloudflare Tunnel 自动支持
 - 建议启用 Cloudflare Access 限制访问（可选）
 - 生产环境请设置 `JWT_SECRET` 环境变量

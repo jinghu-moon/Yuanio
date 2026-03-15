@@ -3,11 +3,11 @@
 [![Release](https://img.shields.io/github/v/release/jinghu-moon/Yuanio?display_name=tag)](https://github.com/jinghu-moon/Yuanio/releases)
 [![License](https://img.shields.io/github/license/jinghu-moon/Yuanio)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](android-app/)
-[![Runtime](https://img.shields.io/badge/runtime-Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
+[![Runtime](https://img.shields.io/badge/runtime-Rust%2FBun-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 
 Remote-first Android control for local AI coding agents and developer workflows.
 
-Yuanio lets you monitor, continue, and manage local coding sessions from your phone or tablet. It connects an Android client, a Bun-based relay server, and a local CLI/daemon layer so desktop agent workflows are no longer tied to a single desk, terminal, or network environment.
+Yuanio lets you monitor, continue, and manage local coding sessions from your phone or tablet. It connects an Android client, a Rust relay server, and a local CLI/daemon layer so desktop agent workflows are no longer tied to a single desk, terminal, or network environment.
 
 ## Why Yuanio
 
@@ -32,7 +32,7 @@ The public app repository intentionally excludes local secrets, runtime state, b
 
 - `android-app/` - Android application built with Kotlin and Jetpack Compose.
 - `packages/cli/` - local CLI launcher, TUI entrypoint, and desktop-side control flow.
-- `packages/relay-server/` - Bun relay server for encrypted forwarding and coordination.
+- `packages/relay-server/` - Rust relay server for encrypted forwarding and coordination.
 - `packages/shared/` - shared protocol, crypto, and transport primitives.
 - `packages/web-dashboard/` - experimental web dashboard surfaces.
 - `docs/` - architecture, protocol, deployment, benchmarking, and workflow notes.
@@ -64,6 +64,7 @@ tools/                  maintenance utilities
 ### Prerequisites
 
 - Bun
+- Rust (cargo)
 - Node.js
 - Java 17+
 - Android SDK / Android Studio

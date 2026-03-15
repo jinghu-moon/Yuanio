@@ -124,11 +124,11 @@ pub struct Envelope {
     #[serde(rename = "type")]
     #[ts(type = "MessageType")]
     pub kind: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pty_id: Option<String>,
     #[ts(type = "number")]
     pub ts: i64,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(type = "number | null")]
     pub relay_ts: Option<i64>,
     #[ts(type = "EnvelopePayload")]
@@ -141,14 +141,14 @@ pub struct AckMessage {
     pub message_id: String,
     pub source: String,
     pub session_id: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub state: Option<AckState>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(type = "number | null")]
     pub retry_after_ms: Option<i64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(type = "number | null")]
     pub at: Option<i64>,
 }

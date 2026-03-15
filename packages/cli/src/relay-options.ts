@@ -98,10 +98,18 @@ export function parseWsFrame(raw: string): { ok: true; frame: unknown } | { ok: 
   try {
     parsed = JSON.parse(raw);
   } catch {
+    if (process.env.YUANIO_WS_DEBUG === "1") {
+      console.warn("[ws] invalid json frame:", raw.slice(0, 200));
+    }
     return { ok: false, error: "invalid json" };
   }
   const result = WsFrameSchema.safeParse(parsed);
-  if (!result.success) return { ok: false, error: "invalid ws frame" };
+  if (!result.success) {
+    if (process.env.YUANIO_WS_DEBUG === "1") {
+      console.warn("[ws] invalid frame schema:", result.error.issues, raw.slice(0, 200));
+    }
+    return { ok: false, error: "invalid ws frame" };
+  }
   return { ok: true, frame: result.data };
 }
 

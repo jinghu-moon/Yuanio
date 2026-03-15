@@ -333,7 +333,7 @@ async function main() {
       }
       const port = resolveServerPort(serverUrl);
       relayProcess = Bun.spawn(
-        ["bun", "run", "packages/relay-server/src/index.ts"],
+        ["cargo", "run", "--manifest-path", "crates/relay-server/Cargo.toml"],
         {
           cwd: projectRoot,
           stdout: "inherit",

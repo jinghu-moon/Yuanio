@@ -7,6 +7,7 @@
 ### 前置要求
 
 - [Bun](https://bun.sh/) >= 1.0
+- [Rust](https://www.rust-lang.org/tools/install)（包含 cargo）
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI 已安装并登录
 - Node.js >= 18（可选，用于兼容性测试）
 
@@ -31,7 +32,7 @@ packages/
 
 ```bash
 # 启动中继服务器
-cd packages/relay-server && bun run src/index.ts
+cargo run --manifest-path crates/relay-server/Cargo.toml
 
 # 另一个终端，启动 CLI（配对模式）
 cd packages/cli && bun run src/index.ts --server http://localhost:3000 --pair

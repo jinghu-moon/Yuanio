@@ -770,7 +770,7 @@ async function main(): Promise<void> {
     if (!relayHealthStart && autoRelay) {
       console.log(`[agent-e2e] 启动 relay: ${serverUrl}`);
       const relayPort = resolveServerPort(serverUrl);
-      relayProcess = Bun.spawn(["bun", "run", "packages/relay-server/src/index.ts"], {
+      relayProcess = Bun.spawn(["cargo", "run", "--manifest-path", "crates/relay-server/Cargo.toml"], {
         cwd: projectRoot,
         stdout: "pipe",
         stderr: "pipe",

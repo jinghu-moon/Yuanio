@@ -23,7 +23,7 @@ for ($i = 1; $i -le 10; $i++) {
   $relayErr = "docs/bench/protocol-e2e-ackopt10-run$($i)-relay.err.log"
 
   Write-Host "[run] $i/10 server=$server"
-  $relay = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "set PORT=$port && bun run packages/relay-server/src/index.ts" -NoNewWindow -PassThru -RedirectStandardOutput $relayOut -RedirectStandardError $relayErr -WorkingDirectory (Get-Location)
+  $relay = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "set PORT=$port && cargo run --manifest-path crates/relay-server/Cargo.toml" -NoNewWindow -PassThru -RedirectStandardOutput $relayOut -RedirectStandardError $relayErr -WorkingDirectory (Get-Location)
   try {
     if (-not (Wait-RelayHealthy -serverUrl $server -timeoutSec 20)) { throw "run $i relay health timeout" }
     cmd /c "bun run packages/cli/src/test-protocol-e2e-baseline.ts --server $server --no-auto-relay --out $out" | Out-Host
