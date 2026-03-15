@@ -57,6 +57,8 @@ WS 使用 JSON 文本帧，统一结构：
 
 - **规范格式**：`{ "type": "Buffer", "data": [0-255...] }`
 - **说明**：WS 采用 JSON 文本帧时，二进制 payload 必须封装为 Buffer JSON，以便 relay 与 Android 端统一解析。
+- **长度上限**：`MAX_ENVELOPE_BINARY_PAYLOAD_BYTES`（1,048,576 bytes）
+- **进程内表示**：允许 `Uint8Array` / `ArrayBuffer`，上行文本帧需序列化为 Buffer JSON。
 - **示例**：
 
 ```json
@@ -101,4 +103,3 @@ WS 使用 JSON 文本帧，统一结构：
 ## 端侧迁移状态
 
 - Android WS: ✅ 已切换到 `RelayWebSocketClient`（P3-N2）。
-
