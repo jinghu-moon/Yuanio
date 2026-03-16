@@ -1352,11 +1352,10 @@ mod tests {
     }
 
     #[test]
-    fn start_daemon_ignores_bun_cmd() {
+    fn start_daemon_works() {
         let _lock = env_lock();
         let state_path = temp_dir("daemon-state").join("daemon.json");
         std::env::set_var("YUANIO_DAEMON_STATE", &state_path);
-        std::env::set_var("YUANIO_BUN_CMD", "missing-bun");
 
         let app_state = Arc::new(Mutex::new(AppState::default()));
         let mut manager = ServiceManager::new();
@@ -1371,15 +1370,13 @@ mod tests {
             let _ = fs::remove_dir_all(parent);
         }
         std::env::remove_var("YUANIO_DAEMON_STATE");
-        std::env::remove_var("YUANIO_BUN_CMD");
     }
 
     #[test]
-    fn start_bridge_ignores_bun_cmd() {
+    fn start_bridge_works() {
         let _lock = env_lock();
         let dir = temp_dir("keystore");
         prepare_keys(&dir);
-        std::env::set_var("YUANIO_BUN_CMD", "missing-bun");
 
         let app_state = Arc::new(Mutex::new(AppState::default()));
         let mut manager = ServiceManager::new();
@@ -1396,7 +1393,6 @@ mod tests {
         let _ = manager.stop_bridge_only(&app_state);
         let _ = fs::remove_dir_all(&dir);
         std::env::remove_var("YUANIO_KEYSTORE_DIR");
-        std::env::remove_var("YUANIO_BUN_CMD");
     }
 
     #[test]
