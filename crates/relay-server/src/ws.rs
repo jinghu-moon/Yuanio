@@ -553,6 +553,25 @@ fn resolve_delivery_targets(target: &str, source_device_id: &str, devices: &[Str
     vec![target.to_string()]
 }
 
+#[cfg(test)]
+mod tests {
+    use super::resolve_delivery_targets;
+
+    #[test]
+    fn resolve_targets_handles_broadcast_and_direct() {
+        let devices = vec!["agent-1".to_string(), "app-1".to_string()];
+        assert_eq!(
+            resolve_delivery_targets("broadcast", "agent-1", &devices),
+            vec!["app-1".to_string()]
+        );
+        assert_eq!(
+            resolve_delivery_targets("app-1", "agent-1", &devices),
+            vec!["app-1".to_string()]
+        );
+        assert!(resolve_delivery_targets("agent-1", "agent-1", &devices).is_empty());
+    }
+}
+
 fn role_to_str(role: &DeviceRole) -> &'static str {
     match role {
         DeviceRole::Agent => "agent",

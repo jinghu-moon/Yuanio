@@ -791,10 +791,90 @@ fn hash_token(token: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::hash_token;
+    use super::{hash_token, DeliveryRow, EncryptedMessageRow, RelayDb};
+    use crate::config::RelayConfig;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn bun_hash_compat() {
         assert_eq!(hash_token("abc"), "2a4f1d7cb516c72");
+    }
+
+    fn test_db_path(label: &str) -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|value| value.as_millis())
+            .unwrap_or(0);
+        std::env::temp_dir().join(format!("yuanio-{label}-{suffix}.db"))
+    }
+
+    fn test_config(path: PathBuf) -> RelayConfig {
+        RelayConfig {
+            host: "127.0.0.1".to_string(),
+            port: 0,
+            jwt_secret: "x".repeat(32),
+            require_protocol_version: false,
+            db_path: path,
+            db_busy_timeout_ms: 0,
+            db_fast_write_mode: false,
+            fcm_token_max_length: 4096,
+            fcm_enabled: false,
+            push_register_rate_limit_max: 1,
+            push_register_rate_limit_window_ms: 1_000,
+        }
+    }
+
+    #[test]
+    fn queue_deliveries_roundtrip() {
+        let path = test_db_path("relay-queue");
+        let db = RelayDb::new(&test_config(path.clone())).expect("db init");
+        let session_id = "session-1";
+        let agent_id = "agent-1";
+        let app_id = "app-1";
+
+        db.create_session(session_id, "default").expect("create session");
+        db.add_device(agent_id, "agent-pk", "agent", session_id, "agent-token")
+            .expect("add agent");
+        db.add_device(app_id, "app-pk", "app", session_id, "app-token")
+            .expect("add app");
+
+        let message_id = "msg-1";
+        db.save_encrypted_message(&EncryptedMessageRow {
+            id: message_id.to_string(),
+            session_id: session_id.to_string(),
+            source: agent_id.to_string(),
+            target: "broadcast".to_string(),
+            message_type: "prompt".to_string(),
+            seq: 1,
+            ts: 123,
+            payload: "payload".to_string(),
+        })
+        .expect("save message");
+
+        let row = DeliveryRow {
+            message_id: message_id.to_string(),
+            session_id: session_id.to_string(),
+            source_device_id: agent_id.to_string(),
+            target_device_id: app_id.to_string(),
+        };
+        db.queue_deliveries_batch(&[row.clone()]).expect("queue");
+        db.queue_deliveries_batch(&[row]).expect("dedupe");
+
+        let pending = db.get_pending_deliveries(app_id, 10).expect("pending");
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].id, message_id);
+
+        assert!(!db
+            .mark_delivery_acked("missing", app_id)
+            .expect("ack missing"));
+        assert!(db
+            .mark_delivery_acked(message_id, app_id)
+            .expect("ack present"));
+
+        let pending = db.get_pending_deliveries(app_id, 10).expect("pending empty");
+        assert!(pending.is_empty());
+
+        let _ = std::fs::remove_file(path);
     }
 }

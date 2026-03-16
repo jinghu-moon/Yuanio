@@ -18,7 +18,7 @@
     "telegram:stop": "powershell -ExecutionPolicy Bypass -File \"./scripts/telegram-bot.ps1\" stop",
     "telegram:status": "powershell -ExecutionPolicy Bypass -File \"./scripts/telegram-bot.ps1\" status",
     "typecheck": "tsc --noEmit -p packages/shared && tsc --noEmit -p packages/relay-server && tsc --noEmit -p packages/cli",
-    "baseline:protocol:quick": "bun run packages/shared/src/test-crypto-web.ts && bun run packages/shared/src/test-uuid.ts && bun run packages/relay-server/src/test-socket-options.ts && bun run packages/relay-server/src/test-queue.ts && bun run packages/cli/src/test-relay-options.ts && bun test packages/cli/src/__tests__/local-server.test.ts packages/cli/src/remote/__tests__/queue.test.ts packages/cli/src/remote/__tests__/queue-persist.test.ts packages/cli/src/remote/__tests__/dispatch.test.ts && bun run typecheck",
+    "baseline:protocol:quick": "bun run packages/shared/src/test-crypto-web.ts && bun run packages/shared/src/test-uuid.ts && cargo test --manifest-path \"crates/relay-server/Cargo.toml\" && bun run packages/cli/src/test-relay-options.ts && bun test packages/cli/src/__tests__/local-server.test.ts packages/cli/src/remote/__tests__/queue.test.ts packages/cli/src/remote/__tests__/queue-persist.test.ts packages/cli/src/remote/__tests__/dispatch.test.ts && bun run typecheck",
     "baseline:protocol:e2e": "bun run packages/cli/src/test-protocol-e2e-baseline.ts",
     "baseline:protocol": "bun run baseline:protocol:quick && bun run baseline:protocol:e2e",
     "android:build:debug": "powershell -ExecutionPolicy Bypass -File \"./scripts/android-install-debug.ps1\" -SkipInstall",
