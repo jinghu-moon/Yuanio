@@ -74,11 +74,13 @@ export type AckState = "ok" | "working" | "retry_after" | "terminal";
 
 export type DeviceRole = "agent" | "app";
 
-export interface AckMessage { messageId: string, source: string, sessionId: string, state: AckState | null, retryAfterMs: number | null, reason: string | null, at: number | null, }
+export interface AckMessage { messageId: string, source: string, sessionId: string, state?: AckState, retryAfterMs?: number | null, reason?: string, at?: number | null, }
 
-export interface Envelope { id: string, seq: number, source: string, target: string, sessionId: string, type: MessageType, ptyId: string | null, ts: number, relayTs: number | null, payload: EnvelopePayload, }
+export interface Envelope { id: string, seq: number, source: string, target: string, sessionId: string, type: MessageType, ptyId?: string, ts: number, relayTs?: number | null, payload: EnvelopePayload, }
 
-export interface WsHelloPayload { token: string, protocolVersion?: string, namespace?: string, deviceId?: string, role?: DeviceRole, clientVersion?: string, }
+export interface WsCapabilities { binaryPayload?: boolean, ackQueue?: boolean, presence?: boolean, }
+
+export interface WsHelloPayload { token: string, protocolVersion?: string, namespace?: string, deviceId?: string, role?: DeviceRole, clientVersion?: string, capabilities?: WsCapabilities, }
 
 export interface WsPresenceDevice { id: string, role: DeviceRole, sessionId: string, }
 

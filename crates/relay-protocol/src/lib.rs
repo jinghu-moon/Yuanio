@@ -172,6 +172,17 @@ pub enum DeviceRole {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+pub struct WsCapabilities {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binary_payload: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ack_queue: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub presence: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct WsHelloPayload {
     pub token: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -184,6 +195,8 @@ pub struct WsHelloPayload {
     pub role: Option<DeviceRole>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capabilities: Option<WsCapabilities>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]

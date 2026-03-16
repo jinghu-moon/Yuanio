@@ -1,7 +1,7 @@
 use relay_protocol::{
     message_type_defs, AckMessage, AckState, DeviceRole, Envelope, MAX_ENVELOPE_BINARY_PAYLOAD_BYTES,
     MAX_ENVELOPE_STRING_PAYLOAD_CHARS, PROTOCOL_VERSION, DEFAULT_NAMESPACE, WS_EVENT_TYPES,
-    WsErrorPayload, WsFrame, WsHelloPayload, WsPresenceDevice, WsPresencePayload,
+    WsCapabilities, WsErrorPayload, WsFrame, WsHelloPayload, WsPresenceDevice, WsPresencePayload,
 };
 use std::{env, fs, path::PathBuf};
 use ts_rs::TS;
@@ -77,6 +77,7 @@ fn generate_relay_protocol() -> Result<(), Box<dyn std::error::Error>> {
     output.push_str(&export_decl::<DeviceRole>());
     output.push_str(&export_decl::<AckMessage>());
     output.push_str(&export_decl::<Envelope>());
+    output.push_str(&export_decl::<WsCapabilities>());
     output.push_str(&export_decl::<WsHelloPayload>());
     output.push_str(&export_decl::<WsPresenceDevice>());
     output.push_str(&export_decl::<WsPresencePayload>());

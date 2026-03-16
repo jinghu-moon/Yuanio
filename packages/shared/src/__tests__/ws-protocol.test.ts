@@ -27,6 +27,11 @@ describe("ws protocol schema", () => {
         namespace: "default",
         deviceId: "dev_1",
         role: "app",
+        capabilities: {
+          binaryPayload: true,
+          ackQueue: true,
+          presence: true,
+        },
       },
     }) as { type: string };
     expect(parsed.type).toBe("hello");
@@ -97,10 +102,11 @@ describe("ws protocol schema", () => {
   it("message frame 应拒绝超限 binary payload", async () => {
     const mod = await loadWsModule();
     const schema = mod.WsFrameSchema as { parse?: (value: unknown) => unknown } | undefined;
-    if (!schema?.parse) throw new Error("WsFrameSchema missing");
+    const parse = schema?.parse;
+    if (!parse) throw new Error("WsFrameSchema missing");
     const oversized = new Uint8Array(MAX_ENVELOPE_BINARY_PAYLOAD_BYTES + 1);
     expect(() => {
-      schema.parse({
+      parse({
         type: "message",
         data: {
           id: "msg_bin_3",

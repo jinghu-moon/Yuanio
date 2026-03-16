@@ -32,6 +32,9 @@ export function createEnvelope(
 }
 
 export function openEnvelope(envelope: Envelope, sharedKey: Uint8Array): string {
+  if (typeof envelope.payload !== "string") {
+    throw new Error("binary payload requires openBinaryEnvelope");
+  }
   return decrypt(envelope.payload, sharedKey);
 }
 

@@ -3,6 +3,7 @@ use url::Url;
 
 use crate::relay::protocol::{
     DeviceRole,
+    WsCapabilities,
     WsFrame,
     WsHelloPayload,
     PROTOCOL_VERSION,
@@ -16,6 +17,7 @@ pub struct HelloOptions {
     pub device_id: Option<String>,
     pub role: Option<DeviceRole>,
     pub client_version: Option<String>,
+    pub capabilities: Option<WsCapabilities>,
 }
 
 pub fn build_ws_url(server_url: &str) -> Result<Url, String> {
@@ -38,6 +40,7 @@ pub fn build_hello_frame(token: &str, options: HelloOptions) -> WsFrame {
         device_id,
         role,
         client_version,
+        capabilities,
     } = options;
     let payload = WsHelloPayload {
         token: token.to_string(),
@@ -46,6 +49,7 @@ pub fn build_hello_frame(token: &str, options: HelloOptions) -> WsFrame {
         device_id,
         role,
         client_version,
+        capabilities,
     };
     WsFrame::Hello(payload)
 }
@@ -124,6 +128,7 @@ mod tests {
             device_id: Some("dev-1".to_string()),
             role: Some(DeviceRole::App),
             client_version: Some("desktop-0.1".to_string()),
+            capabilities: None,
         });
         let value = serde_json::to_value(frame).unwrap();
         assert_eq!(value, json!({

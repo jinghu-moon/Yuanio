@@ -723,6 +723,7 @@ fn remote_bridge_loop(
                 device_id: None,
                 role: None,
                 client_version: None,
+                capabilities: None,
             },
         );
         let _ = send_ws_frame(&mut socket, &hello);

@@ -935,6 +935,9 @@ wsServer.on("connection", (ws: WebSocket, request: IncomingMessage) => {
               }
             },
             persistEnvelope: (env) => {
+              if (typeof env.payload !== "string") {
+                return;
+              }
               enqueueWrite({
                 id: env.id,
                 session_id: activeState.sessionId,

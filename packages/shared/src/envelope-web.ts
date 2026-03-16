@@ -56,6 +56,9 @@ export async function createEnvelopeWeb(
 
 export async function openEnvelopeWeb(envelope: Envelope, key: CryptoKey): Promise<string> {
   const aad = buildEnvelopeAad(envelope);
+  if (typeof envelope.payload !== "string") {
+    throw new Error("binary payload requires openBinaryEnvelopeWeb");
+  }
   return decryptAead(envelope.payload, key, aad);
 }
 

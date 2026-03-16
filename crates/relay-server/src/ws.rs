@@ -177,7 +177,43 @@ struct WsConnectionState {
     role: DeviceRole,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum AuthState {
+    PendingHello,
+    Authenticated,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum TransportState {
+    Connected,
+    Closed,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct WsLifecycle {
+    auth_state: AuthState,
+    transport_state: TransportState,
+}
+
+impl WsLifecycle {
+    fn new() -> Self {
+        Self {
+            auth_state: AuthState::PendingHello,
+            transport_state: TransportState::Connected,
+        }
+    }
+
+    fn mark_authenticated(&mut self) {
+        self.auth_state = AuthState::Authenticated;
+    }
+
+    fn mark_closed(&mut self) {
+        self.transport_state = TransportState::Closed;
+    }
+}
+
 async fn handle_socket(state: AppState, socket: axum::extract::ws::WebSocket) {
+    let mut lifecycle = WsLifecycle::new();
     let (mut ws_sender, mut ws_receiver) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel();
     let send_task = tokio::spawn(async move {
@@ -204,13 +240,15 @@ async fn handle_socket(state: AppState, socket: axum::extract::ws::WebSocket) {
         }
     };
 
+    lifecycle.mark_authenticated();
     let room_key = format!("{}:{}", state_result.namespace, state_result.session_id);
     debug!(
-        "ws hello ok device={} role={:?} session={} namespace={}",
+        "ws hello ok device={} role={:?} session={} namespace={} auth={:?}",
         state_result.device_id,
         state_result.role,
         state_result.session_id,
-        state_result.namespace
+        state_result.namespace,
+        lifecycle.auth_state
     );
     let conn_id = state
         .ws
@@ -245,6 +283,14 @@ async fn handle_socket(state: AppState, socket: axum::extract::ws::WebSocket) {
     state.ws.unregister(&room_key, &state_result.device_id, conn_id).await;
     state.ws.broadcast_presence(&room_key, &state_result.session_id).await;
     send_task.abort();
+    lifecycle.mark_closed();
+    debug!(
+        "ws closed device={} session={} auth={:?} transport={:?}",
+        state_result.device_id,
+        state_result.session_id,
+        lifecycle.auth_state,
+        lifecycle.transport_state
+    );
 
     let db = state.db.clone();
     let device_id = state_result.device_id.clone();

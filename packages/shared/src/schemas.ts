@@ -86,6 +86,12 @@ export const AckMessageSchema = z.object({
 
 export const DeviceRoleSchema = z.enum(["agent", "app"]);
 
+export const WsCapabilitiesSchema = z.object({
+  binaryPayload: z.boolean().optional(),
+  ackQueue: z.boolean().optional(),
+  presence: z.boolean().optional(),
+});
+
 export const WsHelloPayloadSchema = z.object({
   token: z.string().min(1),
   protocolVersion: z.string().optional(),
@@ -93,6 +99,7 @@ export const WsHelloPayloadSchema = z.object({
   deviceId: z.string().optional(),
   role: DeviceRoleSchema.optional(),
   clientVersion: z.string().optional(),
+  capabilities: WsCapabilitiesSchema.optional(),
 });
 
 export const WsPresencePayloadSchema = z.object({

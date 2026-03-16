@@ -24,7 +24,7 @@ WS 使用 JSON 文本帧，统一结构：
 
 | Socket.IO event | WS frame | Payload | 备注 |
 | --- | --- | --- | --- |
-| `connect` | `hello`（client → server） | `WsHelloPayload` | 传 `token`、`protocolVersion`、`namespace`、`deviceId`、`role` |
+| `connect` | `hello`（client → server） | `WsHelloPayload` | 传 `token`、`protocolVersion`、`namespace`、`deviceId`、`role`，可选 `capabilities` |
 | `message` | `message` | `Envelope` | 加密消息 |
 | `ack` | `ack` | `AckMessage` | 可靠投递回执 |
 | `device_list` | `presence` | `WsPresencePayload` | 设备列表快照 |
@@ -44,7 +44,12 @@ WS 使用 JSON 文本帧，统一结构：
     "protocolVersion": "1.0.0",
     "namespace": "default",
     "deviceId": "dev_1",
-    "role": "app"
+    "role": "app",
+    "capabilities": {
+      "binaryPayload": true,
+      "ackQueue": true,
+      "presence": true
+    }
   }
 }
 ```

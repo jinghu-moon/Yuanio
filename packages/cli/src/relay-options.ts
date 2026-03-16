@@ -1,5 +1,5 @@
 import { PROTOCOL_VERSION, WsFrameSchema } from "@yuanio/shared";
-import type { AckMessage, BinaryEnvelope, Envelope } from "@yuanio/shared";
+import type { AckMessage, BinaryEnvelope, Envelope, WsCapabilities } from "@yuanio/shared";
 import type { RawData } from "ws";
 import { WebSocket } from "ws";
 
@@ -11,6 +11,7 @@ export type RelayHelloOptions = {
   deviceId?: string;
   role?: "agent" | "app";
   clientVersion?: string;
+  capabilities?: WsCapabilities;
 };
 
 export function buildRelayWsUrl(serverUrl: string): string {
@@ -32,6 +33,7 @@ export function createRelayHelloFrame(token: string, options?: RelayHelloOptions
   if (options?.deviceId) data.deviceId = options.deviceId;
   if (options?.role) data.role = options.role;
   if (options?.clientVersion) data.clientVersion = options.clientVersion;
+  if (options?.capabilities) data.capabilities = options.capabilities;
   return { type: "hello", data };
 }
 
