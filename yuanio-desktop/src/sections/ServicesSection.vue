@@ -35,7 +35,7 @@ defineProps<{
       <h2 class="section-title">{{ t("服务控制") }}</h2>
       <span class="badge blue">{{ t("当前：{profile}", { profile: profileLabel }) }}</span>
     </div>
-    <p class="section-desc">{{ t("服务概览说明") }}</p>
+    <p class="section-desc">{{ t("内嵌 Rust Core，桌面端负责状态展示与快捷控制。") }}</p>
     <div class="row">
       <input
         v-model="serverUrl"
