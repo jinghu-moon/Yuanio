@@ -743,10 +743,8 @@ fn remote_bridge_loop(
             let resend = core.tick(now);
             for payload in resend {
                 if socket.send(Message::Text(payload.clone())).is_ok() {
-                    if let Ok(frame) = serde_json::from_str::<WsFrame>(&payload) {
-                        if let WsFrame::Ack(ack) = frame {
-                            core.handle_ack(&ack.message_id, "ok");
-                        }
+                    if let Ok(WsFrame::Ack(ack)) = serde_json::from_str::<WsFrame>(&payload) {
+                        core.handle_ack(&ack.message_id, "ok");
                     }
                 }
             }
@@ -1003,7 +1001,7 @@ fn spawn_reader(stream: Option<impl std::io::Read + Send + 'static>, app_state: 
     if let Some(stream) = stream {
         thread::spawn(move || {
             let reader = BufReader::new(stream);
-            for line in reader.lines().flatten() {
+            for line in reader.lines().map_while(Result::ok) {
                 let trimmed = line.trim();
                 if trimmed.is_empty() {
                     continue;
@@ -1023,7 +1021,7 @@ fn spawn_tunnel_reader(
     if let Some(stream) = stream {
         thread::spawn(move || {
             let reader = BufReader::new(stream);
-            for line in reader.lines().flatten() {
+            for line in reader.lines().map_while(Result::ok) {
                 let trimmed = line.trim();
                 if trimmed.is_empty() {
                     continue;
@@ -1220,7 +1218,7 @@ fn install_cloudflared_service(
         let backup_clone = backup_dir.clone();
         thread::spawn(move || {
             let reader = BufReader::new(stdout);
-            for line in reader.lines().flatten() {
+            for line in reader.lines().map_while(Result::ok) {
                 if let Some(dir) = extract_backup_dir(&line) {
                     if let Ok(mut guard) = backup_clone.lock() {
                         *guard = Some(dir);
@@ -1259,8 +1257,10 @@ mod tests {
     use super::*;
     use crate::keystore::{save_keys, StoredSession};
     use crate::pairing::StoredKeys;
+    use crate::relay::jwt::{JwtProvider, TokenPayload};
     use std::fs;
     use std::path::PathBuf;
+    use std::sync::{MutexGuard, OnceLock};
 
     fn temp_dir(label: &str) -> PathBuf {
         let now = std::time::SystemTime::now()
@@ -1272,7 +1272,42 @@ mod tests {
         dir
     }
 
-    fn prepare_keys(dir: &PathBuf) {
+    fn env_lock() -> MutexGuard<'static, ()> {
+        static LOCK: OnceLock<std::sync::Mutex<()>> = OnceLock::new();
+        match LOCK.get_or_init(|| std::sync::Mutex::new(())).lock() {
+            Ok(guard) => guard,
+            Err(err) => err.into_inner(),
+        }
+    }
+
+    struct EnvGuard {
+        entries: Vec<(String, Option<String>)>,
+    }
+
+    impl EnvGuard {
+        fn new() -> Self {
+            Self { entries: Vec::new() }
+        }
+
+        fn set(&mut self, key: &str, value: impl AsRef<str>) {
+            let prev = std::env::var(key).ok();
+            std::env::set_var(key, value.as_ref());
+            self.entries.push((key.to_string(), prev));
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            for (key, value) in self.entries.drain(..).rev() {
+                match value {
+                    Some(prev) => std::env::set_var(key, prev),
+                    None => std::env::remove_var(key),
+                }
+            }
+        }
+    }
+
+    fn prepare_keys_with_token(dir: &PathBuf, token: &str) {
         std::env::set_var("YUANIO_KEYSTORE_DIR", dir);
         let session = StoredSession {
             schema_version: 1,
@@ -1284,7 +1319,7 @@ mod tests {
                 private_key: "priv".to_string(),
                 device_id: "device-1".to_string(),
                 session_id: "session-1".to_string(),
-                session_token: "token-1".to_string(),
+                session_token: token.to_string(),
                 peer_public_key: "peer".to_string(),
                 server_url: "http://localhost:3000".to_string(),
             },
@@ -1292,8 +1327,33 @@ mod tests {
         save_keys(&session).expect("save keys");
     }
 
+    fn prepare_keys(dir: &PathBuf) {
+        prepare_keys_with_token(dir, "token-1");
+    }
+
+    fn find_free_port() -> u16 {
+        std::net::TcpListener::bind("127.0.0.1:0")
+            .and_then(|listener| listener.local_addr())
+            .map(|addr| addr.port())
+            .expect("free port")
+    }
+
+    fn sign_token(secret: &str, device_id: &str, session_id: &str) -> String {
+        let provider = JwtProvider::new(secret.to_string());
+        provider
+            .sign_token(&TokenPayload {
+                device_id: device_id.to_string(),
+                session_id: session_id.to_string(),
+                role: "agent".to_string(),
+                namespace: "default".to_string(),
+                protocol_version: "1.0.0".to_string(),
+            })
+            .expect("sign token")
+    }
+
     #[test]
     fn start_daemon_ignores_bun_cmd() {
+        let _lock = env_lock();
         let state_path = temp_dir("daemon-state").join("daemon.json");
         std::env::set_var("YUANIO_DAEMON_STATE", &state_path);
         std::env::set_var("YUANIO_BUN_CMD", "missing-bun");
@@ -1316,6 +1376,7 @@ mod tests {
 
     #[test]
     fn start_bridge_ignores_bun_cmd() {
+        let _lock = env_lock();
         let dir = temp_dir("keystore");
         prepare_keys(&dir);
         std::env::set_var("YUANIO_BUN_CMD", "missing-bun");
@@ -1336,5 +1397,57 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         std::env::remove_var("YUANIO_KEYSTORE_DIR");
         std::env::remove_var("YUANIO_BUN_CMD");
+    }
+
+    #[test]
+    fn rust_smoke_relay_daemon_bridge() {
+        let _lock = env_lock();
+        let mut env_guard = EnvGuard::new();
+        let root = temp_dir("rust-smoke");
+        let keystore_dir = root.join("keystore");
+        let db_path = root.join("relay.db");
+        let state_path = root.join("daemon").join("daemon.json");
+        let _ = fs::create_dir_all(&keystore_dir);
+        if let Some(parent) = state_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+
+        let jwt_secret = "x".repeat(32);
+        env_guard.set("JWT_SECRET", &jwt_secret);
+        env_guard.set("YUANIO_DB_PATH", db_path.to_string_lossy());
+        env_guard.set("YUANIO_KEYSTORE_DIR", keystore_dir.to_string_lossy());
+        env_guard.set("YUANIO_DAEMON_STATE", state_path.to_string_lossy());
+
+        let token = sign_token(&jwt_secret, "device-1", "session-1");
+        prepare_keys_with_token(&keystore_dir, &token);
+
+        let app_state = Arc::new(Mutex::new(AppState::default()));
+        let mut manager = ServiceManager::new();
+        let relay_port = find_free_port();
+        let relay_url = relay_url_for(relay_port);
+
+        let relay_result = manager.start_relay_only(
+            RelayStartPayload { relay_port: Some(relay_port) },
+            app_state.clone(),
+        );
+        assert!(relay_result.is_ok(), "relay start failed");
+
+        let daemon_result = manager.start_daemon_only(
+            DaemonStartPayload { server_url: Some(relay_url.clone()) },
+            app_state.clone(),
+        );
+        assert!(daemon_result.is_ok(), "daemon start failed");
+
+        let bridge_result = manager.start_bridge_only(
+            BridgeStartPayload { server_url: Some(relay_url.clone()), namespace: None },
+            app_state.clone(),
+        );
+        assert!(bridge_result.is_ok(), "bridge start failed");
+        assert!(manager.remote_bridge_handle.is_some(), "bridge handle missing");
+
+        let _ = manager.stop_bridge_only(&app_state);
+        let _ = manager.stop_daemon_only(&app_state);
+        let _ = manager.stop_relay_only(&app_state);
+        let _ = fs::remove_dir_all(&root);
     }
 }

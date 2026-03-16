@@ -540,7 +540,7 @@ async fn handle_message(
     }
 
     if should_queue_ack_by_type(&envelope.kind) {
-        if let Some(target_id) = target_ids.get(0).filter(|_| target_ids.len() == 1) {
+        if let Some(target_id) = target_ids.first().filter(|_| target_ids.len() == 1) {
             let _ = state.db.queue_delivery(
                 &envelope.id,
                 &envelope.session_id,
@@ -1279,7 +1279,7 @@ async fn session_messages(
     };
     let messages = rows
         .iter()
-        .map(|row| map_encrypted_message(row))
+        .map(map_encrypted_message)
         .collect::<Vec<_>>();
     let next_cursor = rows.last().map(|row| row.cursor).unwrap_or(after_cursor);
     (

@@ -1179,14 +1179,21 @@ fn parse_simple_yaml(text: &str) -> HashMap<String, String> {
         }
         let key = trimmed[..idx].trim().to_lowercase();
         let mut value = trimmed[idx + 1..].trim().to_string();
-        if value.starts_with('"') && value.ends_with('"') && value.len() >= 2 {
-            value = value[1..value.len() - 1].to_string();
-        } else if value.starts_with('\'') && value.ends_with('\'') && value.len() >= 2 {
-            value = value[1..value.len() - 1].to_string();
+        if let Some(stripped) = strip_wrapped_quote(&value, '"')
+            .or_else(|| strip_wrapped_quote(&value, '\''))
+        {
+            value = stripped;
         }
         out.insert(key, value);
     }
     out
+}
+
+fn strip_wrapped_quote(value: &str, quote: char) -> Option<String> {
+    if value.len() >= 2 && value.starts_with(quote) && value.ends_with(quote) {
+        return Some(value[1..value.len() - 1].to_string());
+    }
+    None
 }
 
 fn normalize_bool(value: Option<&String>, fallback: bool) -> bool {

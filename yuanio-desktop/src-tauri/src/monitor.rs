@@ -299,7 +299,7 @@ fn parse_ws_line(text: &str, key: &[u8], fallback_session_id: &str) -> Result<Mo
         _ => return Err("payload not text".to_string()),
     };
     let id = env.id.ok_or_else(|| "missing id".to_string())?;
-    let ts = env.ts.unwrap_or_else(|| chrono_fallback_ts());
+    let ts = env.ts.unwrap_or_else(chrono_fallback_ts);
     let session_id = env.session_id.unwrap_or_else(|| fallback_session_id.to_string());
     let kind = env.kind.unwrap_or_else(|| "unknown".to_string());
     let raw = RawMessage {
