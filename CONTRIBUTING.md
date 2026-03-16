@@ -24,8 +24,10 @@ bun install
 ```
 packages/
 ├── shared/          # @yuanio/shared — 加密、类型、信封
-├── relay-server/    # @yuanio/relay-server — 中继服务器
 └── cli/             # @yuanio/cli — CLI 客户端
+
+crates/
+└── relay-server/    # relay-server — 中继服务器
 ```
 
 ### 启动开发

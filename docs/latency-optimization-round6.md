@@ -6,13 +6,13 @@
 ## 本轮改动
 
 1. ACK/PTY 改为彻底直发
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 变更:
   - `fastLane` 消息不再进入应用层出站队列，直接 `emit`
   - ACK 与 `pty_*` 继续使用 `fastLane`
 
 2. drain 调度优化
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 变更:
   - 新增 `runSoon()`，优先 `setImmediate`（fallback `setTimeout(0)`）
   - 批量 drain 递归从 `setTimeout(0)` 切到 `runSoon()`，降低计时粒度抖动

@@ -31,7 +31,7 @@
    - 使用 pino 替代 console 调用
    - 支持环境变量控制日志级别
 
-2. **创建日志模块** (`packages/relay-server/src/logger.ts`)
+2. **创建日志模块** (`crates/relay-server/src/logger.ts`)
    - 自动脱敏敏感字段: token, password, deviceId, sessionId, fcmToken
    - 结构化日志输出
 
@@ -55,7 +55,7 @@
 
 **修复内容**:
 
-修改 `packages/relay-server/src/jwt.ts`:
+修改 `crates/relay-server/src/jwt.ts`:
 - ❌ 移除硬编码默认密钥
 - ✅ 强制要求配置环境变量
 - ✅ 强制最小密钥长度 32 字符
@@ -71,10 +71,10 @@
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `packages/relay-server/src/logger.ts` | 新建 | 结构化日志模块 |
-| `packages/relay-server/src/jwt.ts` | 修改 | 移除默认密钥 + 添加日志 |
-| `packages/relay-server/src/index.ts` | 修改 | 替换敏感日志调用 |
-| `packages/relay-server/package.json` | 修改 | 添加 pino 依赖 |
+| `crates/relay-server/src/logger.ts` | 新建 | 结构化日志模块 |
+| `crates/relay-server/src/jwt.ts` | 修改 | 移除默认密钥 + 添加日志 |
+| `crates/relay-server/src/index.ts` | 修改 | 替换敏感日志调用 |
+| `crates/relay-server/package.json` | 修改 | 添加 pino 依赖 |
 
 ---
 

@@ -1,5 +1,7 @@
 # Yuanio 任务清单
 
+> 备注：relay-server 已迁移至 `crates/relay-server`，`crates/relay-server` 已移除。
+
 > 最后更新：2026-02-25
 > 本文档是项目进度的唯一事实来源。基于 Happy/HAPI/Claude Code/Codex 源码分析校准。
 

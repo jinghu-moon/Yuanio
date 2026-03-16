@@ -1,8 +1,8 @@
 use crate::config::RelayConfig;
 use relay_protocol::{normalize_namespace, DEFAULT_NAMESPACE};
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, ToSql};
 use serde::Serialize;
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use wyhash_final4::{generics::WyHashVariant, wyhash64::WyHash64};
 
 #[derive(Clone)]
@@ -37,6 +37,20 @@ pub struct SessionMembershipRow {
     pub role: String,
     pub first_seen_ts: i64,
     pub last_seen_ts: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct SessionMetaRow {
+    pub session_id: String,
+    pub namespace: String,
+    pub project_label: Option<String>,
+    pub project_path_hash: Option<String>,
+    pub last_status: Option<String>,
+    pub pending_approvals: i64,
+    pub has_unread: bool,
+    pub last_message_ts: Option<i64>,
+    pub last_event_type: Option<String>,
+    pub updated_at_ms: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -197,13 +211,27 @@ impl RelayDb {
                     event TEXT NOT NULL,
                     created_at TEXT DEFAULT (datetime('now'))
                 );
+                CREATE TABLE IF NOT EXISTS session_stats (
+                    session_id TEXT PRIMARY KEY,
+                    namespace TEXT NOT NULL DEFAULT 'default',
+                    project_label TEXT,
+                    project_path_hash TEXT,
+                    last_status TEXT,
+                    pending_approvals INTEGER NOT NULL DEFAULT 0,
+                    has_unread INTEGER NOT NULL DEFAULT 0,
+                    last_message_ts INTEGER,
+                    last_event_type TEXT,
+                    updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)
+                );
                 CREATE INDEX IF NOT EXISTS idx_sessions_namespace ON sessions(namespace);
                 CREATE INDEX IF NOT EXISTS idx_sm_device ON session_memberships(device_id);
                 CREATE INDEX IF NOT EXISTS idx_sm_session ON session_memberships(session_id);
                 CREATE INDEX IF NOT EXISTS idx_em_session_ts ON encrypted_messages(session_id, ts);
                 CREATE INDEX IF NOT EXISTS idx_md_target_pending ON message_deliveries(target_device_id, acked_at);
                 CREATE INDEX IF NOT EXISTS idx_md_session ON message_deliveries(session_id);
-                CREATE INDEX IF NOT EXISTS idx_md_target_pending_id ON message_deliveries(target_device_id, acked_at, id);",
+                CREATE INDEX IF NOT EXISTS idx_md_target_pending_id ON message_deliveries(target_device_id, acked_at, id);
+                CREATE INDEX IF NOT EXISTS idx_session_stats_namespace ON session_stats(namespace);
+                CREATE INDEX IF NOT EXISTS idx_session_stats_last_ts ON session_stats(namespace, last_message_ts);",
             )?;
             let _ = conn.execute(
                 "ALTER TABLE sessions ADD COLUMN version INTEGER DEFAULT 1",
@@ -214,6 +242,10 @@ impl RelayDb {
                 [DEFAULT_NAMESPACE],
             );
             let _ = conn.execute("ALTER TABLE devices ADD COLUMN fcm_token TEXT", []);
+            let _ = conn.execute(
+                "ALTER TABLE session_stats ADD COLUMN updated_at INTEGER DEFAULT (strftime('%s','now') * 1000)",
+                [],
+            );
             Ok(())
         })
     }
@@ -498,6 +530,133 @@ impl RelayDb {
                 result.push(row?);
             }
             Ok(result)
+        })
+    }
+
+    pub fn get_session_meta(
+        &self,
+        session_id: &str,
+        namespace: &str,
+    ) -> Result<Option<SessionMetaRow>, String> {
+        self.with_conn(|conn| {
+            let normalized = normalize_namespace(Some(namespace));
+            let mut stmt = conn.prepare(
+                "SELECT session_id, namespace, project_label, project_path_hash, last_status,
+                        pending_approvals, has_unread, last_message_ts, last_event_type, updated_at
+                 FROM session_stats
+                 WHERE session_id = ? AND namespace = ?",
+            )?;
+            let mut rows = stmt.query(params![session_id, normalized])?;
+            if let Some(row) = rows.next()? {
+                let has_unread: i64 = row.get(6)?;
+                Ok(Some(SessionMetaRow {
+                    session_id: row.get(0)?,
+                    namespace: row.get(1)?,
+                    project_label: row.get(2)?,
+                    project_path_hash: row.get(3)?,
+                    last_status: row.get(4)?,
+                    pending_approvals: row.get(5)?,
+                    has_unread: has_unread > 0,
+                    last_message_ts: row.get(7)?,
+                    last_event_type: row.get(8)?,
+                    updated_at_ms: row.get(9)?,
+                }))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+
+    pub fn get_session_meta_by_session_ids(
+        &self,
+        session_ids: &[String],
+        namespace: &str,
+    ) -> Result<HashMap<String, SessionMetaRow>, String> {
+        if session_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        self.with_conn(|conn| {
+            let placeholders = std::iter::repeat("?")
+                .take(session_ids.len())
+                .collect::<Vec<_>>()
+                .join(",");
+            let sql = format!(
+                "SELECT session_id, namespace, project_label, project_path_hash, last_status,
+                        pending_approvals, has_unread, last_message_ts, last_event_type, updated_at
+                 FROM session_stats
+                 WHERE namespace = ? AND session_id IN ({placeholders})"
+            );
+            let mut stmt = conn.prepare(&sql)?;
+            let mut params: Vec<&dyn ToSql> = Vec::with_capacity(session_ids.len() + 1);
+            let normalized = normalize_namespace(Some(namespace));
+            params.push(&normalized);
+            for session_id in session_ids {
+                params.push(session_id);
+            }
+            let rows = stmt.query_map(params.as_slice(), |row| {
+                let has_unread: i64 = row.get(6)?;
+                Ok(SessionMetaRow {
+                    session_id: row.get(0)?,
+                    namespace: row.get(1)?,
+                    project_label: row.get(2)?,
+                    project_path_hash: row.get(3)?,
+                    last_status: row.get(4)?,
+                    pending_approvals: row.get(5)?,
+                    has_unread: has_unread > 0,
+                    last_message_ts: row.get(7)?,
+                    last_event_type: row.get(8)?,
+                    updated_at_ms: row.get(9)?,
+                })
+            })?;
+            let mut result = HashMap::new();
+            for row in rows {
+                let meta = row?;
+                result.insert(meta.session_id.clone(), meta);
+            }
+            Ok(result)
+        })
+    }
+
+    pub fn upsert_session_meta(&self, meta: &SessionMetaRow) -> Result<(), String> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO session_stats (
+                    session_id,
+                    namespace,
+                    project_label,
+                    project_path_hash,
+                    last_status,
+                    pending_approvals,
+                    has_unread,
+                    last_message_ts,
+                    last_event_type,
+                    updated_at
+                 )
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON CONFLICT(session_id) DO UPDATE SET
+                   namespace = excluded.namespace,
+                   project_label = excluded.project_label,
+                   project_path_hash = excluded.project_path_hash,
+                   last_status = excluded.last_status,
+                   pending_approvals = excluded.pending_approvals,
+                   has_unread = excluded.has_unread,
+                   last_message_ts = excluded.last_message_ts,
+                   last_event_type = excluded.last_event_type,
+                   updated_at = excluded.updated_at",
+                params![
+                    meta.session_id,
+                    meta.namespace,
+                    meta.project_label,
+                    meta.project_path_hash,
+                    meta.last_status,
+                    meta.pending_approvals,
+                    if meta.has_unread { 1 } else { 0 },
+                    meta.last_message_ts,
+                    meta.last_event_type,
+                    meta.updated_at_ms
+                ],
+            )?;
+            Ok(())
         })
     }
 

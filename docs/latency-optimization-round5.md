@@ -6,7 +6,7 @@
 ## 本轮改动
 
 1. ACK + PTY 快车道
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 改动:
   - 新增 `fastLane` 出站标记
   - 当目标设备队列为空时，`ACK/PTY` 直接发送（绕过 flush delay）

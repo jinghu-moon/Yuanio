@@ -6,7 +6,7 @@
 ## 本轮改动
 
 1. Relay 对高频临时消息禁持久化（stream_chunk/thinking/heartbeat/status/terminal_output）
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 2. CLI 在 stream_end 携带 finalText（恢复兜底）
 - 文件: `packages/cli/src/remote/prompt.ts`
 3. Android 解析 stream_end.finalText，必要时覆盖 streamBuffer 保证完整输出

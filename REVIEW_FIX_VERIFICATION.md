@@ -11,16 +11,16 @@
 ### C1. 硬编码密钥风险 - 环境变量验证 ✅
 
 **修复内容**:
-- 创建 `packages/relay-server/src/env-validator.ts`
+- 创建 `crates/relay-server/src/env-validator.ts`
 - 添加 JWT_SECRET 长度验证（最小 32 字符）
 - 集成到服务器启动流程（index.ts:2026）
 
 **验证结果**: ✅ 通过
 ```typescript
-// packages/relay-server/src/index.ts:6
+// crates/relay-server/src/index.ts:6
 import { validateEnvironment } from "./env-validator";
 
-// packages/relay-server/src/index.ts:2026
+// crates/relay-server/src/index.ts:2026
 validateEnvironment();
 ```
 
@@ -120,14 +120,14 @@ data/yuanio.db-wal (4.0MB)
 ## 🎯 修复文件清单
 
 ### 新增文件
-1. `packages/relay-server/src/env-validator.ts` - 环境变量验证模块
+1. `crates/relay-server/src/env-validator.ts` - 环境变量验证模块
 2. `packages/web-dashboard/src/__tests__/server.test.ts` - 测试文件
 3. `docs/environment-variables.md` - 环境变量配置文档
 4. `data/` - 数据库安全目录
 
 ### 修改文件
 1. `.gitignore` - 添加数据库和敏感文件保护
-2. `packages/relay-server/src/index.ts` - 集成环境验证
+2. `crates/relay-server/src/index.ts` - 集成环境验证
 3. `packages/web-dashboard/package.json` - 添加测试脚本
 4. `.agents/skills/sy-ideation/SKILL.md` - 增加触发关键词
 

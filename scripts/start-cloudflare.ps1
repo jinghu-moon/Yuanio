@@ -528,7 +528,7 @@ function Is-RelayProcess($Proc) {
   if ($null -eq $Proc) { return $false }
   $cmd = $Proc.CommandLine
   if ([string]::IsNullOrWhiteSpace($cmd)) { return $false }
-  return ($cmd -match "relay-server") -or ($cmd -match "packages/relay-server") -or ($cmd -match "run src/index.ts")
+  return ($cmd -match "relay-server") -or ($cmd -match "crates/relay-server") -or ($cmd -match "Cargo.toml")
 }
 
 function Confirm-Dangerous([string]$Op, [string]$Scope, [string]$Risk) {

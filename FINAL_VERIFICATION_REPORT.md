@@ -13,7 +13,7 @@ bun run typecheck
 
 **结果**: 通过
 - packages/shared: 无类型错误
-- packages/relay-server: 无类型错误
+- crates/relay-server: 无类型错误
 - packages/cli: 无类型错误
 
 ---

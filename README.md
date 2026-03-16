@@ -32,7 +32,7 @@ The public app repository intentionally excludes local secrets, runtime state, b
 
 - `android-app/` - Android application built with Kotlin and Jetpack Compose.
 - `packages/cli/` - local CLI launcher, TUI entrypoint, and desktop-side control flow.
-- `packages/relay-server/` - Rust relay server for encrypted forwarding and coordination.
+- `crates/relay-server/` - Rust relay server for encrypted forwarding and coordination.
 - `packages/shared/` - shared protocol, crypto, and transport primitives.
 - `packages/web-dashboard/` - experimental web dashboard surfaces.
 - `docs/` - architecture, protocol, deployment, benchmarking, and workflow notes.
@@ -52,7 +52,7 @@ The public app repository intentionally excludes local secrets, runtime state, b
 ```text
 android-app/            Android client
 packages/cli/           local CLI and launch flow
-packages/relay-server/  relay server
+crates/relay-server/    relay server
 packages/shared/        shared protocol and crypto
 packages/web-dashboard/ web dashboard experiments
 scripts/                local helper scripts

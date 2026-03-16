@@ -107,11 +107,11 @@ useEffect(() => {
     addLog({ source: "relay", level: "info", text: t("service.log.relay.starting") });
 
     try {
-      const relayEntry = paths.relay("index.ts");
+      const relayManifest = paths.relayManifest;
       const relayLaunch = resolveRelayLaunchEnv({ env: process.env, port: relayPort, repoRoot: paths.repoRoot });
       const proc = spawn({
-        cmd: [process.execPath, "run", relayEntry],
-        cwd: paths.relayRoot,
+        cmd: ["cargo", "run", "--manifest-path", relayManifest],
+        cwd: paths.repoRoot,
         env: relayLaunch.env,
         stdout: "pipe",
         stderr: "pipe",
@@ -804,5 +804,4 @@ function pipeOutput(
   read(proc.stdout as ReadableStream<Uint8Array> | null, "info");
   read(proc.stderr as ReadableStream<Uint8Array> | null, "warn");
 }
-
 

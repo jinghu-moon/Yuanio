@@ -24,11 +24,11 @@
 ### 1.1 JWT_SECRET 环境变量缺失处理不当
 
 **严重级别**: 🔴 Critical
-**影响范围**: `packages/relay-server/src/jwt.ts`
+**影响范围**: `crates/relay-server/src/jwt.ts`
 **问题描述**:
 
 ```typescript
-// packages/relay-server/src/jwt.ts:6
+// crates/relay-server/src/jwt.ts:6
 throw new Error(`[jwt] JWT_SECRET 过短，至少需要${MIN_SECRET_LENGTH} 字符`);
 ```
 
@@ -61,7 +61,7 @@ if (process.env.JWT_SECRET.length < MIN_SECRET_LENGTH) {
 ### 1.2 CORS 配置在生产环境允许所有来源
 
 **严重级别**: 🔴 Critical
-**影响范围**: `packages/relay-server/src/index.ts:128-136`
+**影响范围**: `crates/relay-server/src/index.ts:128-136`
 **问题描述**:
 
 ```typescript
@@ -93,7 +93,7 @@ if (relayEnv.NODE_ENV === "production" && allowAllOrigins) {
 ### 1.3 缺少速率限制的关键端点
 
 **严重级别**: 🔴 Critical
-**影响范围**: `packages/relay-server/src/index.ts`
+**影响范围**: `crates/relay-server/src/index.ts`
 **问题描述**:
 
 以下端点缺少速率限制保护:
@@ -127,7 +127,7 @@ app.post("/api/v1/token/refresh", async (c) => {
 ### 2.1 数据库写入缓冲区无边界保护
 
 **严重级别**: 🟡 High
-**影响范围**: `packages/relay-server/src/index.ts:789-833`
+**影响范围**: `crates/relay-server/src/index.ts:789-833`
 **问题描述**:
 
 ```typescript
@@ -202,7 +202,7 @@ try {
 ### 2.3 WebSocket 消息验证不完整
 
 **严重级别**: 🟡 High
-**影响范围**: `packages/relay-server/src/index.ts:1862-1978`
+**影响范围**: `crates/relay-server/src/index.ts:1862-1978`
 **问题描述**:
 
 ```typescript
@@ -242,7 +242,7 @@ if (envelope.target && typeof envelope.target === 'string') {
 ### 2.4 Session 设备缓存可能返回过期数据
 
 **严重级别**: 🟡 High
-**影响范围**: `packages/relay-server/src/index.ts:907-926`
+**影响范围**: `crates/relay-server/src/index.ts:907-926`
 **问题**: 缓存 TTL 仅 1 秒，设备上下线时可能路由错误
 **建议**: 在所有设备状态变更点调用缓存失效
 **优先级**: P1
@@ -250,7 +250,7 @@ if (envelope.target && typeof envelope.target === 'string') {
 ### 2.5 FCM Token 清理存在竞态条件
 
 **严重级别**: 🟡 High
-**影响范围**: `packages/relay-server/src/index.ts:1964-1974`
+**影响范围**: `crates/relay-server/src/index.ts:1964-1974`
 **问题**: 并发推送失败时可能重复清理同一 token
 **建议**: 添加清理去重机制
 **优先级**: P1
@@ -266,7 +266,7 @@ if (envelope.target && typeof envelope.target === 'string') {
 ### 2.7 Outbound 队列优先级插入性能问题
 
 **严重级别**: 🟡 High
-**影响范围**: `packages/relay-server/src/index.ts:1427-1448`
+**影响范围**: `crates/relay-server/src/index.ts:1427-1448`
 **问题**: O(n) 线性扫描，高并发下性能退化
 **建议**: 使用优先级队列数据结构
 **优先级**: P2

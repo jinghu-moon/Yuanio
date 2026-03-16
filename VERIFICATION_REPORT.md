@@ -14,7 +14,7 @@ bun run typecheck
 **状态**: ✅ 通过
 **覆盖范围**:
 - packages/shared
-- packages/relay-server
+- crates/relay-server
 - packages/cli
 
 ### 2. 基线协议测试

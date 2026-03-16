@@ -6,7 +6,7 @@
 ## 本轮实现（底层到消费层）
 
 1. Relay 出站队列改造（按设备）
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 变更:
   - ACK 改为高优先级入队（不再使用无队列直发）
   - 保留 `pty_*` 直发，减少交互型二进制消息路径上的队列等待
@@ -15,7 +15,7 @@
   - 慢端保护逻辑保持（瞬时消息丢弃 + 超限断开）
 
 2. Relay 默认参数调优
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 变更:
   - `OUTBOUND_FLUSH_DELAY_MS` 默认 `8 -> 2`
   - `OUTBOUND_BASE_BATCH_SIZE` 默认 `24 -> 16`

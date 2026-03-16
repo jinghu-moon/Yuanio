@@ -6,7 +6,7 @@
 ## 本轮改动
 
 1. Relay 出站链路改为“按设备队列发送”，替代直接 `socket.to(room).emit`
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 新增:
   - 每设备出站队列（`message`/`ack`）
   - 瞬时消息优先丢弃（`stream_chunk/thinking/heartbeat/status/terminal_output/pty_*`）
@@ -14,7 +14,7 @@
   - 基于 `event loop lag + ACK RTT` 的 AIMD 批量发送窗口
 
 2. Relay ACK 语义与观测增强
-- 文件: `packages/relay-server/src/index.ts`
+- 文件: `crates/relay-server/src/index.ts`
 - 新增:
   - ACK 状态规范化（`ok/working/retry_after/terminal`）
   - `retry_after` 不触发 `markDeliveryAcked`

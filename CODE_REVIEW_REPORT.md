@@ -67,7 +67,7 @@ git log --all --oneline -- "android-app/keystore/keystore.properties"
 
 ### 2. 生产环境日志泄露风险
 
-**位置**: `packages/relay-server/src/`, `packages/cli/src/`
+**位置**: `crates/relay-server/src/`, `packages/cli/src/`
 
 **问题描述**:
 - 生产代码中存在 **189 处** `console.log` / `console.error` 调用
@@ -106,7 +106,7 @@ rg "console\.(log|error|warn)" packages/ --type ts | grep -v test
 
 ### 3. JWT 密钥管理不足
 
-**位置**: `packages/relay-server/src/jwt.ts:5`
+**位置**: `crates/relay-server/src/jwt.ts:5`
 
 **问题描述**:
 - 开发环境使用硬编码的默认密钥: `yuanio-dev-secret-change-in-production`

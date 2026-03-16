@@ -13,7 +13,7 @@ use axum::{
     Json, Router,
 };
 use config::RelayConfig;
-use db::{EncryptedMessageCursorRow, RelayDb, SessionMembershipRow, SessionMessageRow};
+use db::{EncryptedMessageCursorRow, RelayDb, SessionMembershipRow, SessionMessageRow, SessionMetaRow};
 use relay_protocol::{is_protocol_compatible, normalize_namespace, DEFAULT_NAMESPACE, PROTOCOL_VERSION};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
@@ -107,6 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/v1/sessions", get(session_list))
         .route("/api/v1/sessions/:id/connections", get(session_connections))
         .route("/api/v1/sessions/:id/version", get(session_version))
+        .route("/api/v1/sessions/:id/meta", post(session_meta_update))
         .route("/api/v1/sessions/switch", post(session_switch))
         .route("/api/v1/sessions/:id/update", post(session_update))
         .with_state(state);
@@ -1125,7 +1126,7 @@ async fn session_messages(
         return (StatusCode::FORBIDDEN, Json(ErrorResponse::new("session mismatch"))).into_response();
     }
     let db = state.db.clone();
-    let namespace = payload.namespace.clone();
+    let namespace = normalize_namespace(Some(&payload.namespace));
     let session_id_clone = session_id.clone();
     let belongs = match tokio::task::spawn_blocking(move || db.session_belongs_to_namespace(&session_id_clone, &namespace)).await {
         Ok(Ok(value)) => value,
@@ -1175,6 +1176,19 @@ struct SessionListResponse {
     sessions: Vec<SessionSummary>,
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct SessionMeta {
+    project_label: Option<String>,
+    project_path_hash: Option<String>,
+    last_status: Option<String>,
+    pending_approvals: i64,
+    has_unread: bool,
+    last_message_ts: Option<i64>,
+    last_event_type: Option<String>,
+    updated_at: i64,
+}
+
 #[derive(Debug, Serialize)]
 struct SessionSummary {
     #[serde(rename = "sessionId")]
@@ -1192,6 +1206,8 @@ struct SessionSummary {
     has_agent_online: bool,
     #[serde(rename = "hasAppOnline")]
     has_app_online: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    meta: Option<SessionMeta>,
 }
 
 async fn session_list(
@@ -1238,6 +1254,28 @@ async fn session_list(
         }
     };
 
+    let session_ids = rows
+        .iter()
+        .map(|row| row.session_id.clone())
+        .collect::<Vec<_>>();
+    let db = state.db.clone();
+    let namespace_for_meta = payload.namespace.clone();
+    let meta_map = match tokio::task::spawn_blocking(move || {
+        db.get_session_meta_by_session_ids(&session_ids, &namespace_for_meta)
+    })
+    .await
+    {
+        Ok(Ok(value)) => value,
+        Ok(Err(err)) => {
+            warn!("session meta db error: {}", err);
+            HashMap::new()
+        }
+        Err(err) => {
+            warn!("session meta join error: {}", err);
+            HashMap::new()
+        }
+    };
+
     let mut sessions = Vec::new();
     for row in rows {
         let snapshot = state
@@ -1252,6 +1290,16 @@ async fn session_list(
         online_roles.sort();
         let has_agent_online = role_set.contains_key("agent");
         let has_app_online = role_set.contains_key("app");
+        let meta = meta_map.get(&row.session_id).map(|value| SessionMeta {
+            project_label: value.project_label.clone(),
+            project_path_hash: value.project_path_hash.clone(),
+            last_status: value.last_status.clone(),
+            pending_approvals: value.pending_approvals,
+            has_unread: value.has_unread,
+            last_message_ts: value.last_message_ts,
+            last_event_type: value.last_event_type.clone(),
+            updated_at: value.updated_at_ms,
+        });
         sessions.push(SessionSummary {
             session_id: row.session_id,
             role: row.role,
@@ -1261,6 +1309,7 @@ async fn session_list(
             online_roles,
             has_agent_online,
             has_app_online,
+            meta,
         });
     }
 
@@ -1269,6 +1318,203 @@ async fn session_list(
         sessions,
     };
     (StatusCode::OK, Json(response)).into_response()
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionMetaUpdateRequest {
+    project_label: Option<String>,
+    project_path_hash: Option<String>,
+    last_status: Option<String>,
+    pending_approvals: Option<i64>,
+    has_unread: Option<bool>,
+    last_message_ts: Option<i64>,
+    last_event_type: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionMetaUpdateResponse {
+    success: bool,
+    meta: SessionMeta,
+}
+
+const MAX_PROJECT_LABEL_LEN: usize = 64;
+const MAX_PROJECT_HASH_LEN: usize = 128;
+const MAX_STATUS_LEN: usize = 32;
+const MAX_EVENT_TYPE_LEN: usize = 64;
+
+fn normalize_optional_string(value: Option<String>, max_len: usize) -> Result<Option<String>, String> {
+    let Some(raw) = value else {
+        return Ok(None);
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    if trimmed.len() > max_len {
+        return Err(format!("value exceeds max length {}", max_len));
+    }
+    Ok(Some(trimmed.to_string()))
+}
+
+fn merge_last_message_ts(current: Option<i64>, update: Option<i64>) -> Option<i64> {
+    match (current, update) {
+        (Some(current), Some(update)) => Some(current.max(update)),
+        (None, Some(update)) => Some(update),
+        (Some(current), None) => Some(current),
+        (None, None) => None,
+    }
+}
+
+async fn session_meta_update(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+    axum::extract::Path(session_id): axum::extract::Path<String>,
+    Json(body): Json<SessionMetaUpdateRequest>,
+) -> impl IntoResponse {
+    let auth_header = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("");
+    if !auth_header.starts_with("Bearer ") {
+        return (StatusCode::UNAUTHORIZED, Json(ErrorResponse::new("authorization required"))).into_response();
+    }
+    let token = auth_header.trim_start_matches("Bearer ").trim().to_string();
+    if token.is_empty() {
+        return (StatusCode::UNAUTHORIZED, Json(ErrorResponse::new("authorization required"))).into_response();
+    }
+
+    let has_payload = body.project_label.is_some()
+        || body.project_path_hash.is_some()
+        || body.last_status.is_some()
+        || body.pending_approvals.is_some()
+        || body.has_unread.is_some()
+        || body.last_message_ts.is_some()
+        || body.last_event_type.is_some();
+    if !has_payload {
+        return (StatusCode::BAD_REQUEST, Json(ErrorResponse::new("no meta fields provided")))
+            .into_response();
+    }
+
+    let config = state.config.clone();
+    let db = state.db.clone();
+    let token_for_verify = token.clone();
+    let payload = match tokio::task::spawn_blocking(move || auth::verify_token(&config, &db, &token_for_verify)).await {
+        Ok(Ok(value)) => value,
+        _ => {
+            return (StatusCode::UNAUTHORIZED, Json(ErrorResponse::new("invalid token"))).into_response();
+        }
+    };
+    if payload.session_id != session_id {
+        return (StatusCode::FORBIDDEN, Json(ErrorResponse::new("session mismatch"))).into_response();
+    }
+
+    let db = state.db.clone();
+    let namespace = payload.namespace.clone();
+    let session_id_for_check = session_id.clone();
+    let namespace_for_check = namespace.clone();
+    let session_ok = match tokio::task::spawn_blocking(move || {
+        db.session_belongs_to_namespace(&session_id_for_check, &namespace_for_check)
+    })
+    .await
+    {
+        Ok(Ok(value)) => value,
+        _ => false,
+    };
+    if !session_ok {
+        return (StatusCode::FORBIDDEN, Json(ErrorResponse::new("namespace mismatch"))).into_response();
+    }
+
+    let project_label = match normalize_optional_string(body.project_label, MAX_PROJECT_LABEL_LEN) {
+        Ok(value) => value,
+        Err(err) => return (StatusCode::BAD_REQUEST, Json(ErrorResponse::new(&err))).into_response(),
+    };
+    let project_path_hash = match normalize_optional_string(body.project_path_hash, MAX_PROJECT_HASH_LEN) {
+        Ok(value) => value,
+        Err(err) => return (StatusCode::BAD_REQUEST, Json(ErrorResponse::new(&err))).into_response(),
+    };
+    let last_status = match normalize_optional_string(body.last_status, MAX_STATUS_LEN) {
+        Ok(value) => value,
+        Err(err) => return (StatusCode::BAD_REQUEST, Json(ErrorResponse::new(&err))).into_response(),
+    };
+    let last_event_type = match normalize_optional_string(body.last_event_type, MAX_EVENT_TYPE_LEN) {
+        Ok(value) => value,
+        Err(err) => return (StatusCode::BAD_REQUEST, Json(ErrorResponse::new(&err))).into_response(),
+    };
+
+    let db = state.db.clone();
+    let session_id_for_db = session_id.clone();
+    let namespace_for_db = namespace.clone();
+    let current = match tokio::task::spawn_blocking(move || {
+        db.get_session_meta(&session_id_for_db, &namespace_for_db)
+    })
+    .await
+    {
+        Ok(Ok(value)) => value,
+        Ok(Err(err)) => {
+            warn!("session meta load error: {}", err);
+            None
+        }
+        Err(err) => {
+            warn!("session meta load join error: {}", err);
+            None
+        }
+    };
+
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let pending_approvals = body
+        .pending_approvals
+        .map(|value| value.max(0))
+        .unwrap_or_else(|| current.as_ref().map(|meta| meta.pending_approvals).unwrap_or(0));
+    let has_unread = body
+        .has_unread
+        .unwrap_or_else(|| current.as_ref().map(|meta| meta.has_unread).unwrap_or(false));
+    let last_message_update = body.last_message_ts.filter(|value| *value >= 0);
+    let last_message_ts =
+        merge_last_message_ts(current.as_ref().and_then(|meta| meta.last_message_ts), last_message_update);
+
+    let meta_row = SessionMetaRow {
+        session_id: session_id.clone(),
+        namespace: namespace.clone(),
+        project_label: project_label.or_else(|| current.as_ref().and_then(|meta| meta.project_label.clone())),
+        project_path_hash: project_path_hash
+            .or_else(|| current.as_ref().and_then(|meta| meta.project_path_hash.clone())),
+        last_status: last_status.or_else(|| current.as_ref().and_then(|meta| meta.last_status.clone())),
+        pending_approvals,
+        has_unread,
+        last_message_ts,
+        last_event_type: last_event_type
+            .or_else(|| current.as_ref().and_then(|meta| meta.last_event_type.clone())),
+        updated_at_ms: now_ms,
+    };
+
+    let db = state.db.clone();
+    let meta_for_db = meta_row.clone();
+    let result = tokio::task::spawn_blocking(move || db.upsert_session_meta(&meta_for_db)).await;
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) => {
+            warn!("session meta update db error: {}", err);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new("db error"))).into_response();
+        }
+        Err(err) => {
+            warn!("session meta update join error: {}", err);
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse::new("db error"))).into_response();
+        }
+    };
+
+    let meta = SessionMeta {
+        project_label: meta_row.project_label,
+        project_path_hash: meta_row.project_path_hash,
+        last_status: meta_row.last_status,
+        pending_approvals: meta_row.pending_approvals,
+        has_unread: meta_row.has_unread,
+        last_message_ts: meta_row.last_message_ts,
+        last_event_type: meta_row.last_event_type,
+        updated_at: meta_row.updated_at_ms,
+    };
+    (StatusCode::OK, Json(SessionMetaUpdateResponse { success: true, meta })).into_response()
 }
 
 #[derive(Debug, Serialize)]
